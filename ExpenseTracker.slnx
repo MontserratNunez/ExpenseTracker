@@ -11,4 +11,7 @@
   <Folder Name="/Source/Presentation/">
     <Project Path="src/Presentation/ExpenseTracker.Web/ExpenseTracker.Web.csproj" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/ExpenseTracker.Tests/ExpenseTracker.Tests.csproj" />
+  </Folder>
 </Solution>
