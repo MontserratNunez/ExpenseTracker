@@ -1,7 +1,64 @@
 @page "/estimaciones"
+@using ExpenseTracker.Core.Application.DTOs.Forecast
+@using ExpenseTracker.Core.Application.Interfaces
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+@inject ForecastService ForecastService
+@inject CurrencyService CurrencyService
+@inject IDateProvider DateProvider
 
 <PageTitle>Estimaciones</PageTitle>
 
-<h1>Estimaciones</h1>
+<h1 class="mb-1">Estimaciones</h1>
+<p class="text-muted">Cuánto se espera gastar según tus gastos recurrentes, tus deudas y tu ritmo de gasto variable.</p>
 
-<p class="text-muted">Próximamente.</p>
+<ErrorAlert @bind-Message="error" />
+
+@if (loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+}
+else if (nextMonth is not null && restOfYear is not null && nextYear is not null)
+{
+    var today = DateProvider.Today;
+    var next = new DateOnly(today.Year, today.Month, 1).AddMonths(1);
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-4">
+            <ForecastCard Title="@($"Próximo mes · {UiLabels.MonthName(next.Month)} {next.Year}")" Data="nextMonth" BaseCurrency="baseCurrency" />
+        </div>
+        <div class="col-12 col-xl-4">
+            <ForecastCard Title="@($"Resto de {today.Year}")" Data="restOfYear" BaseCurrency="baseCurrency" ShowMonths="true" />
+        </div>
+        <div class="col-12 col-xl-4">
+            <ForecastCard Title="@((today.Year + 1).ToString())" Data="nextYear" BaseCurrency="baseCurrency" ShowMonths="true" />
+        </div>
+    </div>
+}
+
+@code {
+    private bool loading = true;
+    private string? error;
+    private Currency baseCurrency = Currency.DOP;
+    private ForecastDto? nextMonth;
+    private ForecastDto? restOfYear;
+    private ForecastDto? nextYear;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
+            nextMonth = await ForecastService.GetNextMonthAsync();
+            restOfYear = await ForecastService.GetRestOfYearAsync();
+            nextYear = await ForecastService.GetNextYearAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+
+        loading = false;
+    }
+}

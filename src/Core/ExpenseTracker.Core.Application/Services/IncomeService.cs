@@ -191,6 +191,37 @@ public class IncomeService
         return result;
     }
 
+    /// <summary>
+    /// Projected income for [from, to], keyed by the first day of each month it touches:
+    /// recurring occurrences inside the range plus one-time income already registered in it.
+    /// </summary>
+    public async Task<Dictionary<DateOnly, decimal>> GetProjectedIncomeByMonthAsync(DateOnly from, DateOnly to)
+    {
+        var result = new Dictionary<DateOnly, decimal>();
+        if (to < from)
+            return result;
+
+        for (var month = new DateOnly(from.Year, from.Month, 1); month <= to; month = month.AddMonths(1))
+            result[month] = 0m;
+
+        var sources = await _sources.ListAsync(s => s.IsActive);
+        if (sources.Count > 0)
+        {
+            var converter = await _currency.GetConverterAsync();
+            foreach (var source in sources)
+            {
+                var unitInBase = converter.ToBase(source.Amount, source.Currency);
+                foreach (var date in RecurrenceCalculator.GetOccurrences(source.StartDate, source.Frequency, source.EndDate, from, to))
+                    result[new DateOnly(date.Year, date.Month, 1)] += unitInBase;
+            }
+        }
+
+        foreach (var income in await _oneTime.ListAsync(i => i.Date >= from && i.Date <= to))
+            result[new DateOnly(income.Date.Year, income.Date.Month, 1)] += income.AmountInBase;
+
+        return result;
+    }
+
     // ---------- Helpers ----------
 
     private static (DateOnly From, DateOnly To) GetMonthRange(int year, int month)

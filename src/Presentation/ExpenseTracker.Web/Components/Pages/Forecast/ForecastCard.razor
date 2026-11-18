@@ -1,0 +1,160 @@
+@using ExpenseTracker.Core.Application.DTOs.Forecast
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+
+<section class="card h-100">
+    <div class="card-body">
+        <h2 class="h5 mb-0">@Title</h2>
+        <div class="text-muted small mb-3">@Data.From.ToString("d") – @Data.To.ToString("d")</div>
+
+        <dl class="row mb-2">
+            <dt class="col-6 fw-normal text-muted">Gasto estimado</dt>
+            <dd class="col-6 text-end fw-semibold"><MoneyText Amount="Data.TotalExpenses" Currency="BaseCurrency" /></dd>
+            <dt class="col-6 fw-normal text-muted">Ingreso estimado</dt>
+            <dd class="col-6 text-end fw-semibold"><MoneyText Amount="Data.ProjectedIncome" Currency="BaseCurrency" /></dd>
+            <dt class="col-6 fw-normal text-muted">Balance</dt>
+            <dd class="col-6 text-end fw-bold @(Data.Balance < 0 ? "text-danger" : "text-success")">
+                <MoneyText Amount="Data.Balance" Currency="BaseCurrency" />
+            </dd>
+        </dl>
+
+        @if (Data.Months.Count == 0)
+        {
+            <p class="text-muted mb-0">No queda tiempo en este periodo.</p>
+        }
+        else
+        {
+            <button type="button" class="btn btn-sm btn-outline-secondary" aria-expanded="@expanded" @onclick="() => expanded = !expanded">
+                @(expanded ? "Ocultar desglose" : "Ver desglose")
+            </button>
+
+            @if (expanded)
+            {
+                <div class="mt-3">
+                    <h3 class="h6">Recurrentes <span class="text-muted fw-normal">· <MoneyText Amount="Data.RecurringTotal" Currency="BaseCurrency" /></span></h3>
+                    @if (Data.RecurringItems.Count == 0)
+                    {
+                        <p class="text-muted small">Sin gastos recurrentes en este periodo.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled small">
+                            @foreach (var item in Data.RecurringItems)
+                            {
+                                <li class="d-flex justify-content-between">
+                                    <span>@item.Name <span class="text-muted">· @item.CategoryName@(item.Occurrences > 1 ? $" · {item.Occurrences} veces" : "")</span></span>
+                                    <MoneyText Amount="item.Amount" Currency="BaseCurrency" />
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    <h3 class="h6">Deudas <span class="text-muted fw-normal">· <MoneyText Amount="Data.DebtsTotal" Currency="BaseCurrency" /></span></h3>
+                    @if (Data.DebtItems.Count == 0)
+                    {
+                        <p class="text-muted small">Sin cuotas de deuda en este periodo.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled small">
+                            @foreach (var item in Data.DebtItems)
+                            {
+                                <li class="d-flex justify-content-between">
+                                    <span>@item.Name <span class="text-muted">· @item.Occurrences @(item.Occurrences == 1 ? "cuota" : "cuotas")</span></span>
+                                    <MoneyText Amount="item.Amount" Currency="BaseCurrency" />
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    <h3 class="h6">Variables <span class="text-muted fw-normal">· <MoneyText Amount="Data.VariablesTotal" Currency="BaseCurrency" /></span></h3>
+                    @if (Data.VariableItems.Count == 0)
+                    {
+                        <p class="text-muted small">Sin historial ni plan para estimar gastos variables.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled small mb-1">
+                            @foreach (var item in Data.VariableItems)
+                            {
+                                <li class="d-flex justify-content-between">
+                                    <span>
+                                        <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .6rem; height: .6rem; background-color: @item.CategoryColor;"></span>@item.CategoryName
+                                        @if (item.Basis == VariableBasis.Plan)
+                                        {
+                                            <span class="badge text-bg-light border">Plan</span>
+                                        }
+                                    </span>
+                                    <MoneyText Amount="item.Amount" Currency="BaseCurrency" />
+                                </li>
+                            }
+                        </ul>
+                        <p class="form-text">@VariablesNote</p>
+                    }
+
+                    @if (ShowMonths && Data.Months.Count > 1)
+                    {
+                        <h3 class="h6 mt-3">Mes a mes</h3>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle small mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Mes</th>
+                                        <th class="text-end">Recurr.</th>
+                                        <th class="text-end">Deudas</th>
+                                        <th class="text-end">Variab.</th>
+                                        <th class="text-end">Gastos</th>
+                                        <th class="text-end">Ingresos</th>
+                                        <th class="text-end">Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var m in Data.Months)
+                                    {
+                                        <tr>
+                                            <td class="text-nowrap">@UiLabels.ShortMonthName(m.Month)@(m.IsPartial ? "*" : "")</td>
+                                            <td class="text-end"><MoneyText Amount="m.Recurring" Currency="BaseCurrency" /></td>
+                                            <td class="text-end"><MoneyText Amount="m.Debts" Currency="BaseCurrency" /></td>
+                                            <td class="text-end"><MoneyText Amount="m.Variables" Currency="BaseCurrency" /></td>
+                                            <td class="text-end"><MoneyText Amount="m.TotalExpenses" Currency="BaseCurrency" /></td>
+                                            <td class="text-end"><MoneyText Amount="m.Income" Currency="BaseCurrency" /></td>
+                                            <td class="text-end @(m.Balance < 0 ? "text-danger" : "text-success")"><MoneyText Amount="m.Balance" Currency="BaseCurrency" /></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (Data.Months.Any(m => m.IsPartial))
+                        {
+                            <p class="form-text">* Mes parcial: solo se cuenta lo que queda por delante.</p>
+                        }
+                    }
+                </div>
+            }
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public ForecastDto Data { get; set; } = new();
+
+    [Parameter]
+    public Currency BaseCurrency { get; set; } = Currency.DOP;
+
+    /// <summary>Show the month-by-month table (for ranges longer than a month).</summary>
+    [Parameter]
+    public bool ShowMonths { get; set; }
+
+    private bool expanded;
+
+    private string VariablesNote => (Data.UsesHistory, Data.UsesPlan) switch
+    {
+        (true, true) => "Variables estimadas con el promedio de los últimos 3 meses (o con tu Plan donde no hay historial).",
+        (false, true) => "Variables estimadas con tu Plan, porque aún no hay historial.",
+        _ => "Variables estimadas con el promedio de los últimos 3 meses."
+    };
+}
