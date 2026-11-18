@@ -14,5 +14,181 @@ else
         Muestra cada componente del sistema de diseño en todas sus variantes. Solo está disponible en desarrollo.
     </p>
 
-    @* Each step of Phase 14 adds a section here with the components it creates. *@
+    <section class="catalog-section" aria-labelledby="catalog-colors">
+        <h2 id="catalog-colors">Paleta</h2>
+        <p class="text-muted">El azul es el único acento. Verde, rojo y gris solo expresan el estado del dinero.</p>
+
+        @foreach (var group in Palette)
+        {
+            <h3 class="catalog-group">@group.Title</h3>
+            <div class="swatches">
+                @foreach (var color in group.Colors)
+                {
+                    <div class="swatch">
+                        <div class="swatch__chip" style="background: var(@color.Token);"></div>
+                        <div class="swatch__name">@color.Token</div>
+                        <div class="swatch__value">@color.Value</div>
+                        <div class="swatch__use">@color.Use</div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-type">
+        <h2 id="catalog-type">Tipografía</h2>
+        <p class="text-muted">Fuente: Inter, alojada en <code>/fonts/inter</code>. Montos con cifras tabulares.</p>
+
+        <table class="type-table">
+            <thead>
+                <tr><th>Token</th><th>Tamaño / peso</th><th>Uso</th><th>Muestra</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var step in TypeScale)
+                {
+                    <tr>
+                        <td><code>@step.Token</code></td>
+                        <td>@step.Size px / @step.Weight</td>
+                        <td>@step.Use</td>
+                        <td style="font-size: var(@step.Token); font-weight: @step.Weight; line-height: 1.3;">
+                            @step.Sample
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <h3 class="catalog-group">Cifras tabulares</h3>
+        <div class="tabular-demo">
+            <div><span>Supermercado</span><span>RD$ 4,885.40</span></div>
+            <div><span>Recibo luz</span><span>RD$ 1,300.00</span></div>
+            <div><span>Seguro</span><span>RD$ 20,000.00</span></div>
+        </div>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-space">
+        <h2 id="catalog-space">Espaciado, radios y sombras</h2>
+
+        <h3 class="catalog-group">Espacio (base 4 px)</h3>
+        <div class="space-demo">
+            @foreach (var space in Spaces)
+            {
+                <div class="space-demo__row">
+                    <code>@space.Token</code>
+                    <span class="space-demo__bar" style="width: var(@space.Token);"></span>
+                    <span class="text-muted">@space.Px px</span>
+                </div>
+            }
+        </div>
+
+        <h3 class="catalog-group">Radios y sombras</h3>
+        <div class="elevation-demo">
+            <div style="border-radius: var(--radius-sm);">--radius-sm · 6 px</div>
+            <div style="border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">--radius-md · 10 px · --shadow-sm</div>
+            <div style="border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">--radius-lg · 14 px · --shadow-lg</div>
+        </div>
+    </section>
+}
+
+@code {
+    private sealed class Swatch
+    {
+        public Swatch(string token, string value, string use)
+        {
+            Token = token;
+            Value = value;
+            Use = use;
+        }
+
+        public string Token { get; }
+        public string Value { get; }
+        public string Use { get; }
+    }
+
+    private sealed class SwatchGroup
+    {
+        public SwatchGroup(string title, params Swatch[] colors)
+        {
+            Title = title;
+            Colors = colors;
+        }
+
+        public string Title { get; }
+        public Swatch[] Colors { get; }
+    }
+
+    private sealed class TypeStep
+    {
+        public TypeStep(string token, int size, int weight, string use, string sample)
+        {
+            Token = token;
+            Size = size;
+            Weight = weight;
+            Use = use;
+            Sample = sample;
+        }
+
+        public string Token { get; }
+        public int Size { get; }
+        public int Weight { get; }
+        public string Use { get; }
+        public string Sample { get; }
+    }
+
+    private sealed class SpaceStep
+    {
+        public SpaceStep(string token, int px)
+        {
+            Token = token;
+            Px = px;
+        }
+
+        public string Token { get; }
+        public int Px { get; }
+    }
+
+    // The values are shown as text for reference; the swatches themselves use the live CSS variables.
+    private static readonly SwatchGroup[] Palette =
+    {
+        new("Superficies",
+            new("--color-bg", "#FFFFFF", "Fondo principal"),
+            new("--color-bg-subtle", "#F7F9FC", "Barra lateral y secciones"),
+            new("--color-bg-hover", "#EEF3FB", "Hover de filas y menú"),
+            new("--color-border", "#E6EBF2", "Bordes y divisores (1 px)")),
+        new("Azul (acento)",
+            new("--color-primary-50", "#EFF5FF", "Elemento seleccionado y badges"),
+            new("--color-primary-100", "#DBE8FE", "Botón secundario en hover"),
+            new("--color-primary-500", "#2F6FEB", "Botones, enlaces y foco"),
+            new("--color-primary-600", "#2459C7", "Hover del botón primario"),
+            new("--color-primary-700", "#1C47A0", "Texto sobre azul claro")),
+        new("Texto",
+            new("--color-text", "#1F2937", "Texto principal"),
+            new("--color-text-muted", "#6B7280", "Etiquetas y texto secundario"),
+            new("--color-text-subtle", "#9CA3AF", "Placeholders y metadatos")),
+        new("Semánticos (solo dinero)",
+            new("--color-available", "#22A06B", "Disponible"),
+            new("--color-spent", "#E5484D", "Gastado"),
+            new("--color-committed", "#A0AEC0", "Comprometido"),
+            new("--color-warning", "#F5A524", "Plan entre 90 % y 100 %"),
+            new("--color-available-bg", "#E8F7F0", "Fondo suave de disponible"),
+            new("--color-spent-bg", "#FDECEC", "Fondo suave de gastado"),
+            new("--color-committed-bg", "#F1F3F6", "Fondo suave de comprometido"),
+            new("--color-warning-bg", "#FEF5E6", "Fondo suave de advertencia"))
+    };
+
+    private static readonly TypeStep[] TypeScale =
+    {
+        new("--text-xs", 12, 500, "Badges y metadatos", "Pagado · Mensual"),
+        new("--text-sm", 13, 400, "Etiquetas y texto secundario", "Fecha de inicio"),
+        new("--text-base", 15, 400, "Texto general", "Registra tus gastos y sigue tu plan"),
+        new("--text-lg", 18, 600, "Títulos de sección", "Próximos pagos"),
+        new("--text-xl", 24, 600, "Título de página", "Gastos"),
+        new("--text-display", 32, 600, "Monto principal", "RD$ 21,300")
+    };
+
+    private static readonly SpaceStep[] Spaces =
+    {
+        new("--space-1", 4), new("--space-2", 8), new("--space-3", 12), new("--space-4", 16),
+        new("--space-5", 20), new("--space-6", 24), new("--space-8", 32), new("--space-12", 48)
+    };
 }

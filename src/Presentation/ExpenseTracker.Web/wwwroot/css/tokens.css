@@ -1,0 +1,94 @@
+/* Design tokens: every color, size, spacing and radius of the UI is defined here once.
+   Styles elsewhere use these variables and never hard-code a value. */
+
+/* Inter (SIL OFL 1.1, see fonts/inter/LICENSE.txt), served locally: no external requests. */
+@font-face {
+  font-family: "Inter";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("../fonts/inter/Inter-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("../fonts/inter/Inter-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("../fonts/inter/Inter-SemiBold.woff2") format("woff2");
+}
+
+:root {
+  /* Surfaces */
+  --color-bg: #FFFFFF;
+  --color-bg-subtle: #F7F9FC;
+  --color-bg-hover: #EEF3FB;
+  --color-border: #E6EBF2;
+
+  /* Blue: the only accent color */
+  --color-primary-50: #EFF5FF;
+  --color-primary-100: #DBE8FE;
+  --color-primary-500: #2F6FEB;
+  --color-primary-600: #2459C7;
+  --color-primary-700: #1C47A0;
+
+  /* Text */
+  --color-text: #1F2937;
+  --color-text-muted: #6B7280;
+  --color-text-subtle: #9CA3AF;
+
+  /* Semantic colors: reserved for the meaning of money */
+  --color-available: #22A06B;
+  --color-available-bg: #E8F7F0;
+  --color-spent: #E5484D;
+  --color-spent-bg: #FDECEC;
+  --color-committed: #A0AEC0;
+  --color-committed-bg: #F1F3F6;
+  --color-warning: #F5A524;
+  --color-warning-bg: #FEF5E6;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-display: 32px;
+
+  /* Spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Radii and shadows */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .05);
+  --shadow-lg: 0 12px 32px rgba(16, 24, 40, .12);
+  --focus-ring: 0 0 0 3px var(--color-primary-100);
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 150ms;
+  --ease: cubic-bezier(.2, 0, 0, 1);
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 64px;
+  --content-max: 1100px;
+}
