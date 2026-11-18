@@ -1,7 +1,393 @@
 @page "/ingresos"
+@using ExpenseTracker.Core.Application.DTOs.Incomes
+@using ExpenseTracker.Core.Application.Interfaces
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+@inject IncomeService IncomeService
+@inject CurrencyService CurrencyService
+@inject IDateProvider DateProvider
 
 <PageTitle>Ingresos</PageTitle>
 
-<h1>Ingresos</h1>
+<h1 class="mb-3">Ingresos</h1>
 
-<p class="text-muted">Próximamente.</p>
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <button type="button" class="nav-link @(tab == Tab.Recurring ? "active" : null)" @onclick="() => tab = Tab.Recurring">Fuentes recurrentes</button>
+    </li>
+    <li class="nav-item">
+        <button type="button" class="nav-link @(tab == Tab.OneTime ? "active" : null)" @onclick="() => tab = Tab.OneTime">Ingresos únicos</button>
+    </li>
+</ul>
+
+<ErrorAlert @bind-Message="error" />
+@if (message is not null)
+{
+    <div class="alert alert-success">@message</div>
+}
+
+@if (loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+}
+else if (tab == Tab.Recurring)
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0">Fuentes recurrentes</h2>
+        <button type="button" class="btn btn-primary" @onclick="StartCreateSource">+ Nueva fuente</button>
+    </div>
+
+    @if (sources.Count == 0)
+    {
+        <p class="text-muted">Aún no tienes fuentes de ingreso. Agrega tu sueldo para empezar.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr><th>Nombre</th><th class="text-end">Monto</th><th>Frecuencia</th><th>Estado</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var source in sources)
+                    {
+                        var s = source;
+                        <tr class="@(s.IsActive ? null : "text-muted")">
+                            <td>@s.Name</td>
+                            <td class="text-end"><MoneyText Amount="s.Amount" Currency="s.Currency" /></td>
+                            <td>@UiLabels.FrequencyName(s.Frequency)</td>
+                            <td>@SourceStatus(s)</td>
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => StartEditSource(s)">Editar</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => AskDeleteSource(s)">Eliminar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="2" class="text-end">Total mensual equivalente</td>
+                        <td colspan="3">
+                            @if (recurringTotal is not null)
+                            {
+                                <MoneyText Amount="recurringTotal.Value" Currency="baseCurrency" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">No disponible</span>
+                            }
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+}
+else
+{
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <MonthNavigator Year="year" Month="month" OnChange="OnMonthChanged" />
+        <button type="button" class="btn btn-primary" @onclick="StartCreateOneTime">+ Nuevo ingreso</button>
+    </div>
+
+    @if (monthly is not null)
+    {
+        <div class="alert alert-light border">
+            Ingresos de @UiLabels.MonthName(month) @year:
+            <strong><MoneyText Amount="monthly.Total" Currency="baseCurrency" /></strong>
+            <span class="text-muted">
+                (recurrentes <MoneyText Amount="monthly.RecurringTotal" Currency="baseCurrency" /> +
+                únicos <MoneyText Amount="monthly.OneTimeTotal" Currency="baseCurrency" />)
+            </span>
+        </div>
+    }
+
+    @if (oneTime.Count == 0)
+    {
+        <p class="text-muted">No hay ingresos únicos en este mes.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr><th>#</th><th>Fecha</th><th>Descripción</th><th class="text-end">Monto</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var income in oneTime)
+                    {
+                        var i = income;
+                        <tr>
+                            <td class="text-muted">Ingreso #@i.Id</td>
+                            <td>@i.Date.ToString("d")</td>
+                            <td>@i.Description</td>
+                            <td class="text-end">
+                                <MoneyText Amount="i.Amount" Currency="i.Currency" />
+                                @if (i.Currency != baseCurrency)
+                                {
+                                    <small class="text-muted">(<MoneyText Amount="i.AmountInBase" Currency="baseCurrency" />)</small>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => StartEditOneTime(i)">Editar</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => AskDeleteOneTime(i)">Eliminar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+<IncomeSourceForm Visible="showSourceForm" Title="@(editingSourceId is null ? "Nueva fuente de ingreso" : "Editar fuente de ingreso")"
+                  Model="sourceInput" Error="formError" OnSave="SaveSourceAsync" OnCancel="CloseForms" />
+
+<OneTimeIncomeForm Visible="showOneTimeForm" Title="@(editingOneTimeId is null ? "Nuevo ingreso único" : "Editar ingreso único")"
+                   Model="oneTimeInput" Error="formError" OnSave="SaveOneTimeAsync" OnCancel="CloseForms" />
+
+<ConfirmDialog @bind-Visible="confirmDelete" Title="Eliminar" Message="@deleteMessage" ConfirmText="Eliminar" OnConfirm="DeleteAsync" />
+
+@code {
+    private enum Tab { Recurring, OneTime }
+
+    private Tab tab = Tab.Recurring;
+    private bool loading = true;
+    private string? error;
+    private string? message;
+    private string? formError;
+
+    private Currency baseCurrency = Currency.DOP;
+    private List<IncomeSourceDto> sources = new();
+    private decimal? recurringTotal;
+    private List<OneTimeIncomeDto> oneTime = new();
+    private MonthlyIncomeDto? monthly;
+    private int year;
+    private int month;
+
+    private bool showSourceForm;
+    private int? editingSourceId;
+    private IncomeSourceInput sourceInput = new();
+
+    private bool showOneTimeForm;
+    private int? editingOneTimeId;
+    private OneTimeIncomeInput oneTimeInput = new();
+
+    private bool confirmDelete;
+    private string deleteMessage = string.Empty;
+    private Func<Task>? pendingDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = DateProvider.Today;
+        year = today.Year;
+        month = today.Month;
+
+        await RunAsync(LoadAsync);
+        loading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
+        sources = await IncomeService.ListSourcesAsync();
+        oneTime = await IncomeService.ListOneTimeAsync(year, month);
+
+        // Totals need exchange rates; a missing rate must not hide the lists.
+        try
+        {
+            recurringTotal = await IncomeService.GetRecurringMonthlyTotalAsync();
+            monthly = await IncomeService.GetMonthlyIncomeAsync(year, month);
+        }
+        catch (InvalidOperationException ex)
+        {
+            recurringTotal = null;
+            monthly = null;
+            error = ex.Message;
+        }
+    }
+
+    private async Task OnMonthChanged((int Year, int Month) value)
+    {
+        year = value.Year;
+        month = value.Month;
+        message = null;
+        await RunAsync(LoadAsync);
+    }
+
+    private string SourceStatus(IncomeSourceDto s)
+    {
+        var today = DateProvider.Today;
+        if (!s.IsActive) return "Inactiva";
+        if (s.EndDate is not null && s.EndDate < today) return "Finalizada";
+        if (s.StartDate > today) return "Pendiente de inicio";
+        return "Activa";
+    }
+
+    // ---------- Recurring sources ----------
+
+    private void StartCreateSource()
+    {
+        ClearMessages();
+        editingSourceId = null;
+        sourceInput = new IncomeSourceInput { Currency = baseCurrency, StartDate = DateProvider.Today };
+        showSourceForm = true;
+    }
+
+    private void StartEditSource(IncomeSourceDto s)
+    {
+        ClearMessages();
+        editingSourceId = s.Id;
+        sourceInput = new IncomeSourceInput
+        {
+            Name = s.Name,
+            Amount = s.Amount,
+            Currency = s.Currency,
+            Frequency = s.Frequency,
+            StartDate = s.StartDate,
+            EndDate = s.EndDate,
+            IsActive = s.IsActive
+        };
+        showSourceForm = true;
+    }
+
+    private async Task SaveSourceAsync()
+    {
+        var isNew = editingSourceId is null;
+        await SaveFormAsync(async () =>
+        {
+            if (isNew)
+                await IncomeService.CreateSourceAsync(sourceInput);
+            else
+                await IncomeService.UpdateSourceAsync(editingSourceId!.Value, sourceInput);
+            message = isNew ? "Fuente de ingreso creada." : "Fuente de ingreso actualizada.";
+        });
+    }
+
+    private void AskDeleteSource(IncomeSourceDto s)
+    {
+        ClearMessages();
+        deleteMessage = $"¿Eliminar la fuente \"{s.Name}\"? Dejará de contar en todos los meses, incluidos los pasados.";
+        pendingDelete = async () =>
+        {
+            await IncomeService.DeleteSourceAsync(s.Id);
+            message = "Fuente de ingreso eliminada.";
+        };
+        confirmDelete = true;
+    }
+
+    // ---------- One-time income ----------
+
+    private void StartCreateOneTime()
+    {
+        ClearMessages();
+        editingOneTimeId = null;
+        var today = DateProvider.Today;
+        var inShownMonth = today.Year == year && today.Month == month;
+        oneTimeInput = new OneTimeIncomeInput
+        {
+            Currency = baseCurrency,
+            Date = inShownMonth ? today : new DateOnly(year, month, 1)
+        };
+        showOneTimeForm = true;
+    }
+
+    private void StartEditOneTime(OneTimeIncomeDto i)
+    {
+        ClearMessages();
+        editingOneTimeId = i.Id;
+        oneTimeInput = new OneTimeIncomeInput
+        {
+            Description = i.Description,
+            Amount = i.Amount,
+            Currency = i.Currency,
+            Date = i.Date
+        };
+        showOneTimeForm = true;
+    }
+
+    private async Task SaveOneTimeAsync()
+    {
+        var isNew = editingOneTimeId is null;
+        await SaveFormAsync(async () =>
+        {
+            if (isNew)
+                await IncomeService.CreateOneTimeAsync(oneTimeInput);
+            else
+                await IncomeService.UpdateOneTimeAsync(editingOneTimeId!.Value, oneTimeInput);
+            message = isNew ? "Ingreso guardado." : "Ingreso actualizado.";
+        });
+    }
+
+    private void AskDeleteOneTime(OneTimeIncomeDto i)
+    {
+        ClearMessages();
+        deleteMessage = $"¿Eliminar el ingreso #{i.Id} \"{i.Description}\"?";
+        pendingDelete = async () =>
+        {
+            await IncomeService.DeleteOneTimeAsync(i.Id);
+            message = "Ingreso eliminado.";
+        };
+        confirmDelete = true;
+    }
+
+    // ---------- Shared ----------
+
+    private async Task DeleteAsync()
+    {
+        if (pendingDelete is null)
+            return;
+
+        var action = pendingDelete;
+        pendingDelete = null;
+        await RunAsync(async () =>
+        {
+            await action();
+            await LoadAsync();
+        });
+    }
+
+    // Keeps the modal open and shows the error inside it when saving fails.
+    private async Task SaveFormAsync(Func<Task> save)
+    {
+        formError = null;
+        try
+        {
+            await save();
+            CloseForms();
+            error = null;
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            formError = ex.Message;
+        }
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void CloseForms()
+    {
+        showSourceForm = false;
+        showOneTimeForm = false;
+        formError = null;
+    }
+
+    private void ClearMessages()
+    {
+        error = null;
+        message = null;
+        formError = null;
+    }
+}

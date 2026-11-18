@@ -1,0 +1,92 @@
+@using ExpenseTracker.Core.Application.DTOs.Incomes
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+
+@if (Visible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="income-source-title">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="Model" OnValidSubmit="OnSave" FormName="income-source-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="income-source-title">@Title</h5>
+                        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                    </div>
+                    <div class="modal-body">
+                        <DataAnnotationsValidator />
+                        <ErrorAlert Message="@Error" />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label class="form-label" for="src-name">Nombre</label>
+                            <InputText id="src-name" class="form-control" @bind-Value="Model.Name" placeholder="Sueldo trabajo" />
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-7">
+                                <label class="form-label" for="src-amount">Monto</label>
+                                <InputNumber id="src-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label" for="src-currency">Moneda</label>
+                                <InputSelect id="src-currency" class="form-select" @bind-Value="Model.Currency">
+                                    @foreach (var currency in Enum.GetValues<Currency>())
+                                    {
+                                        <option value="@currency">@currency</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="src-frequency">Frecuencia</label>
+                            <InputSelect id="src-frequency" class="form-select" @bind-Value="Model.Frequency">
+                                @foreach (var frequency in Enum.GetValues<Frequency>())
+                                {
+                                    <option value="@frequency">@UiLabels.FrequencyName(frequency)</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label" for="src-start">Inicio</label>
+                                <InputDate id="src-start" class="form-control" @bind-Value="Model.StartDate" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="src-end">Fin (opcional)</label>
+                                <InputDate id="src-end" class="form-control" @bind-Value="Model.EndDate" />
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <InputCheckbox id="src-active" class="form-check-input" @bind-Value="Model.IsActive" />
+                            <label class="form-check-label" for="src-active">Activa</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Fuente de ingreso";
+
+    [Parameter, EditorRequired]
+    public IncomeSourceInput Model { get; set; } = new();
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+}

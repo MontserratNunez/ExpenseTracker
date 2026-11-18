@@ -1,0 +1,45 @@
+@using ExpenseTracker.Core.Application.Interfaces
+@using ExpenseTracker.Web.Services
+@inject IDateProvider DateProvider
+
+<div class="d-flex align-items-center gap-2">
+    <button type="button" class="btn btn-outline-secondary" aria-label="Mes anterior" @onclick="Previous">&#8249;</button>
+    <strong class="px-2 text-center" style="min-width: 10rem;">@UiLabels.MonthName(Month) @Year</strong>
+    <button type="button" class="btn btn-outline-secondary" aria-label="Mes siguiente" @onclick="Next" disabled="@(!CanGoNext)">&#8250;</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public int Year { get; set; }
+
+    [Parameter, EditorRequired]
+    public int Month { get; set; }
+
+    /// <summary>Raised with the new (year, month) when the user moves to another month.</summary>
+    [Parameter]
+    public EventCallback<(int Year, int Month)> OnChange { get; set; }
+
+    /// <summary>How many months after the current one can be reached with the next arrow.</summary>
+    [Parameter]
+    public int MaxMonthsAhead { get; set; } = 1;
+
+    private bool CanGoNext
+    {
+        get
+        {
+            var today = DateProvider.Today;
+            var limit = today.Year * 12 + today.Month + MaxMonthsAhead;
+            return Year * 12 + Month < limit;
+        }
+    }
+
+    private Task Previous() => MoveAsync(-1);
+
+    private Task Next() => CanGoNext ? MoveAsync(1) : Task.CompletedTask;
+
+    private Task MoveAsync(int delta)
+    {
+        var index = Year * 12 + (Month - 1) + delta;
+        return OnChange.InvokeAsync((index / 12, index % 12 + 1));
+    }
+}

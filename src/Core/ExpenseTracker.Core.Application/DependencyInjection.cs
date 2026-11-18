@@ -10,6 +10,7 @@ public static class DependencyInjection
         // Application services are registered here as each module is added (all Scoped).
         services.AddScoped<CategoryService>();
         services.AddScoped<CurrencyService>();
+        services.AddScoped<IncomeService>();
 
         return services;
     }
