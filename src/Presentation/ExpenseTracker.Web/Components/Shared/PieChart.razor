@@ -1,0 +1,93 @@
+@using System.Globalization
+@using ExpenseTracker.Core.Application.Helpers
+@using ExpenseTracker.Core.Domain.Enums
+
+@* Donut chart drawn with stroke-dasharray on circles: with r = 100 / (2 * pi) the circumference is exactly 100,
+   so each slice's length is its percentage and no path trigonometry is needed. *@
+<div class="d-flex flex-column align-items-center">
+    <div class="position-relative w-100" style="max-width: 280px;">
+        <svg viewBox="0 0 42 42" role="img" aria-label="@AriaLabel" class="d-block w-100">
+            <circle cx="21" cy="21" r="15.91549431" fill="transparent" stroke="#E9ECEF" stroke-width="5"></circle>
+            @foreach (var (slice, percent, offset) in Segments)
+            {
+                <circle cx="21" cy="21" r="15.91549431" fill="transparent" stroke="@slice.Color" stroke-width="5"
+                        stroke-dasharray="@Num(percent) @Num(100m - percent)" stroke-dashoffset="@Num(offset)">
+                    <title>@slice.Label: @MoneyFormatter.Format(slice.Value, Currency) (@Num(percent, "0.#") %)</title>
+                </circle>
+            }
+        </svg>
+        @* Center text is HTML laid over the SVG: Razor reserves the <text> tag. *@
+        <div class="position-absolute top-50 start-50 translate-middle text-center" style="width: 62%;">
+            @if (!string.IsNullOrEmpty(CenterLabel))
+            {
+                <div class="small text-muted">@CenterLabel</div>
+            }
+            @if (!string.IsNullOrEmpty(CenterValue))
+            {
+                <div class="fw-bold lh-sm" style="font-size: clamp(.85rem, 4.2vw, 1.15rem);">@CenterValue</div>
+            }
+        </div>
+    </div>
+
+    <ul class="list-unstyled w-100 mt-3 mb-0">
+        @foreach (var (slice, percent, _) in Segments)
+        {
+            <li class="d-flex justify-content-between align-items-center py-1">
+                <span>
+                    <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .8rem; height: .8rem; background-color: @slice.Color;"></span>@slice.Label
+                </span>
+                <span class="text-nowrap">
+                    <MoneyText Amount="slice.Value" Currency="Currency" />
+                    <span class="text-muted small ms-1">@Num(percent, "0.#") %</span>
+                </span>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public List<PieSlice> Slices { get; set; } = new();
+
+    [Parameter]
+    public Currency Currency { get; set; } = Currency.DOP;
+
+    /// <summary>Small text in the center of the donut, e.g. "Disponible".</summary>
+    [Parameter]
+    public string? CenterLabel { get; set; }
+
+    /// <summary>Main text in the center, e.g. "RD$ 21,300.00".</summary>
+    [Parameter]
+    public string? CenterValue { get; set; }
+
+    // Only slices with a positive value are drawn.
+    private List<PieSlice> Visible => Slices.Where(s => s.Value > 0).ToList();
+
+    private decimal Total => Visible.Sum(s => s.Value);
+
+    // Each slice with its percentage and the dash offset that places it after the previous ones.
+    // The donut starts at 12 o'clock, hence the initial 25.
+    private IEnumerable<(PieSlice Slice, decimal Percent, decimal Offset)> Segments
+    {
+        get
+        {
+            var total = Total;
+            if (total <= 0)
+                yield break;
+
+            decimal consumed = 0m;
+            foreach (var slice in Visible)
+            {
+                var percent = slice.Value / total * 100m;
+                yield return (slice, percent, 25m - consumed);
+                consumed += percent;
+            }
+        }
+    }
+
+    private string AriaLabel
+        => string.Join(", ", Visible.Select(s => $"{s.Label} {MoneyFormatter.Format(s.Value, Currency)}"));
+
+    private static string Num(decimal value, string format = "0.####")
+        => value.ToString(format, CultureInfo.InvariantCulture);
+}

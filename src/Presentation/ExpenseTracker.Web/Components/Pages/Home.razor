@@ -1,7 +1,258 @@
 ﻿@page "/"
+@using ExpenseTracker.Core.Application.DTOs.Dashboard
+@using ExpenseTracker.Core.Application.DTOs.Goals
+@using ExpenseTracker.Core.Application.Helpers
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+@inject DashboardService DashboardService
+@inject CurrencyService CurrencyService
 
 <PageTitle>Inicio</PageTitle>
 
-<h1>Inicio</h1>
+<h1 class="mb-1">Inicio</h1>
+@if (data is not null)
+{
+    <p class="text-muted">@UiLabels.MonthName(data.Month) @data.Year</p>
+}
 
-Bienvenido a Expense Tracker.
+<ErrorAlert @bind-Message="error" />
+
+@if (loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+}
+else if (data is not null)
+{
+    @if (data.IsDeficit)
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Déficit de <MoneyText Amount="data.DeficitAmount" Currency="baseCurrency" /> este mes.</strong>
+            Lo gastado y lo comprometido supera tus ingresos.
+        </div>
+    }
+
+    @if (!data.HasIncome)
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">Empecemos</h2>
+                <p class="text-muted">Todavía no hay ingresos este mes, así que no hay nada que repartir. Sigue estos pasos:</p>
+                <ol class="mb-3">
+                    <li class="mb-1"><a href="/ingresos">Configura tus ingresos</a></li>
+                    <li class="mb-1"><a href="/gastos">Registra tus gastos</a></li>
+                    <li><a href="/plan">Arma tu plan</a></li>
+                </ol>
+                <a href="/ingresos" class="btn btn-primary">Configurar ingresos</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-md-6 col-xl-5">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <PieChart Slices="Slices" Currency="baseCurrency"
+                                  CenterLabel="@(data.IsDeficit ? "Déficit" : "Disponible")"
+                                  CenterValue="@MoneyFormatter.Format(data.IsDeficit ? data.DeficitAmount : data.Available, baseCurrency)" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-7">
+                <div class="row g-3">
+                    <div class="col-12 col-sm-4 col-md-12 col-xl-4">
+                        <div class="card h-100 border-success"><div class="card-body py-3">
+                            <div class="text-muted small">Disponible</div>
+                            <div class="fs-5 fw-semibold text-success"><MoneyText Amount="data.Available" Currency="baseCurrency" /></div>
+                        </div></div>
+                    </div>
+                    <div class="col-12 col-sm-4 col-md-12 col-xl-4">
+                        <div class="card h-100 border-danger"><div class="card-body py-3">
+                            <div class="text-muted small">Gastado</div>
+                            <div class="fs-5 fw-semibold text-danger"><MoneyText Amount="data.Spent" Currency="baseCurrency" /></div>
+                        </div></div>
+                    </div>
+                    <div class="col-12 col-sm-4 col-md-12 col-xl-4">
+                        <div class="card h-100"><div class="card-body py-3">
+                            <div class="text-muted small">Comprometido</div>
+                            <div class="fs-5 fw-semibold text-secondary"><MoneyText Amount="data.Committed" Currency="baseCurrency" /></div>
+                        </div></div>
+                    </div>
+                    <div class="col-12">
+                        <div class="text-muted small">
+                            Ingresos del mes: <MoneyText Amount="data.Income" Currency="baseCurrency" />.
+                            Comprometido son los gastos y cuotas de este mes que aún no llegan a su fecha.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (ShowSections)
+    {
+        <div class="row g-4">
+            <div class="col-12 col-lg-4">
+                <section class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Próximos pagos</span>
+                        <a href="/gastos" class="small">Ver gastos</a>
+                    </div>
+                    @if (data.UpcomingPayments.Count == 0)
+                    {
+                        <div class="card-body text-muted">No tienes pagos en los próximos 7 días.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var payment in data.UpcomingPayments)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        @if (payment.DebtId is not null)
+                                        {
+                                            <a href="/deudas/@payment.DebtId" class="text-decoration-none">@payment.Name</a>
+                                        }
+                                        else
+                                        {
+                                            @payment.Name
+                                        }
+                                        <div class="small text-muted">
+                                            @UiLabels.ShortDate(payment.Date)
+                                            @if (payment.IsOverdue)
+                                            {
+                                                <span class="badge text-bg-danger">Vencida</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="text-end text-nowrap">
+                                        <MoneyText Amount="payment.OriginalAmount" Currency="payment.Currency" />
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+            </div>
+
+            <div class="col-12 col-lg-4">
+                <section class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Plan</span>
+                        <a href="/plan" class="small">Ver plan</a>
+                    </div>
+                    @if (!data.HasPlan)
+                    {
+                        <div class="card-body text-muted">
+                            Aún no tienes un plan. <a href="/plan">Reparte tus ingresos por categoría</a>.
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var category in data.PlanHighlights)
+                            {
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <strong>@category.CategoryName</strong>
+                                        <span>
+                                            <MoneyText Amount="category.Spent + category.Pending" Currency="baseCurrency" /> de
+                                            <MoneyText Amount="category.Assigned" Currency="baseCurrency" />
+                                        </span>
+                                    </div>
+                                    <PlanBar Assigned="category.Assigned" Spent="category.Spent" Pending="category.Pending"
+                                             Estimated="category.Estimated" Health="category.Health" />
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+            </div>
+
+            <div class="col-12 col-lg-4">
+                <section class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Metas</span>
+                        <a href="/metas" class="small">Ver metas</a>
+                    </div>
+                    @if (data.Goals.Count == 0)
+                    {
+                        <div class="card-body text-muted">
+                            Aún no tienes metas. <a href="/metas">Crea la primera</a>.
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var goal in data.Goals)
+                            {
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <strong>@goal.Name</strong>
+                                        <span>@goal.ProgressPercent.ToString("0.#") %</span>
+                                    </div>
+                                    <ProgressBar Percent="goal.ProgressPercent" BarClass="@GoalBar(goal.State)"
+                                                 Label="@($"{goal.ProgressPercent:0.#}% de {goal.Name}")" />
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span>
+                    Gasto estimado del próximo mes:
+                    <strong><MoneyText Amount="data.NextMonthEstimate" Currency="baseCurrency" /></strong>
+                </span>
+                <a href="/estimaciones">Ver estimaciones</a>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private bool loading = true;
+    private string? error;
+    private Currency baseCurrency = Currency.DOP;
+    private DashboardDto? data;
+
+    private List<PieSlice> Slices => data is null
+        ? new List<PieSlice>()
+        : new List<PieSlice>
+        {
+            new() { Label = "Gastado", Value = data.Spent, Color = "#D64545" },
+            new() { Label = "Comprometido", Value = data.Committed, Color = "#9AA0A6" },
+            new() { Label = "Disponible", Value = data.Available, Color = "#2E9E5B" }
+        };
+
+    // A brand-new user only sees the empty state until there is something to show.
+    private bool ShowSections => data is not null
+        && (data.HasIncome || data.UpcomingPayments.Count > 0 || data.HasPlan || data.Goals.Count > 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
+            data = await DashboardService.GetAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+
+        loading = false;
+    }
+
+    private static string GoalBar(GoalState state) => state switch
+    {
+        GoalState.Behind => "bg-warning",
+        GoalState.Missed => "bg-danger",
+        GoalState.NotStarted => "bg-secondary",
+        _ => "bg-success"
+    };
+}
