@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using ExpenseTracker.Web.Data;
+using ExpenseTracker.Infrastructure.Identity.Models;
 
 namespace ExpenseTracker.Web.Components.Account;
 

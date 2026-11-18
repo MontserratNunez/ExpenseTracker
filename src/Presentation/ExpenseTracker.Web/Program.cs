@@ -1,9 +1,13 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using ExpenseTracker.Core.Application;
+using ExpenseTracker.Core.Application.Interfaces;
+using ExpenseTracker.Infrastructure.Identity;
+using ExpenseTracker.Infrastructure.Identity.Models;
+using ExpenseTracker.Infrastructure.Persistence;
 using ExpenseTracker.Web.Components;
 using ExpenseTracker.Web.Components.Account;
-using ExpenseTracker.Web.Data;
+using ExpenseTracker.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,19 +26,11 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(connectionString));
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
-    {
-        options.SignIn.RequireConfirmedAccount = true;
-        options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
-    })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+builder.Services.AddApplication();
+builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddIdentityInfrastructure(builder.Configuration);
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -43,7 +39,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseMigrationsEndPoint();
+    await DatabaseInitializer.MigrateAsync(app.Services);
 }
 else
 {

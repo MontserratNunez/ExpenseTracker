@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using ExpenseTracker.Web.Data;
+using ExpenseTracker.Infrastructure.Identity.Models;
 
 namespace ExpenseTracker.Web.Components.Account;
 

@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using ExpenseTracker.Web.Components.Account.Pages;
 using ExpenseTracker.Web.Components.Account.Pages.Manage;
-using ExpenseTracker.Web.Data;
+using ExpenseTracker.Infrastructure.Identity.Models;
 
 namespace Microsoft.AspNetCore.Routing;
 

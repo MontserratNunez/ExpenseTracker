@@ -26,4 +26,3 @@ dotnet build
 dotnet run --project src/Presentation/ExpenseTracker.Web
 ```
 
-El plan de desarrollo está en [Agent/Plan.md](Agent/Plan.md).
