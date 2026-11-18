@@ -1,0 +1,70 @@
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@inject CurrencyService CurrencyService
+
+<section class="card mb-4">
+    <div class="card-header">Moneda base</div>
+    <div class="card-body">
+        <ErrorAlert @bind-Message="error" />
+        @if (saved)
+        {
+            <div class="alert alert-success">Moneda base guardada.</div>
+        }
+
+        <div class="row g-2 align-items-end">
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label" for="base-currency">Moneda</label>
+                <select id="base-currency" class="form-select" @bind="selected">
+                    @foreach (var currency in Enum.GetValues<Currency>())
+                    {
+                        <option value="@currency">@currency</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-primary" @onclick="Save" disabled="@(selected == BaseCurrency)">Guardar</button>
+            </div>
+        </div>
+        <p class="form-text mt-2 mb-0">
+            Todos los totales se calculan en esta moneda. Cambiarla no recalcula los registros existentes.
+        </p>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Currency BaseCurrency { get; set; }
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private Currency selected;
+    private Currency lastSeen;
+    private string? error;
+    private bool saved;
+
+    protected override void OnParametersSet()
+    {
+        if (lastSeen != BaseCurrency)
+        {
+            lastSeen = BaseCurrency;
+            selected = BaseCurrency;
+        }
+    }
+
+    private async Task Save()
+    {
+        error = null;
+        saved = false;
+        try
+        {
+            await CurrencyService.SetBaseCurrencyAsync(selected);
+            saved = true;
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+    }
+}

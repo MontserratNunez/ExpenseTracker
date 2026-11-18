@@ -1,0 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using ExpenseTracker.Core.Domain.Enums;
+
+namespace ExpenseTracker.Core.Application.DTOs.Settings;
+
+public class ExchangeRateInput
+{
+    public Currency Currency { get; set; }
+
+    [Range(typeof(decimal), "0.000001", "999999999", ErrorMessage = "La tasa debe ser mayor que cero.")]
+    public decimal RateToBase { get; set; }
+}

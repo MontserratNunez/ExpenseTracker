@@ -1,0 +1,125 @@
+@using ExpenseTracker.Core.Application.DTOs.Settings
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@inject CurrencyService CurrencyService
+
+<section class="card mb-4">
+    <div class="card-header">Tasas de cambio</div>
+    <div class="card-body">
+        <ErrorAlert @bind-Message="error" />
+        @if (message is not null)
+        {
+            <div class="alert alert-success">@message</div>
+        }
+
+        <p class="form-text">Cuántas unidades de <strong>@BaseCurrency</strong> vale una unidad de cada moneda. Se usan para convertir los montos al registrarlos.</p>
+
+        @if (loading)
+        {
+            <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+        }
+        else
+        {
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Moneda</th>
+                        <th>Tasa (1 unidad = ? @BaseCurrency)</th>
+                        <th>Actualizada</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var currency in OtherCurrencies)
+                    {
+                        var c = currency;
+                        <tr>
+                            <td>@c</td>
+                            <td style="max-width: 14rem;">
+                                <input type="number" step="any" min="0" class="form-control" aria-label="Tasa de @c"
+                                       @bind="edits[c]" @bind:event="oninput" />
+                            </td>
+                            <td>@(rates.TryGetValue(c, out var r) ? r.UpdatedOn.ToString("d") : "Sin configurar")</td>
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save(c)">Guardar</button>
+                                @if (rates.ContainsKey(c))
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => Remove(c)">Quitar</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Currency BaseCurrency { get; set; }
+
+    private readonly Dictionary<Currency, ExchangeRateDto> rates = new();
+    private readonly Dictionary<Currency, decimal> edits = new();
+    private Currency loadedFor = (Currency)0;
+    private string? error;
+    private string? message;
+    private bool loading = true;
+
+    private IEnumerable<Currency> OtherCurrencies => Enum.GetValues<Currency>().Where(c => c != BaseCurrency);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedFor != BaseCurrency)
+        {
+            loadedFor = BaseCurrency;
+            loading = true;
+            await LoadAsync();
+            loading = false;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        rates.Clear();
+        edits.Clear();
+        foreach (var rate in await CurrencyService.ListRatesAsync())
+            rates[rate.Currency] = rate;
+        foreach (var currency in OtherCurrencies)
+            edits[currency] = rates.TryGetValue(currency, out var r) ? r.RateToBase : 0m;
+    }
+
+    private async Task Save(Currency currency)
+    {
+        error = null;
+        message = null;
+        try
+        {
+            await CurrencyService.SetRateAsync(new ExchangeRateInput { Currency = currency, RateToBase = edits[currency] });
+            await LoadAsync();
+            message = $"Tasa de {currency} guardada.";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task Remove(Currency currency)
+    {
+        error = null;
+        message = null;
+        try
+        {
+            await CurrencyService.DeleteRateAsync(currency);
+            await LoadAsync();
+            message = $"Tasa de {currency} eliminada.";
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+    }
+}

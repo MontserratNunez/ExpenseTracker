@@ -1,0 +1,203 @@
+@using ExpenseTracker.Core.Application.DTOs.Settings
+@using ExpenseTracker.Core.Application.Services
+@inject CategoryService CategoryService
+
+<section class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Categorías</span>
+        @if (!showForm)
+        {
+            <button type="button" class="btn btn-sm btn-primary" @onclick="StartCreate">+ Nueva categoría</button>
+        }
+    </div>
+    <div class="card-body">
+        <ErrorAlert @bind-Message="error" />
+        @if (message is not null)
+        {
+            <div class="alert alert-success">@message</div>
+        }
+
+        @if (showForm)
+        {
+            <EditForm Model="input" OnValidSubmit="SaveAsync" FormName="category-form" class="border rounded p-3 mb-3">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label" for="cat-name">Nombre</label>
+                        <InputText id="cat-name" class="form-control" @bind-Value="input.Name" />
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label" for="cat-color">Color</label>
+                        <InputText id="cat-color" type="color" class="form-control form-control-color" @bind-Value="input.Color" />
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-check">
+                            <InputCheckbox id="cat-savings" class="form-check-input" @bind-Value="input.IsSavings" />
+                            <label class="form-check-label" for="cat-savings">Es de ahorro</label>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">@(editingId is null ? "Crear" : "Guardar")</button>
+                        <button type="button" class="btn btn-secondary" @onclick="CancelForm">Cancelar</button>
+                    </div>
+                </div>
+            </EditForm>
+        }
+
+        @if (loading)
+        {
+            <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+        }
+        else if (categories.Count == 0)
+        {
+            <p class="text-muted mb-0">Aún no hay categorías. Crea la primera.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr><th>Categoría</th><th>Tipo</th><th>Estado</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var category in categories)
+                        {
+                            var c = category;
+                            <tr class="@(c.IsActive ? null : "text-muted")">
+                                <td>
+                                    <span class="d-inline-block rounded-circle me-2 align-middle"
+                                          style="width: 1rem; height: 1rem; background-color: @c.Color;"></span>@c.Name
+                                </td>
+                                <td>@if (c.IsSavings) { <span class="badge text-bg-success">Ahorro</span> }</td>
+                                <td>@(c.IsActive ? "Activa" : "Inactiva")</td>
+                                <td class="text-end text-nowrap">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(c)">Editar</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => ToggleActive(c)">
+                                        @(c.IsActive ? "Desactivar" : "Activar")
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(c)">Eliminar</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
+<ConfirmDialog @bind-Visible="confirmDelete"
+               Title="Eliminar categoría"
+               Message="@($"¿Eliminar la categoría \"{pendingDelete?.Name}\"? Si tiene gastos, plan o metas asociados, solo se desactivará.")"
+               ConfirmText="Eliminar"
+               OnConfirm="DeleteAsync" />
+
+@code {
+    private List<CategoryDto> categories = new();
+    private CategoryInput input = new();
+    private int? editingId;
+    private bool showForm;
+    private bool loading = true;
+    private string? error;
+    private string? message;
+    private bool confirmDelete;
+    private CategoryDto? pendingDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        loading = false;
+    }
+
+    private async Task LoadAsync() => categories = await CategoryService.ListAsync();
+
+    private void StartCreate()
+    {
+        ClearMessages();
+        editingId = null;
+        input = new CategoryInput();
+        showForm = true;
+    }
+
+    private void StartEdit(CategoryDto category)
+    {
+        ClearMessages();
+        editingId = category.Id;
+        input = new CategoryInput
+        {
+            Name = category.Name,
+            Color = category.Color,
+            Icon = category.Icon,
+            IsSavings = category.IsSavings
+        };
+        showForm = true;
+    }
+
+    private void CancelForm() => showForm = false;
+
+    private async Task SaveAsync()
+    {
+        await RunAsync(async () =>
+        {
+            if (editingId is null)
+                await CategoryService.CreateAsync(input);
+            else
+                await CategoryService.UpdateAsync(editingId.Value, input);
+
+            message = editingId is null ? "Categoría creada." : "Categoría actualizada.";
+            showForm = false;
+        });
+    }
+
+    private async Task ToggleActive(CategoryDto category)
+    {
+        await RunAsync(async () =>
+        {
+            await CategoryService.SetActiveAsync(category.Id, !category.IsActive);
+            message = category.IsActive ? "Categoría desactivada." : "Categoría activada.";
+        });
+    }
+
+    private void AskDelete(CategoryDto category)
+    {
+        ClearMessages();
+        pendingDelete = category;
+        confirmDelete = true;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (pendingDelete is null)
+            return;
+
+        var target = pendingDelete;
+        await RunAsync(async () =>
+        {
+            var deleted = await CategoryService.DeleteAsync(target.Id);
+            message = deleted
+                ? "Categoría eliminada."
+                : "La categoría tiene movimientos asociados; se desactivó en lugar de eliminarse.";
+        });
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        ClearMessages();
+        try
+        {
+            await action();
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void ClearMessages()
+    {
+        error = null;
+        message = null;
+    }
+}

@@ -1,7 +1,35 @@
 @page "/configuracion"
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@inject CurrencyService CurrencyService
 
 <PageTitle>Configuración</PageTitle>
 
-<h1>Configuración</h1>
+<h1 class="mb-4">Configuración</h1>
 
-<p class="text-muted">Próximamente.</p>
+@if (loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+}
+else
+{
+    <BaseCurrencySection BaseCurrency="baseCurrency" OnChanged="ReloadBaseCurrency" />
+    <ExchangeRatesSection BaseCurrency="baseCurrency" />
+    <CategoriesSection />
+}
+
+@code {
+    private bool loading = true;
+    private Currency baseCurrency = Currency.DOP;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadBaseCurrency();
+        loading = false;
+    }
+
+    private async Task ReloadBaseCurrency()
+    {
+        baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
+    }
+}
