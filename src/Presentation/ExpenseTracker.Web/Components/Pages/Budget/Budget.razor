@@ -1,7 +1,281 @@
 @page "/plan"
+@using ExpenseTracker.Core.Application.DTOs.Budget
+@using ExpenseTracker.Core.Application.Interfaces
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+@inject BudgetService BudgetService
+@inject CurrencyService CurrencyService
+@inject IDateProvider DateProvider
 
 <PageTitle>Plan</PageTitle>
 
-<h1>Plan</h1>
+<h1 class="mb-3">Plan</h1>
 
-<p class="text-muted">Próximamente.</p>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <MonthNavigator Year="year" Month="month" OnChange="OnMonthChanged" />
+    <button type="button" class="btn btn-primary" @onclick="StartEditAsync" disabled="@loading">Editar plan</button>
+</div>
+
+<ErrorAlert @bind-Message="error" />
+@if (message is not null)
+{
+    <div class="alert alert-success">@message</div>
+}
+
+@if (loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+}
+else if (plan is not null)
+{
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body py-2">
+                <div class="text-muted small">Ingresos del mes</div>
+                <div class="fs-5 fw-semibold"><MoneyText Amount="plan.Income" Currency="baseCurrency" /></div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body py-2">
+                <div class="text-muted small">Asignado</div>
+                <div class="fs-5 fw-semibold">@plan.AssignedPercentOfIncome.ToString("0.#") % de tus ingresos</div>
+                <div class="small @(plan.IsOverAssigned ? "text-danger" : "text-muted")">
+                    Sin asignar: <MoneyText Amount="plan.Unassigned" Currency="baseCurrency" />
+                </div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body py-2">
+                <div class="text-muted small">Gastado / pendiente</div>
+                <div class="fs-5 fw-semibold"><MoneyText Amount="plan.TotalSpent" Currency="baseCurrency" /></div>
+                <div class="small text-muted">+ <MoneyText Amount="plan.TotalPending" Currency="baseCurrency" /> pendiente</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card h-100"><div class="card-body py-2">
+                <div class="text-muted small">Estimado a fin de mes</div>
+                <div class="fs-5 fw-semibold"><MoneyText Amount="plan.TotalEstimated" Currency="baseCurrency" /></div>
+            </div></div>
+        </div>
+    </div>
+
+    @if (plan.IsOverAssigned)
+    {
+        <div class="alert alert-warning">
+            Asignaste más de lo que ingresas este mes:
+            <MoneyText Amount="plan.TotalAssigned" Currency="baseCurrency" /> asignados frente a
+            <MoneyText Amount="plan.Income" Currency="baseCurrency" /> de ingresos.
+        </div>
+    }
+
+    @if (plan.Categories.Count == 0)
+    {
+        <div class="text-center text-muted py-4">
+            <p>Aún no tienes un plan. Reparte tus ingresos por categoría para ver si lo estás cumpliendo.</p>
+            <button type="button" class="btn btn-primary" @onclick="StartEditAsync">Crear mi plan</button>
+        </div>
+    }
+    else
+    {
+        <div class="list-group mb-4">
+            @foreach (var category in plan.Categories)
+            {
+                var c = category;
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                        <div>
+                            <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .8rem; height: .8rem; background-color: @c.CategoryColor;"></span>
+                            <strong>@c.CategoryName</strong>
+                            <span class="badge @HealthBadge(c.Health) ms-1">@HealthText(c.Health)</span>
+                        </div>
+                        <div class="text-end small text-nowrap">
+                            <MoneyText Amount="c.Spent + c.Pending" Currency="baseCurrency" /> de
+                            <MoneyText Amount="c.Assigned" Currency="baseCurrency" />
+                            <span class="text-muted">(@(c.AllocationType == AllocationType.PercentageOfIncome ? $"{c.Value:0.##} % de ingreso" : "monto fijo"))</span>
+                        </div>
+                    </div>
+                    <PlanBar Assigned="c.Assigned" Spent="c.Spent" Pending="c.Pending" Estimated="c.Estimated" Health="c.Health" />
+                    <div class="d-flex flex-wrap justify-content-between gap-2 small mt-1">
+                        <span>
+                            @if (c.Available >= 0)
+                            {
+                                <text>Puedes gastar <strong><MoneyText Amount="c.Available" Currency="baseCurrency" /></strong> más</text>
+                            }
+                            else
+                            {
+                                <span class="text-danger">Ya te pasaste por <strong><MoneyText Amount="-c.Available" Currency="baseCurrency" /></strong></span>
+                            }
+                        </span>
+                        <span class="@(c.EstimatedOverrun > 0 ? "text-danger" : "text-muted")">
+                            @if (c.EstimatedOverrun > 0)
+                            {
+                                <text>Te pasarás por ~<MoneyText Amount="c.EstimatedOverrun" Currency="baseCurrency" /> al ritmo actual</text>
+                            }
+                            else
+                            {
+                                <text>Estimado: <MoneyText Amount="c.Estimated" Currency="baseCurrency" /></text>
+                            }
+                        </span>
+                    </div>
+                </div>
+            }
+        </div>
+        <p class="small text-muted">
+            Barra: <span class="badge text-bg-success">gastado</span>
+            <span class="badge text-bg-secondary">pendiente</span>
+            y la línea negra marca el estimado a fin de mes.
+        </p>
+    }
+
+    @if (plan.OutOfPlan.Count > 0)
+    {
+        <div class="card">
+            <div class="card-header">Fuera del plan</div>
+            <ul class="list-group list-group-flush">
+                @foreach (var item in plan.OutOfPlan)
+                {
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>
+                            <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .8rem; height: .8rem; background-color: @item.CategoryColor;"></span>@item.CategoryName
+                        </span>
+                        <span>
+                            <MoneyText Amount="item.Spent" Currency="baseCurrency" />
+                            @if (item.Pending > 0)
+                            {
+                                <span class="text-muted"> + <MoneyText Amount="item.Pending" Currency="baseCurrency" /> pendiente</span>
+                            }
+                        </span>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+}
+
+<AllocationForm Visible="showEditor" Editor="editor" Rows="editRows" BaseCurrency="baseCurrency"
+                Error="formError" OnSave="SaveAsync" OnCancel="CloseEditor" />
+
+@code {
+    private bool loading = true;
+    private string? error;
+    private string? message;
+    private string? formError;
+
+    private int year;
+    private int month;
+    private Currency baseCurrency = Currency.DOP;
+    private PlanStatusDto? plan;
+
+    private bool showEditor;
+    private AllocationEditorDto? editor;
+    private List<AllocationRowDto> editRows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = DateProvider.Today;
+        year = today.Year;
+        month = today.Month;
+
+        await RunAsync(LoadAsync);
+        loading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
+        plan = await BudgetService.GetPlanStatusAsync(year, month);
+    }
+
+    private async Task OnMonthChanged((int Year, int Month) value)
+    {
+        year = value.Year;
+        month = value.Month;
+        message = null;
+        error = null;
+        loading = true;
+        await RunAsync(LoadAsync);
+        loading = false;
+    }
+
+    private static string HealthBadge(PlanHealth health) => health switch
+    {
+        PlanHealth.Red => "text-bg-danger",
+        PlanHealth.Yellow => "text-bg-warning",
+        _ => "text-bg-success"
+    };
+
+    private static string HealthText(PlanHealth health) => health switch
+    {
+        PlanHealth.Red => "🔴 Excedido",
+        PlanHealth.Yellow => "🟡 Al límite",
+        _ => "🟢 En camino"
+    };
+
+    // ---------- Edit plan ----------
+
+    private async Task StartEditAsync()
+    {
+        error = null;
+        message = null;
+        formError = null;
+        await RunAsync(async () =>
+        {
+            editor = await BudgetService.GetEditorAsync();
+            // Work on copies so cancelling discards the changes.
+            editRows = editor.Rows.Select(r => new AllocationRowDto
+            {
+                CategoryId = r.CategoryId,
+                CategoryName = r.CategoryName,
+                CategoryColor = r.CategoryColor,
+                IsActive = r.IsActive,
+                AllocationType = r.AllocationType,
+                Value = r.Value,
+                IncomeSourceId = r.IncomeSourceId
+            }).ToList();
+            showEditor = true;
+        });
+    }
+
+    private async Task SaveAsync()
+    {
+        formError = null;
+        try
+        {
+            var inputs = editRows.Select(r => new AllocationInput
+            {
+                CategoryId = r.CategoryId,
+                AllocationType = r.AllocationType,
+                Value = r.Value,
+                IncomeSourceId = r.IncomeSourceId
+            }).ToList();
+
+            await BudgetService.SaveAllAsync(inputs);
+            showEditor = false;
+            message = "Plan guardado.";
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            formError = ex.Message;
+        }
+    }
+
+    private void CloseEditor()
+    {
+        showEditor = false;
+        formError = null;
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+    }
+}

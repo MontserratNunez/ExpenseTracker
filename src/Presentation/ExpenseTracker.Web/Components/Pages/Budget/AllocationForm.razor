@@ -1,0 +1,140 @@
+@using ExpenseTracker.Core.Application.DTOs.Budget
+@using ExpenseTracker.Core.Domain.Enums
+
+@if (Visible && Editor is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="plan-title">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="plan-title">Editar plan</h5>
+                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                </div>
+                <div class="modal-body">
+                    <ErrorAlert Message="@Error" />
+                    <p class="form-text">
+                        Define cuánto quieres gastar por categoría. Un valor de 0 quita la categoría del plan.
+                        Con porcentaje se usa el ingreso de la fuente elegida o, si no eliges ninguna, el total de tus ingresos recurrentes
+                        (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr><th>Categoría</th><th>Tipo</th><th>Valor</th><th>Fuente de ingreso</th><th class="text-end">Equivale a</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in Rows)
+                                {
+                                    var r = row;
+                                    <tr>
+                                        <td class="text-nowrap">
+                                            <span class="d-inline-block rounded-circle me-2 align-middle" style="width: 1rem; height: 1rem; background-color: @r.CategoryColor;"></span>@r.CategoryName@(r.IsActive ? "" : " (inactiva)")
+                                        </td>
+                                        <td style="min-width: 11rem;">
+                                            <select class="form-select form-select-sm" aria-label="Tipo de @r.CategoryName" @bind="r.AllocationType">
+                                                <option value="@AllocationType.FixedAmount">Monto fijo</option>
+                                                <option value="@AllocationType.PercentageOfIncome">% de ingreso</option>
+                                            </select>
+                                        </td>
+                                        <td style="min-width: 8rem;">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="any" min="0" class="form-control" aria-label="Valor de @r.CategoryName"
+                                                       @bind="r.Value" @bind:event="oninput" />
+                                                @if (r.AllocationType == AllocationType.PercentageOfIncome)
+                                                {
+                                                    <span class="input-group-text">%</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td style="min-width: 12rem;">
+                                            @if (r.AllocationType == AllocationType.PercentageOfIncome)
+                                            {
+                                                <select class="form-select form-select-sm" aria-label="Fuente de @r.CategoryName" @bind="r.IncomeSourceId">
+                                                    <option value="">Total recurrente</option>
+                                                    @foreach (var source in Editor.IncomeBases.Sources)
+                                                    {
+                                                        <option value="@source.SourceId">@source.Name</option>
+                                                    }
+                                                </select>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            @if (r.Value > 0)
+                                            {
+                                                <MoneyText Amount="Equivalent(r)" Currency="BaseCurrency" />
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td colspan="4" class="text-end">Total asignado</td>
+                                    <td class="text-end"><MoneyText Amount="TotalEquivalent" Currency="BaseCurrency" /></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    @if (TotalEquivalent > Editor.IncomeBases.RecurringTotal)
+                    {
+                        <div class="alert alert-warning mb-0">
+                            El total asignado supera tus ingresos recurrentes
+                            (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="OnSave">Guardar plan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    /// <summary>Income bases and categories. The rows below are edited in place and read by the parent on save.</summary>
+    [Parameter]
+    public AllocationEditorDto? Editor { get; set; }
+
+    [Parameter, EditorRequired]
+    public List<AllocationRowDto> Rows { get; set; } = new();
+
+    [Parameter]
+    public Currency BaseCurrency { get; set; } = Currency.DOP;
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private decimal TotalEquivalent => Rows.Where(r => r.Value > 0).Sum(Equivalent);
+
+    private decimal Equivalent(AllocationRowDto row)
+    {
+        if (row.AllocationType == AllocationType.FixedAmount)
+            return row.Value;
+
+        var baseAmount = row.IncomeSourceId is { } id
+            ? Editor!.IncomeBases.Sources.FirstOrDefault(s => s.SourceId == id)?.MonthlyAmount ?? 0m
+            : Editor!.IncomeBases.RecurringTotal;
+
+        return Math.Round(baseAmount * row.Value / 100m, 2, MidpointRounding.AwayFromZero);
+    }
+}

@@ -11,6 +11,7 @@ public class IncomeServiceTests
 {
     private readonly FakeRepository<IncomeSource> _sources = new();
     private readonly FakeRepository<OneTimeIncome> _oneTime = new();
+    private readonly FakeRepository<BudgetAllocation> _allocations = new();
     private readonly FakeRepository<UserSettings> _settings = new();
     private readonly FakeRepository<ExchangeRate> _rates = new();
     private readonly FixedDateProvider _dates = new(new DateOnly(2026, 11, 18));
@@ -21,7 +22,7 @@ public class IncomeServiceTests
     {
         _settings.Items.Add(new UserSettings { Id = 1, BaseCurrency = Currency.DOP });
         _currency = new CurrencyService(_settings, _rates, _dates);
-        _service = new IncomeService(_sources, _oneTime, _currency, _dates);
+        _service = new IncomeService(_sources, _oneTime, _allocations, _currency, _dates);
     }
 
     private static IncomeSourceInput Source(string name, decimal amount, DateOnly start, DateOnly? end = null,

@@ -9,17 +9,20 @@ public class IncomeService
 {
     private readonly IRepository<IncomeSource> _sources;
     private readonly IRepository<OneTimeIncome> _oneTime;
+    private readonly IRepository<BudgetAllocation> _allocations;
     private readonly CurrencyService _currency;
     private readonly IDateProvider _dateProvider;
 
     public IncomeService(
         IRepository<IncomeSource> sources,
         IRepository<OneTimeIncome> oneTime,
+        IRepository<BudgetAllocation> allocations,
         CurrencyService currency,
         IDateProvider dateProvider)
     {
         _sources = sources;
         _oneTime = oneTime;
+        _allocations = allocations;
         _currency = currency;
         _dateProvider = dateProvider;
     }
@@ -61,6 +64,11 @@ public class IncomeService
     {
         var entity = await _sources.GetByIdAsync(id)
             ?? throw new InvalidOperationException("La fuente de ingreso no existe.");
+
+        // Plan allocations can be a percentage of this source; the database would reject the delete.
+        if ((await _allocations.ListAsync(a => a.IncomeSourceId == id)).Count > 0)
+            throw new InvalidOperationException("La fuente se usa en el Plan. Cambie esa asignación antes de eliminarla.");
+
         await _sources.DeleteAsync(entity);
     }
 
@@ -155,18 +163,32 @@ public class IncomeService
     /// Used by the Plan to resolve percentage allocations.
     /// </summary>
     public async Task<decimal> GetRecurringMonthlyTotalAsync()
+        => (await GetIncomeBasesAsync()).RecurringTotal;
+
+    /// <summary>
+    /// Monthly equivalent of every source (for percentage allocations tied to one source) plus the
+    /// total of the sources that are active today. Rates are loaded once.
+    /// </summary>
+    public async Task<IncomeBasesDto> GetIncomeBasesAsync()
     {
         var today = _dateProvider.Today;
-        var sources = await _sources.ListAsync(s => s.IsActive);
+        var sources = await _sources.ListAsync();
+        var result = new IncomeBasesDto();
+        if (sources.Count == 0)
+            return result;
 
-        decimal total = 0m;
-        foreach (var source in sources.Where(s => s.StartDate <= today && (s.EndDate is null || s.EndDate >= today)))
+        var converter = await _currency.GetConverterAsync();
+        foreach (var source in sources.OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase))
         {
-            var inBase = await _currency.ConvertToBaseAsync(source.Amount, source.Currency);
-            total += RecurrenceCalculator.ToMonthlyAmount(inBase, source.Frequency);
+            var monthly = RecurrenceCalculator.ToMonthlyAmount(converter.ToBase(source.Amount, source.Currency), source.Frequency);
+            var isCurrent = source.IsActive && source.StartDate <= today && (source.EndDate is null || source.EndDate >= today);
+
+            result.Sources.Add(new IncomeBaseDto { SourceId = source.Id, Name = source.Name, MonthlyAmount = monthly, IsCurrent = isCurrent });
+            if (isCurrent)
+                result.RecurringTotal += monthly;
         }
 
-        return total;
+        return result;
     }
 
     // ---------- Helpers ----------
