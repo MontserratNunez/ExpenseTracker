@@ -6,10 +6,7 @@
     <div class="card-header">Moneda base</div>
     <div class="card-body">
         <ErrorAlert @bind-Message="error" />
-        @if (saved)
-        {
-            <div class="alert alert-success">Moneda base guardada.</div>
-        }
+        <SuccessToast Message="@(saved ? "Moneda base guardada." : null)" />
 
         <div class="row g-2 align-items-end">
             <div class="col-sm-4 col-md-3">

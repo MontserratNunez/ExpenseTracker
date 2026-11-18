@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - run: dotnet restore
+
+      - run: dotnet build --no-restore -c Release
+
+      # Phase 14 removes every emoji from the UI. Until then this step only reports them
+      # (continue-on-error); delete that line once Phase 14 is done so it becomes a hard check.
+      - name: Check there are no emojis in the UI (Phase 14)
+        continue-on-error: true
+        run: |
+          export LC_ALL=C.UTF-8
+          ! grep -rnP "[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]" src/Presentation --include=*.razor --include=*.cs --include=*.css
+
+      - run: dotnet test --no-build -c Release --logger trx --results-directory TestResults
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: TestResults

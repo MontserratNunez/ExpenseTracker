@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using ExpenseTracker.Core.Application;
@@ -5,6 +6,7 @@ using ExpenseTracker.Core.Application.Interfaces;
 using ExpenseTracker.Infrastructure.Identity;
 using ExpenseTracker.Infrastructure.Identity.Models;
 using ExpenseTracker.Infrastructure.Persistence;
+using ExpenseTracker.Infrastructure.Persistence.Context;
 using ExpenseTracker.Web.Components;
 using ExpenseTracker.Web.Components.Account;
 using System.Globalization;
@@ -36,6 +38,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddSingleton<IDateProvider, SystemDateProvider>();
+builder.Services.AddScoped<ToastService>();
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
@@ -43,14 +46,28 @@ builder.Services.AddIdentityInfrastructure(builder.Configuration);
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+// Keep the cookie encryption keys across restarts when running in a container (mount a volume there).
+var keysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keysPath))
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+        .SetApplicationName("ExpenseTracker");
+}
+
+// Used by Docker and the pipeline: /health answers Healthy when the database is reachable.
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Migrations run automatically in development, and in other environments when ApplyMigrationsOnStartup is true.
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("ApplyMigrationsOnStartup"))
 {
     await DatabaseInitializer.MigrateAsync(app.Services);
 }
-else
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
@@ -69,5 +86,7 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+
+app.MapHealthChecks("/health");
 
 app.Run();

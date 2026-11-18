@@ -1,0 +1,32 @@
+@implements IDisposable
+@using ExpenseTracker.Web.Services
+@inject ToastService Toasts
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100;" aria-live="polite" aria-atomic="false">
+    @foreach (var toast in Toasts.Items)
+    {
+        var t = toast;
+        <div class="toast show align-items-center border-0 text-bg-@ColorFor(t.Kind) mb-2" role="status">
+            <div class="d-flex">
+                <div class="toast-body">@t.Message</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" aria-label="Cerrar" @onclick="() => Toasts.Dismiss(t.Id)"></button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Toasts.Changed += OnChanged;
+
+    // Changes can come from a timer thread, so re-render through the component's dispatcher.
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private static string ColorFor(ToastKind kind) => kind switch
+    {
+        ToastKind.Error => "danger",
+        ToastKind.Info => "primary",
+        _ => "success"
+    };
+
+    public void Dispose() => Toasts.Changed -= OnChanged;
+}

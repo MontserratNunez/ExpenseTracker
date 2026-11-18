@@ -45,37 +45,37 @@
                         <div class="row g-3 mb-3">
                             <div class="col-6">
                                 <label class="form-label" for="debt-original">Monto original</label>
-                                <InputNumber id="debt-original" class="form-control" @bind-Value="Model.OriginalAmount" step="0.01" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-original" class="form-control" @bind-Value="Model.OriginalAmount" step="0.01" />
                             </div>
                             <div class="col-6">
                                 <label class="form-label" for="debt-paid">Ya pagado antes de usar la app</label>
-                                <InputNumber id="debt-paid" class="form-control" @bind-Value="Model.InitialPaidAmount" step="0.01" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-paid" class="form-control" @bind-Value="Model.InitialPaidAmount" step="0.01" />
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-6">
                                 <label class="form-label" for="debt-rate">Tasa anual (%)</label>
-                                <InputNumber id="debt-rate" class="form-control" @bind-Value="Model.AnnualInterestRate" step="0.01" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-rate" class="form-control" @bind-Value="Model.AnnualInterestRate" step="0.01" />
                             </div>
                             <div class="col-6">
                                 <label class="form-label" for="debt-day">Día de pago (1-28)</label>
-                                <InputNumber id="debt-day" class="form-control" @bind-Value="Model.PaymentDay" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-day" class="form-control" @bind-Value="Model.PaymentDay" />
                             </div>
                         </div>
                         <div class="row g-3 mb-1">
                             <div class="col-6">
                                 <label class="form-label" for="debt-installment">Cuota mensual</label>
-                                <InputNumber id="debt-installment" class="form-control" @bind-Value="Model.MonthlyPayment" step="0.01" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-installment" class="form-control" @bind-Value="Model.MonthlyPayment" step="0.01" />
                             </div>
                             <div class="col-6">
                                 <label class="form-label" for="debt-term">Plazo (meses)</label>
-                                <InputNumber id="debt-term" class="form-control" @bind-Value="Model.TermMonths" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-term" class="form-control" @bind-Value="Model.TermMonths" />
                             </div>
                         </div>
                         <p class="form-text mb-3">Indica la cuota, o deja la cuota en 0 y el plazo para calcularla.</p>
                         <div>
                             <label class="form-label" for="debt-start">Fecha de inicio</label>
-                            <InputDate id="debt-start" class="form-control" @bind-Value="Model.StartDate" />
+                            <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="debt-start" class="form-control" @bind-Value="Model.StartDate" />
                         </div>
                     </div>
                     <div class="modal-footer">

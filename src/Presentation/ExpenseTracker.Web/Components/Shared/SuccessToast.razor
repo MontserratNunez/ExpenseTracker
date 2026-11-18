@@ -1,0 +1,21 @@
+@using ExpenseTracker.Web.Services
+@inject ToastService Toasts
+
+@* Shows a toast each time Message changes to a new non-empty text. Pages keep their `message` field. *@
+
+@code {
+    [Parameter]
+    public string? Message { get; set; }
+
+    private string? lastMessage;
+
+    protected override void OnParametersSet()
+    {
+        if (Message == lastMessage)
+            return;
+
+        lastMessage = Message;
+        if (!string.IsNullOrEmpty(Message))
+            Toasts.ShowSuccess(Message);
+    }
+}

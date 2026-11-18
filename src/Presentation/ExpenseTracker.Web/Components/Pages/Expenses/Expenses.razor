@@ -22,10 +22,7 @@
 </div>
 
 <ErrorAlert @bind-Message="error" />
-@if (message is not null)
-{
-    <div class="alert alert-success">@message</div>
-}
+<SuccessToast Message="@message" />
 
 @if (loading)
 {

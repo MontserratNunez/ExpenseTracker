@@ -110,6 +110,20 @@ public class CurrencyService
         return new CurrencyConverter(baseCurrency, rates.ToDictionary(r => r.Currency, r => r.RateToBase));
     }
 
+    /// <summary>
+    /// Like <see cref="GetConverterAsync()"/>, but the rates are only queried when some of the
+    /// currencies that will be converted differ from the base currency (1 query instead of 2).
+    /// </summary>
+    public async Task<CurrencyConverter> GetConverterAsync(IEnumerable<Currency> currenciesToConvert)
+    {
+        var baseCurrency = await GetBaseCurrencyAsync();
+        if (currenciesToConvert.All(c => c == baseCurrency))
+            return new CurrencyConverter(baseCurrency, new Dictionary<Currency, decimal>());
+
+        var rates = await _rates.ListAsync();
+        return new CurrencyConverter(baseCurrency, rates.ToDictionary(r => r.Currency, r => r.RateToBase));
+    }
+
     private async Task<UserSettings?> GetSettingsAsync()
         => (await _settings.ListAsync()).FirstOrDefault();
 

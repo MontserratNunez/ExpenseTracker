@@ -31,7 +31,7 @@
                         <div class="row g-3 mb-3">
                             <div class="col-7">
                                 <label class="form-label" for="exp-amount">Monto</label>
-                                <InputNumber id="exp-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="exp-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
                             </div>
                             <div class="col-5">
                                 <label class="form-label" for="exp-currency">Moneda</label>
@@ -55,7 +55,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="exp-date">@(Model.IsRecurring ? "Primera ocurrencia" : "Fecha")</label>
-                            <InputDate id="exp-date" class="form-control" @bind-Value="Model.Date" />
+                            <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="exp-date" class="form-control" @bind-Value="Model.Date" />
                         </div>
                         <div class="form-check form-switch mb-3">
                             <InputCheckbox id="exp-recurring" class="form-check-input" role="switch" @bind-Value="Model.IsRecurring" />
@@ -75,7 +75,7 @@
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label" for="exp-end">Fin (opcional)</label>
-                                    <InputDate id="exp-end" class="form-control" @bind-Value="Model.EndDate" />
+                                    <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="exp-end" class="form-control" @bind-Value="Model.EndDate" />
                                 </div>
                             </div>
                         }

@@ -46,10 +46,14 @@ public class MonthlyLedgerService
         var recurring = await _expenses.GetActiveRecurringAsync(from, to);
         var debts = await _debts.GetAllWithPaymentsAsync();
 
-        // Rates are loaded once, and only when something needs converting.
+        // Rates are loaded once, and only when something needs converting. With everything in the
+        // base currency this costs a single query (the settings), keeping a month at 4 queries.
         CurrencyConverter? converter = null;
         if (recurring.Count > 0 || debts.Count > 0)
-            converter = await _currency.GetConverterAsync();
+        {
+            var currencies = recurring.Select(e => e.Currency).Concat(debts.Select(d => d.Currency));
+            converter = await _currency.GetConverterAsync(currencies);
+        }
 
         var items = new List<LedgerItem>();
 

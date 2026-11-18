@@ -25,7 +25,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="goal-target">Monto objetivo</label>
-                            <InputNumber id="goal-target" class="form-control" @bind-Value="Model.TargetAmount" step="0.01" />
+                            <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="goal-target" class="form-control" @bind-Value="Model.TargetAmount" step="0.01" />
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="goal-period">Periodo</label>
@@ -44,7 +44,7 @@
                         {
                             <div class="mb-3">
                                 <label class="form-label" for="goal-year">Año</label>
-                                <InputNumber id="goal-year" class="form-control" @bind-Value="Model.Year" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="goal-year" class="form-control" @bind-Value="Model.Year" />
                                 <div class="form-text">Del 1 de enero al 31 de diciembre.</div>
                             </div>
                         }
@@ -53,11 +53,11 @@
                             <div class="row g-3 mb-3">
                                 <div class="col-6">
                                     <label class="form-label" for="goal-start">Inicio</label>
-                                    <InputDate id="goal-start" class="form-control" @bind-Value="Model.StartDate" />
+                                    <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="goal-start" class="form-control" @bind-Value="Model.StartDate" />
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label" for="goal-end">Fin</label>
-                                    <InputDate id="goal-end" class="form-control" @bind-Value="Model.EndDate" />
+                                    <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="goal-end" class="form-control" @bind-Value="Model.EndDate" />
                                 </div>
                             </div>
                         }

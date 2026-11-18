@@ -25,7 +25,7 @@
                         <div class="row g-3 mb-3">
                             <div class="col-7">
                                 <label class="form-label" for="src-amount">Monto</label>
-                                <InputNumber id="src-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
+                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="src-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
                             </div>
                             <div class="col-5">
                                 <label class="form-label" for="src-currency">Moneda</label>
@@ -49,11 +49,11 @@
                         <div class="row g-3 mb-3">
                             <div class="col-6">
                                 <label class="form-label" for="src-start">Inicio</label>
-                                <InputDate id="src-start" class="form-control" @bind-Value="Model.StartDate" />
+                                <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="src-start" class="form-control" @bind-Value="Model.StartDate" />
                             </div>
                             <div class="col-6">
                                 <label class="form-label" for="src-end">Fin (opcional)</label>
-                                <InputDate id="src-end" class="form-control" @bind-Value="Model.EndDate" />
+                                <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="src-end" class="form-control" @bind-Value="Model.EndDate" />
                             </div>
                         </div>
                         <div class="form-check">

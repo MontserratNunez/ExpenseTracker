@@ -12,10 +12,7 @@
 <p class="mb-2"><a href="/deudas">&#8249; Volver a deudas</a></p>
 
 <ErrorAlert @bind-Message="error" />
-@if (message is not null)
-{
-    <div class="alert alert-success">@message</div>
-}
+<SuccessToast Message="@message" />
 
 @if (loading)
 {
@@ -210,7 +207,14 @@ else if (detail is not null)
 
     private async Task LoadAsync()
     {
-        detail = await DebtService.GetDetailAsync(Id);
+        detail = await DebtService.TryGetDetailAsync(Id);
+        if (detail is null)
+        {
+            // Missing, or it belongs to another user: the global filter makes both look the same (404).
+            Navigation.NotFound();
+            return;
+        }
+
         amortization = showAmortization ? await DebtService.GetAmortizationAsync(Id) : null;
     }
 

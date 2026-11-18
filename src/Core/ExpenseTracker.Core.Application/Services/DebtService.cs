@@ -37,8 +37,17 @@ public class DebtService
     }
 
     public async Task<DebtDetailDto> GetDetailAsync(int id)
+        => await BuildDetailAsync(await GetWithPaymentsOrThrowAsync(id));
+
+    /// <summary>Same as <see cref="GetDetailAsync"/>, but returns null when the debt does not exist (or is not yours).</summary>
+    public async Task<DebtDetailDto?> TryGetDetailAsync(int id)
     {
-        var debt = await GetWithPaymentsOrThrowAsync(id);
+        var debt = await _debts.GetWithPaymentsAsync(id);
+        return debt is null ? null : await BuildDetailAsync(debt);
+    }
+
+    private async Task<DebtDetailDto> BuildDetailAsync(Debt debt)
+    {
         var converter = await _currency.GetConverterAsync();
 
         return new DebtDetailDto

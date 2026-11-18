@@ -18,12 +18,12 @@
 
                         <div class="mb-3">
                             <label class="form-label" for="pay-amount">Monto</label>
-                            <InputNumber id="pay-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
+                            <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="pay-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
                             <div class="form-text">Se divide automáticamente en interés y capital.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="pay-date">Fecha</label>
-                            <InputDate id="pay-date" class="form-control" @bind-Value="Model.Date" />
+                            <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="pay-date" class="form-control" @bind-Value="Model.Date" />
                         </div>
                         <div>
                             <label class="form-label" for="pay-notes">Notas</label>
