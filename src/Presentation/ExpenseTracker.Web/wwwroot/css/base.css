@@ -1,0 +1,50 @@
+/* Base styles: reset, typography and generic layout helpers. Uses tokens.css only.
+   Loaded after Bootstrap and app.css so that its rules win while those are still present. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font-size: var(--text-xl); font-weight: 600; margin: 0 0 var(--space-6); letter-spacing: -.01em; }
+h2 { font-size: var(--text-lg); font-weight: 600; margin: var(--space-8) 0 var(--space-3); }
+p  { margin: 0 0 var(--space-3); }
+
+/* A heading that opens its container (a card, a section) needs no extra space above it. */
+h2:first-child, h3:first-child { margin-top: 0; }
+
+a { color: var(--color-primary-500); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* Blazor moves focus to the page heading after navigation; that is not something to highlight. */
+h1:focus-visible, [tabindex="-1"]:focus-visible { box-shadow: none; }
+
+.money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.text-muted  { color: var(--color-text-muted); }
+.text-subtle { color: var(--color-text-subtle); }
+
+/* Generic layout helpers (they replace Bootstrap's in step 15) */
+.stack    { display: flex; flex-direction: column; gap: var(--space-4); }
+.row-flex { display: flex; align-items: center; gap: var(--space-3); }
+.spacer   { flex: 1; }
+.grid-auto { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* Transitional: remove in step 15 together with Bootstrap.
+   Links that are buttons must not get the underline-on-hover of plain links. */
+a.btn:hover, a.list-group-item:hover { text-decoration: none; }
