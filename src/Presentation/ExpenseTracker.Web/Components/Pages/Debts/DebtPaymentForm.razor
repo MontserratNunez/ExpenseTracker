@@ -1,0 +1,58 @@
+@using ExpenseTracker.Core.Application.DTOs.Debts
+
+@if (Visible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="payment-title">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-payment-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="payment-title">Registrar pago</h5>
+                        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                    </div>
+                    <div class="modal-body">
+                        <DataAnnotationsValidator />
+                        <ErrorAlert Message="@Error" />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pay-amount">Monto</label>
+                            <InputNumber id="pay-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
+                            <div class="form-text">Se divide automáticamente en interés y capital.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="pay-date">Fecha</label>
+                            <InputDate id="pay-date" class="form-control" @bind-Value="Model.Date" />
+                        </div>
+                        <div>
+                            <label class="form-label" for="pay-notes">Notas</label>
+                            <InputText id="pay-notes" class="form-control" @bind-Value="Model.Notes" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Registrar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter, EditorRequired]
+    public DebtPaymentInput Model { get; set; } = new();
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+}

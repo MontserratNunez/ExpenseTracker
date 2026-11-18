@@ -19,6 +19,7 @@ public class ExpenseServiceTests
     private readonly FakeRepository<UserSettings> _settings = new();
     private readonly FakeRepository<ExchangeRate> _rates = new();
     private readonly FakeExpenseRepository _expenses;
+    private readonly FakeDebtRepository _debts = new();
     private readonly FixedDateProvider _dates = new(new DateOnly(2026, 11, 18));
     private readonly CurrencyService _currency;
     private readonly ExpenseService _service;
@@ -37,7 +38,7 @@ public class ExpenseServiceTests
         });
 
         _currency = new CurrencyService(_settings, _rates, _dates);
-        var ledger = new MonthlyLedgerService(_expenses, _currency, _dates);
+        var ledger = new MonthlyLedgerService(_expenses, _debts, _currency, _dates);
         _service = new ExpenseService(_expenses, _categories, _currency, ledger, _dates);
     }
 

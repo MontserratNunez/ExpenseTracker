@@ -227,7 +227,14 @@ else if (data is not null)
         var pending = i.Status == LedgerStatus.Pending;
         <div>
             <div class="fw-semibold">
-                @(i.IsReadOnly ? "🏦 " : "")@i.Name
+                @if (i.IsReadOnly)
+                {
+                    <a href="/deudas/@i.SourceId" class="text-decoration-none" title="Se edita desde la deuda">🏦 @i.Name</a>
+                }
+                else
+                {
+                    @i.Name
+                }
                 @if (i.Frequency is not null)
                 {
                     <span class="badge text-bg-secondary ms-1">@UiLabels.FrequencyName(i.Frequency.Value)</span>

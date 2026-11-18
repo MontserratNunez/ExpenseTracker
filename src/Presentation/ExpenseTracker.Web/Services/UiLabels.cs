@@ -19,6 +19,19 @@ public static class UiLabels
         _ => frequency.ToString()
     };
 
+    public static string DebtTypeName(DebtType type) => type switch
+    {
+        DebtType.Loan => "Préstamo",
+        DebtType.Mortgage => "Hipoteca",
+        DebtType.CreditCard => "Tarjeta de crédito",
+        DebtType.CarLoan => "Préstamo de vehículo",
+        DebtType.Other => "Otra",
+        _ => type.ToString()
+    };
+
+    /// <summary>Month and year such as "mar 2029".</summary>
+    public static string MonthYear(DateOnly date) => $"{ShortMonthName(date.Month).ToLower(Culture)} {date.Year}";
+
     /// <summary>Capitalized month name, e.g. "Noviembre".</summary>
     public static string MonthName(int month)
     {

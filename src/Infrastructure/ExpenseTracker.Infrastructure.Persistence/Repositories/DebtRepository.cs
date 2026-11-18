@@ -30,6 +30,15 @@ public class DebtRepository : Repository<Debt>, IDebtRepository
             .ToListAsync();
     }
 
+    public async Task<List<Debt>> GetAllWithPaymentsAsync()
+    {
+        await using var context = await Factory.CreateDbContextAsync();
+        return await context.Debts
+            .AsNoTracking()
+            .Include(d => d.Payments)
+            .ToListAsync();
+    }
+
     public async Task AddPaymentAsync(DebtPayment payment)
     {
         await using var context = await Factory.CreateDbContextAsync();

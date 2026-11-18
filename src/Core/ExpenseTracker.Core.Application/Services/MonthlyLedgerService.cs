@@ -1,4 +1,5 @@
 using ExpenseTracker.Core.Application.DTOs.Expenses;
+using ExpenseTracker.Core.Application.Helpers;
 using ExpenseTracker.Core.Application.Interfaces;
 using ExpenseTracker.Core.Domain.Entities;
 using ExpenseTracker.Core.Domain.Helpers;
@@ -7,19 +8,27 @@ namespace ExpenseTracker.Core.Application.Services;
 
 /// <summary>
 /// Central service (rule 5.2): every movement of a month, as Spent or Pending.
-/// Used by Expenses, Dashboard, Plan and Forecast. Debt installments are added in the debts module.
+/// Used by Expenses, Dashboard, Plan and Forecast.
 /// </summary>
 public class MonthlyLedgerService
 {
-    private const string NoCategoryName = "Sin categoría";
+    public const string NoCategoryName = "Sin categoría";
+    public const string DebtsCategoryName = "Deudas";
+    private const string DebtsCategoryColor = "#6F42C1";
 
     private readonly IExpenseRepository _expenses;
+    private readonly IDebtRepository _debts;
     private readonly CurrencyService _currency;
     private readonly IDateProvider _dateProvider;
 
-    public MonthlyLedgerService(IExpenseRepository expenses, CurrencyService currency, IDateProvider dateProvider)
+    public MonthlyLedgerService(
+        IExpenseRepository expenses,
+        IDebtRepository debts,
+        CurrencyService currency,
+        IDateProvider dateProvider)
     {
         _expenses = expenses;
+        _debts = debts;
         _currency = currency;
         _dateProvider = dateProvider;
     }
@@ -33,35 +42,89 @@ public class MonthlyLedgerService
         var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
         var today = _dateProvider.Today;
 
+        var oneTime = await _expenses.GetOneTimeByRangeAsync(from, to);
+        var recurring = await _expenses.GetActiveRecurringAsync(from, to);
+        var debts = await _debts.GetAllWithPaymentsAsync();
+
+        // Rates are loaded once, and only when something needs converting.
+        CurrencyConverter? converter = null;
+        if (recurring.Count > 0 || debts.Count > 0)
+            converter = await _currency.GetConverterAsync();
+
         var items = new List<LedgerItem>();
 
-        foreach (var expense in await _expenses.GetOneTimeByRangeAsync(from, to))
+        foreach (var expense in oneTime)
         {
             items.Add(ToItem(expense, expense.Date, LedgerSource.OneTimeExpense, LedgerStatus.Spent, expense.AmountInBase));
         }
 
-        var recurring = await _expenses.GetActiveRecurringAsync(from, to);
-        if (recurring.Count > 0)
+        foreach (var expense in recurring)
         {
+            if (expense.Frequency is null)
+                continue;
+
             // D7: recurring expenses in a foreign currency use the rate in force when calculating.
-            var converter = await _currency.GetConverterAsync();
-
-            foreach (var expense in recurring)
+            var amountInBase = converter!.ToBase(expense.Amount, expense.Currency);
+            var occurrences = RecurrenceCalculator.GetOccurrences(expense.Date, expense.Frequency.Value, expense.EndDate, from, to);
+            foreach (var date in occurrences)
             {
-                if (expense.Frequency is null)
-                    continue;
-
-                var amountInBase = converter.ToBase(expense.Amount, expense.Currency);
-                var occurrences = RecurrenceCalculator.GetOccurrences(expense.Date, expense.Frequency.Value, expense.EndDate, from, to);
-                foreach (var date in occurrences)
-                {
-                    var status = date <= today ? LedgerStatus.Spent : LedgerStatus.Pending;
-                    items.Add(ToItem(expense, date, LedgerSource.RecurringExpense, status, amountInBase));
-                }
+                var status = date <= today ? LedgerStatus.Spent : LedgerStatus.Pending;
+                items.Add(ToItem(expense, date, LedgerSource.RecurringExpense, status, amountInBase));
             }
         }
 
+        foreach (var debt in debts)
+        {
+            AddDebtItems(items, debt, from, to, today, converter!);
+        }
+
         return items.OrderBy(i => i.Date).ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    // Registered payments are Spent. If the month has no payment for the debt, its installment
+    // is Pending (only from the current month on, following the amortization schedule).
+    private static void AddDebtItems(List<LedgerItem> items, Debt debt, DateOnly from, DateOnly to, DateOnly today, CurrencyConverter converter)
+    {
+        var payments = debt.Payments.Where(p => p.Date >= from && p.Date <= to).ToList();
+        foreach (var payment in payments)
+        {
+            items.Add(new LedgerItem
+            {
+                Date = payment.Date,
+                Name = $"Pago: {debt.Name}",
+                Source = LedgerSource.DebtPayment,
+                Status = LedgerStatus.Spent,
+                SourceId = debt.Id,
+                CategoryName = DebtsCategoryName,
+                CategoryColor = DebtsCategoryColor,
+                Amount = payment.Amount,
+                Currency = debt.Currency,
+                AmountInBase = converter.ToBase(payment.Amount, debt.Currency),
+                Notes = payment.Notes
+            });
+        }
+
+        if (payments.Count > 0 || debt.IsClosed || to < new DateOnly(today.Year, today.Month, 1))
+            return;
+
+        var installment = AmortizationCalculator.ForDebt(debt, today)
+            .Rows.FirstOrDefault(r => r.Date >= from && r.Date <= to);
+        if (installment is null)
+            return;
+
+        items.Add(new LedgerItem
+        {
+            Date = installment.Date,
+            Name = $"Cuota: {debt.Name}",
+            Source = LedgerSource.DebtInstallment,
+            Status = LedgerStatus.Pending,
+            SourceId = debt.Id,
+            CategoryName = DebtsCategoryName,
+            CategoryColor = DebtsCategoryColor,
+            Amount = installment.Payment,
+            Currency = debt.Currency,
+            AmountInBase = converter.ToBase(installment.Payment, debt.Currency)
+        });
     }
 
     private static LedgerItem ToItem(Expense expense, DateOnly date, LedgerSource source, LedgerStatus status, decimal amountInBase) => new()
