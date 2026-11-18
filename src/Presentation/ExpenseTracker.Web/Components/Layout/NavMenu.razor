@@ -12,14 +12,17 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Inicio
-            </NavLink>
-        </div>
-
         <AuthorizeView>
             <Authorized>
+                @foreach (var item in MenuItems)
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="@item.Href" Match="@(item.Href.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                            <span class="bi @item.IconClass" aria-hidden="true"></span> @item.Text
+                        </NavLink>
+                    </div>
+                }
+
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Manage">
                         <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
@@ -53,6 +56,32 @@
 
 @code {
     private string? currentUrl;
+
+    private sealed class MenuItem
+    {
+        public MenuItem(string href, string text, string iconClass)
+        {
+            Href = href;
+            Text = text;
+            IconClass = iconClass;
+        }
+
+        public string Href { get; }
+        public string Text { get; }
+        public string IconClass { get; }
+    }
+
+    private static readonly MenuItem[] MenuItems =
+    {
+        new("", "Inicio", "bi-house-door-fill-nav-menu"),
+        new("ingresos", "Ingresos", "bi-plus-square-fill-nav-menu"),
+        new("gastos", "Gastos", "bi-list-nested-nav-menu"),
+        new("deudas", "Deudas", "bi-lock-nav-menu"),
+        new("plan", "Plan", "bi-list-nested-nav-menu"),
+        new("metas", "Metas", "bi-plus-square-fill-nav-menu"),
+        new("estimaciones", "Estimaciones", "bi-list-nested-nav-menu"),
+        new("configuracion", "Configuración", "bi-person-badge-nav-menu"),
+    };
 
     protected override void OnInitialized()
     {

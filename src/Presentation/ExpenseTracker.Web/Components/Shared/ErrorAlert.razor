@@ -1,0 +1,22 @@
+@if (!string.IsNullOrWhiteSpace(Message))
+{
+    <div class="alert alert-danger alert-dismissible" role="alert">
+        @Message
+        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="Dismiss"></button>
+    </div>
+}
+
+@code {
+    /// <summary>Business error message (usually the text of an InvalidOperationException).</summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> MessageChanged { get; set; }
+
+    private Task Dismiss()
+    {
+        Message = null;
+        return MessageChanged.InvokeAsync(null);
+    }
+}

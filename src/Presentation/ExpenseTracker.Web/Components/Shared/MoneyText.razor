@@ -1,0 +1,15 @@
+@using ExpenseTracker.Core.Application.Helpers
+@using ExpenseTracker.Core.Domain.Enums
+
+<span class="@CssClass">@MoneyFormatter.Format(Amount, Currency)</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public decimal Amount { get; set; }
+
+    [Parameter]
+    public Currency Currency { get; set; } = Currency.DOP;
+
+    [Parameter]
+    public string? CssClass { get; set; }
+}

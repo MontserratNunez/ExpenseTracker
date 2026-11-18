@@ -7,7 +7,13 @@ using ExpenseTracker.Infrastructure.Identity.Models;
 using ExpenseTracker.Infrastructure.Persistence;
 using ExpenseTracker.Web.Components;
 using ExpenseTracker.Web.Components.Account;
+using System.Globalization;
 using ExpenseTracker.Web.Services;
+
+// Default UI culture (D: es-DO); per-user language comes later from UserSettings.
+var culture = new CultureInfo("es-DO");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +32,10 @@ builder.Services.AddAuthentication(options =>
     })
     .AddIdentityCookies();
 
+builder.Services.AddAuthorization();
+
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddSingleton<IDateProvider, SystemDateProvider>();
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
@@ -50,6 +59,8 @@ else
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
