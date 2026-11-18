@@ -1,0 +1,107 @@
+@using ExpenseTracker.Core.Application.DTOs.Goals
+@using ExpenseTracker.Core.Application.DTOs.Settings
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+
+@if (Visible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="goal-title">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="Model" OnValidSubmit="OnSave" FormName="goal-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="goal-title">@Title</h5>
+                        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                    </div>
+                    <div class="modal-body">
+                        <DataAnnotationsValidator />
+                        <ErrorAlert Message="@Error" />
+                        <ValidationSummary class="text-danger" />
+
+                        <div class="mb-3">
+                            <label class="form-label" for="goal-name">Nombre</label>
+                            <InputText id="goal-name" class="form-control" @bind-Value="Model.Name" placeholder="Ahorro de 200,000 anualmente" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="goal-target">Monto objetivo</label>
+                            <InputNumber id="goal-target" class="form-control" @bind-Value="Model.TargetAmount" step="0.01" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="goal-period">Periodo</label>
+                            <InputSelect id="goal-period" class="form-select" @bind-Value="Model.Period">
+                                @foreach (var period in Enum.GetValues<GoalPeriod>())
+                                {
+                                    <option value="@period">@UiLabels.GoalPeriodName(period)</option>
+                                }
+                            </InputSelect>
+                            @if (Model.Period == GoalPeriod.Monthly)
+                            {
+                                <div class="form-text">Se reinicia cada mes: el objetivo se mide con lo aportado en el mes en curso.</div>
+                            }
+                        </div>
+                        @if (Model.Period == GoalPeriod.Annual)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label" for="goal-year">Año</label>
+                                <InputNumber id="goal-year" class="form-control" @bind-Value="Model.Year" />
+                                <div class="form-text">Del 1 de enero al 31 de diciembre.</div>
+                            </div>
+                        }
+                        else if (Model.Period == GoalPeriod.Custom)
+                        {
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label" for="goal-start">Inicio</label>
+                                    <InputDate id="goal-start" class="form-control" @bind-Value="Model.StartDate" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" for="goal-end">Fin</label>
+                                    <InputDate id="goal-end" class="form-control" @bind-Value="Model.EndDate" />
+                                </div>
+                            </div>
+                        }
+                        <div>
+                            <label class="form-label" for="goal-category">Categoría vinculada</label>
+                            <InputSelect id="goal-category" class="form-select" @bind-Value="Model.CategoryId">
+                                <option value="0">Seleccione...</option>
+                                @foreach (var category in Categories)
+                                {
+                                    <option value="@category.Id">@category.Name@(category.IsSavings ? " (ahorro)" : "")</option>
+                                }
+                            </InputSelect>
+                            <div class="form-text">El progreso es lo que gastas (aportas) en esta categoría durante el periodo.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Meta";
+
+    [Parameter, EditorRequired]
+    public GoalInput Model { get; set; } = new();
+
+    [Parameter]
+    public List<CategoryDto> Categories { get; set; } = new();
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+}

@@ -144,6 +144,20 @@ public class BudgetService
         }
     }
 
+    /// <summary>Monthly amount assigned to each category in the Plan (percentages already resolved).</summary>
+    public async Task<Dictionary<int, decimal>> GetAssignedByCategoryAsync()
+    {
+        var allocations = await _allocations.ListAsync();
+        if (allocations.Count == 0)
+            return new Dictionary<int, decimal>();
+
+        var bases = allocations.Any(a => a.AllocationType == AllocationType.PercentageOfIncome)
+            ? await _income.GetIncomeBasesAsync()
+            : new IncomeBasesDto();
+
+        return allocations.ToDictionary(a => a.CategoryId, a => ResolveAssigned(a, bases));
+    }
+
     // ---------- Plan status (rule 5.5) ----------
 
     public async Task<PlanStatusDto> GetPlanStatusAsync(int year, int month)

@@ -29,6 +29,14 @@ public static class UiLabels
         _ => type.ToString()
     };
 
+    public static string GoalPeriodName(GoalPeriod period) => period switch
+    {
+        GoalPeriod.Monthly => "Mensual",
+        GoalPeriod.Annual => "Anual",
+        GoalPeriod.Custom => "Personalizado",
+        _ => period.ToString()
+    };
+
     /// <summary>Month and year such as "mar 2029".</summary>
     public static string MonthYear(DateOnly date) => $"{ShortMonthName(date.Month).ToLower(Culture)} {date.Year}";
 

@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<MonthlyLedgerService>();
         services.AddScoped<ExpenseService>();
         services.AddScoped<BudgetService>();
+        services.AddScoped<GoalService>();
 
         return services;
     }

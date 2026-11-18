@@ -1,7 +1,292 @@
 @page "/metas"
+@using ExpenseTracker.Core.Application.DTOs.Goals
+@using ExpenseTracker.Core.Application.DTOs.Settings
+@using ExpenseTracker.Core.Application.Interfaces
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+@inject GoalService GoalService
+@inject CategoryService CategoryService
+@inject CurrencyService CurrencyService
+@inject IDateProvider DateProvider
 
 <PageTitle>Metas</PageTitle>
 
-<h1>Metas</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="mb-0">Metas</h1>
+    <button type="button" class="btn btn-primary" @onclick="StartCreate" disabled="@loading">+ Nueva meta</button>
+</div>
 
-<p class="text-muted">Próximamente.</p>
+<ErrorAlert @bind-Message="error" />
+@if (message is not null)
+{
+    <div class="alert alert-success">@message</div>
+}
+
+@if (loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+}
+else if (statuses.Count == 0)
+{
+    <p class="text-muted">Aún no tienes metas. Crea una, por ejemplo "Ahorro de 200,000 anualmente", y sigue tu avance mes a mes.</p>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var status in statuses)
+        {
+            var s = status;
+            <div class="col-12 col-lg-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <h2 class="h5 mb-1">@s.Goal.Name</h2>
+                                <span class="badge text-bg-secondary">@UiLabels.GoalPeriodName(s.Goal.Period)</span>
+                                <span class="small text-muted ms-1">
+                                    @s.Goal.CategoryName · @s.Goal.StartDate.ToString("d") – @s.Goal.EndDate.ToString("d")
+                                </span>
+                            </div>
+                            <span class="badge @StateBadge(s.State) text-nowrap">@StateText(s)</span>
+                        </div>
+
+                        <div class="mt-3">
+                            <ProgressBar Percent="s.ProgressPercent" BarClass="@BarClass(s.State)" Height="14"
+                                         Label="@($"{s.ProgressPercent:0.#}% de la meta")" />
+                            <div class="mt-1">
+                                <MoneyText Amount="s.Progress" Currency="baseCurrency" /> de
+                                <MoneyText Amount="s.Goal.TargetAmount" Currency="baseCurrency" />
+                                (@s.ProgressPercent.ToString("0.#") %)
+                            </div>
+                        </div>
+
+                        @if (s.State is GoalState.OnTrack or GoalState.Behind or GoalState.NotStarted)
+                        {
+                            <div class="mt-2">
+                                @if (s.Goal.Period == GoalPeriod.Monthly)
+                                {
+                                    <text>Te faltan <strong><MoneyText Amount="s.RequiredMonthly" Currency="baseCurrency" /></strong> este mes</text>
+                                }
+                                else
+                                {
+                                    <text>Necesitas <strong><MoneyText Amount="s.RequiredMonthly" Currency="baseCurrency" />/mes</strong>
+                                        durante @s.RemainingMonths @(s.RemainingMonths == 1 ? "mes" : "meses")</text>
+                                }
+                            </div>
+                            @if (s.State != GoalState.NotStarted)
+                            {
+                                <div class="small text-muted">
+                                    Proyección: <MoneyText Amount="s.Projection" Currency="baseCurrency" />
+                                    @if (s.Goal.Period != GoalPeriod.Monthly)
+                                    {
+                                        <text>(promedio <MoneyText Amount="s.AverageMonthly" Currency="baseCurrency" />/mes)</text>
+                                    }
+                                </div>
+                            }
+                        }
+                        else if (s.State == GoalState.Completed)
+                        {
+                            <div class="mt-2 text-success">¡Meta alcanzada!</div>
+                        }
+                        else if (s.State == GoalState.Missed)
+                        {
+                            <div class="mt-2 text-danger">
+                                El periodo terminó y faltaron <MoneyText Amount="s.Shortfall" Currency="baseCurrency" />.
+                            </div>
+                        }
+
+                        @if (s.PlanBelowRequired && s.PlannedMonthly is not null)
+                        {
+                            <div class="alert alert-warning py-2 mt-3 mb-0 small">
+                                Tu plan asigna <MoneyText Amount="s.PlannedMonthly.Value" Currency="baseCurrency" />/mes a @s.Goal.CategoryName;
+                                la meta necesita <MoneyText Amount="s.RequiredMonthly" Currency="baseCurrency" />/mes.
+                                <a href="/plan">Ajustar el plan</a>
+                            </div>
+                        }
+                    </div>
+                    <div class="card-footer bg-transparent text-end">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => StartEditAsync(s.Goal.Id)">Editar</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(s.Goal)">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<GoalForm Visible="showForm" Title="@(editingId is null ? "Nueva meta" : "Editar meta")" Model="input"
+          Categories="categories" Error="formError" OnSave="SaveAsync" OnCancel="CloseForm" />
+
+<ConfirmDialog @bind-Visible="confirmDelete" Title="Eliminar meta" Message="@deleteMessage"
+               ConfirmText="Eliminar" OnConfirm="DeleteAsync" />
+
+@code {
+    private bool loading = true;
+    private string? error;
+    private string? message;
+    private string? formError;
+
+    private Currency baseCurrency = Currency.DOP;
+    private List<GoalStatusDto> statuses = new();
+    private List<CategoryDto> categories = new();
+
+    private bool showForm;
+    private int? editingId;
+    private GoalInput input = new();
+
+    private bool confirmDelete;
+    private string deleteMessage = string.Empty;
+    private GoalDto? pendingDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RunAsync(LoadAsync);
+        loading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
+        categories = await CategoryService.ListAsync(includeInactive: false);
+        statuses = await GoalService.GetGoalsStatusAsync();
+    }
+
+    private static string StateText(GoalStatusDto s) => s.State switch
+    {
+        GoalState.OnTrack => "En camino",
+        GoalState.Completed => "Completada",
+        GoalState.NotStarted => "No iniciada",
+        GoalState.Missed => "No lograda",
+        _ => "Atrasada"
+    };
+
+    private string StateBadge(GoalState state) => state switch
+    {
+        GoalState.OnTrack or GoalState.Completed => "text-bg-success",
+        GoalState.Behind => "text-bg-warning",
+        GoalState.Missed => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+
+    private static string BarClass(GoalState state) => state switch
+    {
+        GoalState.Behind => "bg-warning",
+        GoalState.Missed => "bg-danger",
+        GoalState.NotStarted => "bg-secondary",
+        _ => "bg-success"
+    };
+
+    // ---------- Create / edit ----------
+
+    private void StartCreate()
+    {
+        ClearMessages();
+        editingId = null;
+
+        var today = DateProvider.Today;
+        input = new GoalInput
+        {
+            Period = GoalPeriod.Annual,
+            Year = today.Year,
+            StartDate = today,
+            EndDate = new DateOnly(today.Year, 12, 31),
+            // The savings category by default.
+            CategoryId = categories.FirstOrDefault(c => c.IsSavings)?.Id ?? 0
+        };
+        showForm = true;
+    }
+
+    private async Task StartEditAsync(int id)
+    {
+        ClearMessages();
+        await RunAsync(async () =>
+        {
+            var goal = await GoalService.GetByIdAsync(id) ?? throw new InvalidOperationException("La meta ya no existe.");
+
+            editingId = goal.Id;
+            input = new GoalInput
+            {
+                Name = goal.Name,
+                TargetAmount = goal.TargetAmount,
+                Period = goal.Period,
+                Year = goal.StartDate.Year,
+                StartDate = goal.StartDate,
+                EndDate = goal.EndDate,
+                CategoryId = goal.CategoryId ?? 0
+            };
+            showForm = true;
+        });
+    }
+
+    private async Task SaveAsync()
+    {
+        formError = null;
+        try
+        {
+            var isNew = editingId is null;
+            if (isNew)
+                await GoalService.CreateAsync(input);
+            else
+                await GoalService.UpdateAsync(editingId!.Value, input);
+
+            showForm = false;
+            message = isNew ? "Meta creada." : "Meta actualizada.";
+            error = null;
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            formError = ex.Message;
+        }
+    }
+
+    private void CloseForm()
+    {
+        showForm = false;
+        formError = null;
+    }
+
+    // ---------- Delete ----------
+
+    private void AskDelete(GoalDto goal)
+    {
+        ClearMessages();
+        pendingDelete = goal;
+        deleteMessage = $"¿Eliminar la meta \"{goal.Name}\"? Tus gastos no se tocan; solo se deja de seguir esta meta.";
+        confirmDelete = true;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (pendingDelete is null)
+            return;
+
+        var goal = pendingDelete;
+        await RunAsync(async () =>
+        {
+            await GoalService.DeleteAsync(goal.Id);
+            message = "Meta eliminada.";
+            await LoadAsync();
+        });
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void ClearMessages()
+    {
+        error = null;
+        message = null;
+        formError = null;
+    }
+}
