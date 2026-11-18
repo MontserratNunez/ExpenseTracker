@@ -8,18 +8,18 @@ namespace ExpenseTracker.Infrastructure.Persistence.Seed;
 
 public class UserDataSeeder : IUserDataSeeder
 {
-    private static readonly (string Name, string Color, bool IsSavings)[] DefaultCategories =
+    private static readonly (string Name, string Color, string Icon, bool IsSavings)[] DefaultCategories =
     {
-        ("Comida", "#E67E22", false),
-        ("Compras/Salidas", "#9B59B6", false),
-        ("Servicios", "#3498DB", false),
-        ("Transporte", "#1ABC9C", false),
-        ("Salud", "#E74C3C", false),
-        ("Entretenimiento", "#F1C40F", false),
-        ("Suscripciones", "#34495E", false),
-        ("Seguros", "#16A085", false),
-        ("Ahorro", "#2E9E5B", true),
-        ("Otros", "#95A5A6", false)
+        ("Comida", "#E67E22", "basket", false),
+        ("Compras/Salidas", "#9B59B6", "bag", false),
+        ("Servicios", "#3498DB", "lightning-charge", false),
+        ("Transporte", "#1ABC9C", "bus-front", false),
+        ("Salud", "#E74C3C", "heart-pulse", false),
+        ("Entretenimiento", "#F1C40F", "film", false),
+        ("Suscripciones", "#34495E", "collection-play", false),
+        ("Seguros", "#16A085", "shield-check", false),
+        ("Ahorro", "#2E9E5B", "piggy-bank", true),
+        ("Otros", "#95A5A6", "tag", false)
     };
 
     private readonly IDbContextFactory<AppDbContext> _factory;
@@ -54,7 +54,7 @@ public class UserDataSeeder : IUserDataSeeder
             .Select(c => c.Name)
             .ToListAsync();
 
-        foreach (var (name, color, isSavings) in DefaultCategories)
+        foreach (var (name, color, icon, isSavings) in DefaultCategories)
         {
             if (existingNames.Contains(name))
                 continue;
@@ -64,6 +64,7 @@ public class UserDataSeeder : IUserDataSeeder
                 UserId = userId,
                 Name = name,
                 Color = color,
+                Icon = icon,
                 IsSavings = isSavings
             });
         }

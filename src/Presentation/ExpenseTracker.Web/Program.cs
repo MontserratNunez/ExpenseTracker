@@ -66,6 +66,13 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("App
     await DatabaseInitializer.MigrateAsync(app.Services);
 }
 
+// Fonts and icons are served by this site only (no CDN): tell the browser to refuse any other font source.
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["Content-Security-Policy"] = "font-src 'self'";
+    await next();
+});
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

@@ -9,7 +9,7 @@
 
 <PageTitle>@(detail?.Debt.Name ?? "Deuda")</PageTitle>
 
-<p class="mb-2"><a href="/deudas">&#8249; Volver a deudas</a></p>
+<p class="mb-2"><a href="/deudas"><AppIcon Name="@Icons.Previous" Size="14" /> Volver a deudas</a></p>
 
 <ErrorAlert @bind-Message="error" />
 <SuccessToast Message="@message" />

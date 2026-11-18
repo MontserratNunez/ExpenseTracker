@@ -3,12 +3,12 @@
 @inject IDateProvider DateProvider
 
 <div class="d-flex align-items-center gap-2">
-    <button type="button" class="btn btn-outline-secondary" aria-label="Mes anterior" @onclick="Previous">&#8249;</button>
+    <button type="button" class="btn btn-outline-secondary" aria-label="Mes anterior" @onclick="Previous"><AppIcon Name="@Icons.Previous" Size="16" /></button>
     <strong class="px-2 text-center" style="min-width: 10rem;">@UiLabels.MonthName(Month) @Year</strong>
-    <button type="button" class="btn btn-outline-secondary" aria-label="Mes siguiente" @onclick="Next" disabled="@(!CanGoNext)">&#8250;</button>
+    <button type="button" class="btn btn-outline-secondary" aria-label="Mes siguiente" @onclick="Next" disabled="@(!CanGoNext)"><AppIcon Name="@Icons.Next" Size="16" /></button>
     @if (ShowCalendar)
     {
-        <button type="button" class="btn btn-outline-secondary" aria-label="Elegir mes y año" title="Elegir mes y año" @onclick="() => pickerOpen = true">&#128197;</button>
+        <button type="button" class="btn btn-outline-secondary" aria-label="Elegir mes y año" title="Elegir mes y año" @onclick="() => pickerOpen = true"><AppIcon Name="@Icons.Calendar" Size="16" /></button>
     }
 </div>
 

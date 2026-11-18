@@ -10,10 +10,10 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="d-flex align-items-center gap-2 w-100 justify-content-center">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Año anterior" @onclick="() => pickerYear--">&#8249;</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Año anterior" @onclick="() => pickerYear--"><AppIcon Name="@Icons.Previous" Size="14" /></button>
                         <strong id="ym-title" class="px-2">@pickerYear</strong>
                         <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Año siguiente" @onclick="() => pickerYear++"
-                                disabled="@(pickerYear >= MaxYear)">&#8250;</button>
+                                disabled="@(pickerYear >= MaxYear)"><AppIcon Name="@Icons.Next" Size="14" /></button>
                     </div>
                     <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnClose"></button>
                 </div>

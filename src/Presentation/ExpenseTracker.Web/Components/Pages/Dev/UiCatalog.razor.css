@@ -99,3 +99,45 @@
     border: 1px solid var(--color-border);
     font-size: var(--text-sm);
 }
+
+.icon-grid {
+    display: grid;
+    gap: var(--space-2);
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.icon-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.icon-cell:hover {
+    background: var(--color-bg-hover);
+}
+
+.icon-cell__const {
+    font-size: var(--text-xs);
+    font-weight: 500;
+}
+
+.icon-cell__name {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+}
+
+.icon-sizes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-6);
+}
+
+.icon-sizes__blue {
+    color: var(--color-primary-500);
+}

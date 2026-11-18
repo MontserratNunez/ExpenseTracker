@@ -1,0 +1,21 @@
+<i class="bi bi-@Name app-icon @Class"
+   style="font-size:@(Size)px"
+   aria-hidden="@(string.IsNullOrEmpty(Label) ? "true" : "false")"
+   aria-label="@Label"
+   role="@(string.IsNullOrEmpty(Label) ? null : "img")"></i>
+
+@code {
+    /// <summary>Bootstrap Icons name without the "bi-" prefix. Prefer the constants in <see cref="Icons"/>.</summary>
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+
+    [Parameter]
+    public int Size { get; set; } = 18;
+
+    /// <summary>Accessible name. Set it only for icons used without text; decorative icons stay hidden from screen readers.</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+}

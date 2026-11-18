@@ -84,7 +84,7 @@ else if (plan is not null)
                         <div>
                             <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .8rem; height: .8rem; background-color: @c.CategoryColor;"></span>
                             <strong>@c.CategoryName</strong>
-                            <span class="badge @HealthBadge(c.Health) ms-1">@HealthText(c.Health)</span>
+                            <span class="badge @HealthBadge(c.Health) ms-1"><AppIcon Name="@HealthIcon(c.Health)" Size="12" /> @HealthLabel(c.Health)</span>
                         </div>
                         <div class="text-end small text-nowrap">
                             <MoneyText Amount="c.Spent + c.Pending" Currency="baseCurrency" /> de
@@ -202,11 +202,18 @@ else if (plan is not null)
         _ => "text-bg-success"
     };
 
-    private static string HealthText(PlanHealth health) => health switch
+    private static string HealthLabel(PlanHealth health) => health switch
     {
-        PlanHealth.Red => "🔴 Excedido",
-        PlanHealth.Yellow => "🟡 Al límite",
-        _ => "🟢 En camino"
+        PlanHealth.Red => "Excedido",
+        PlanHealth.Yellow => "Al límite",
+        _ => "En camino"
+    };
+
+    private static string HealthIcon(PlanHealth health) => health switch
+    {
+        PlanHealth.Red => Icons.Exceeded,
+        PlanHealth.Yellow => Icons.AtRisk,
+        _ => Icons.OnTrack
     };
 
     // ---------- Edit plan ----------

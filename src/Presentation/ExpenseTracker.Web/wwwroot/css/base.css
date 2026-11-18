@@ -48,3 +48,6 @@ h1:focus-visible, [tabindex="-1"]:focus-visible { box-shadow: none; }
 /* Transitional: remove in step 15 together with Bootstrap.
    Links that are buttons must not get the underline-on-hover of plain links. */
 a.btn:hover, a.list-group-item:hover { text-decoration: none; }
+
+/* Icons (Bootstrap Icons, served locally). Color comes from the surrounding text via currentColor. */
+.app-icon { line-height: 1; display: inline-flex; vertical-align: -0.125em; }

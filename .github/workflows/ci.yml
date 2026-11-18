@@ -20,10 +20,7 @@ jobs:
 
       - run: dotnet build --no-restore -c Release
 
-      # Phase 14 removes every emoji from the UI. Until then this step only reports them
-      # (continue-on-error); delete that line once Phase 14 is done so it becomes a hard check.
-      - name: Check there are no emojis in the UI (Phase 14)
-        continue-on-error: true
+      - name: Check there are no emojis in the UI
         run: |
           export LC_ALL=C.UTF-8
           ! grep -rnP "[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]" src/Presentation --include=*.razor --include=*.cs --include=*.css

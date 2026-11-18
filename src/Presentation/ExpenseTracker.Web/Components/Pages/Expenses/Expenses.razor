@@ -18,7 +18,7 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <MonthNavigator Year="CurrentYear" Month="CurrentMonth" OnChange="GoToMonth" />
-    <button type="button" class="btn btn-primary" @onclick="StartCreate" disabled="@loading">+ Nuevo gasto</button>
+    <button type="button" class="btn btn-primary" @onclick="StartCreate" disabled="@loading"><AppIcon Name="@Icons.Add" Size="16" /> Nuevo gasto</button>
 </div>
 
 <ErrorAlert @bind-Message="error" />
@@ -226,7 +226,7 @@ else if (data is not null)
             <div class="fw-semibold">
                 @if (i.IsReadOnly)
                 {
-                    <a href="/deudas/@i.SourceId" class="text-decoration-none" title="Se edita desde la deuda">🏦 @i.Name</a>
+                    <a href="/deudas/@i.SourceId" class="text-decoration-none" title="Se edita desde la deuda"><AppIcon Name="@Icons.Debts" Size="14" /> @i.Name</a>
                 }
                 else
                 {

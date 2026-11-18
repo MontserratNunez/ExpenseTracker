@@ -88,6 +88,47 @@ else
             <div style="border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">--radius-lg · 14 px · --shadow-lg</div>
         </div>
     </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-icons">
+        <h2 id="catalog-icons">Íconos</h2>
+        <p class="text-muted">
+            Bootstrap Icons 1.13.2, alojados en <code>/lib/bootstrap-icons</code>. Se usan con
+            <code>&lt;AppIcon Name="@@Icons.Delete" /&gt;</code>; la interfaz no usa emojis.
+        </p>
+
+        <h3 class="catalog-group">Nombrados (@NamedIcons.Count)</h3>
+        <div class="icon-grid">
+            @foreach (var icon in NamedIcons)
+            {
+                <div class="icon-cell">
+                    <AppIcon Name="@icon.Value" Size="22" />
+                    <span class="icon-cell__const">@icon.Constant</span>
+                    <span class="icon-cell__name">@icon.Value</span>
+                </div>
+            }
+        </div>
+
+        <h3 class="catalog-group">Selector de categorías y metas (@Icons.Picker.Length)</h3>
+        <div class="icon-grid">
+            @foreach (var name in Icons.Picker)
+            {
+                <div class="icon-cell">
+                    <AppIcon Name="@name" Size="22" />
+                    <span class="icon-cell__name">@name</span>
+                </div>
+            }
+        </div>
+
+        <h3 class="catalog-group">Tamaños y color</h3>
+        <div class="icon-sizes">
+            <AppIcon Name="@Icons.Budget" Size="14" />
+            <AppIcon Name="@Icons.Budget" Size="18" />
+            <AppIcon Name="@Icons.Budget" Size="24" />
+            <AppIcon Name="@Icons.Budget" Size="32" />
+            <span class="icon-sizes__blue"><AppIcon Name="@Icons.Budget" Size="24" /> hereda el color del texto</span>
+            <span><AppIcon Name="@Icons.Delete" Size="24" Label="Eliminar" /> con etiqueta accesible</span>
+        </div>
+    </section>
 }
 
 @code {
@@ -133,6 +174,18 @@ else
         public int Weight { get; }
         public string Use { get; }
         public string Sample { get; }
+    }
+
+    private sealed class NamedIcon
+    {
+        public NamedIcon(string constant, string value)
+        {
+            Constant = constant;
+            Value = value;
+        }
+
+        public string Constant { get; }
+        public string Value { get; }
     }
 
     private sealed class SpaceStep
@@ -185,6 +238,13 @@ else
         new("--text-xl", 24, 600, "Título de página", "Gastos"),
         new("--text-display", 32, 600, "Monto principal", "RD$ 21,300")
     };
+
+    // Every public const of Icons, read by reflection so the catalog cannot drift from the code.
+    private static readonly List<NamedIcon> NamedIcons = typeof(Icons)
+        .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+        .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+        .Select(f => new NamedIcon(f.Name, (string)f.GetRawConstantValue()!))
+        .ToList();
 
     private static readonly SpaceStep[] Spaces =
     {
