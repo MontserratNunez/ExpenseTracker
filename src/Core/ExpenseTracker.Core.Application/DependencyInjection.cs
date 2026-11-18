@@ -11,6 +11,8 @@ public static class DependencyInjection
         services.AddScoped<CategoryService>();
         services.AddScoped<CurrencyService>();
         services.AddScoped<IncomeService>();
+        services.AddScoped<MonthlyLedgerService>();
+        services.AddScoped<ExpenseService>();
 
         return services;
     }

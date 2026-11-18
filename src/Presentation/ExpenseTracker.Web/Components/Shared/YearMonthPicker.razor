@@ -1,0 +1,83 @@
+@using ExpenseTracker.Core.Application.Interfaces
+@using ExpenseTracker.Web.Services
+@inject IDateProvider DateProvider
+
+@if (Visible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="ym-title">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="d-flex align-items-center gap-2 w-100 justify-content-center">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Año anterior" @onclick="() => pickerYear--">&#8249;</button>
+                        <strong id="ym-title" class="px-2">@pickerYear</strong>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Año siguiente" @onclick="() => pickerYear++"
+                                disabled="@(pickerYear >= MaxYear)">&#8250;</button>
+                    </div>
+                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnClose"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        @for (var m = 1; m <= 12; m++)
+                        {
+                            var monthNumber = m;
+                            var isSelected = pickerYear == Year && monthNumber == Month;
+                            var isCurrent = pickerYear == DateProvider.Today.Year && monthNumber == DateProvider.Today.Month;
+                            <div class="col-3">
+                                <button type="button"
+                                        class="btn btn-sm w-100 @(isSelected ? "btn-primary" : isCurrent ? "btn-outline-primary" : "btn-outline-secondary")"
+                                        aria-pressed="@isSelected"
+                                        disabled="@IsBeyondLimit(pickerYear, monthNumber)"
+                                        @onclick="() => Select(monthNumber)">
+                                    @UiLabels.ShortMonthName(monthNumber)
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter, EditorRequired]
+    public int Year { get; set; }
+
+    [Parameter, EditorRequired]
+    public int Month { get; set; }
+
+    [Parameter]
+    public int MaxMonthsAhead { get; set; } = 1;
+
+    [Parameter]
+    public EventCallback<(int Year, int Month)> OnSelect { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private int pickerYear;
+    private bool wasVisible;
+
+    private int MaxYear => (DateProvider.Today.Year * 12 + DateProvider.Today.Month - 1 + MaxMonthsAhead) / 12;
+
+    protected override void OnParametersSet()
+    {
+        // Open on the selected year every time the picker is shown.
+        if (Visible && !wasVisible)
+            pickerYear = Year;
+        wasVisible = Visible;
+    }
+
+    private bool IsBeyondLimit(int year, int month)
+    {
+        var today = DateProvider.Today;
+        return year * 12 + month > today.Year * 12 + today.Month + MaxMonthsAhead;
+    }
+
+    private Task Select(int month) => OnSelect.InvokeAsync((pickerYear, month));
+}

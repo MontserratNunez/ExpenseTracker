@@ -1,7 +1,381 @@
 @page "/gastos"
+@page "/gastos/{year:int}/{month:int}"
+@using ExpenseTracker.Core.Application.DTOs.Expenses
+@using ExpenseTracker.Core.Application.DTOs.Settings
+@using ExpenseTracker.Core.Application.Interfaces
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+@inject ExpenseService ExpenseService
+@inject CategoryService CategoryService
+@inject CurrencyService CurrencyService
+@inject IDateProvider DateProvider
+@inject NavigationManager Navigation
 
 <PageTitle>Gastos</PageTitle>
 
-<h1>Gastos</h1>
+<h1 class="mb-3">Gastos</h1>
 
-<p class="text-muted">Próximamente.</p>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <MonthNavigator Year="CurrentYear" Month="CurrentMonth" OnChange="GoToMonth" />
+    <button type="button" class="btn btn-primary" @onclick="StartCreate" disabled="@loading">+ Nuevo gasto</button>
+</div>
+
+<ErrorAlert @bind-Message="error" />
+@if (message is not null)
+{
+    <div class="alert alert-success">@message</div>
+}
+
+@if (loading)
+{
+    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+}
+else if (data is not null)
+{
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body py-2">
+                <div class="text-muted small">Gastado</div>
+                <div class="fs-5 fw-semibold"><MoneyText Amount="data.TotalSpent" Currency="baseCurrency" /></div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body py-2">
+                <div class="text-muted small">Pendiente</div>
+                <div class="fs-5 fw-semibold text-secondary"><MoneyText Amount="data.TotalPending" Currency="baseCurrency" /></div>
+            </div></div>
+        </div>
+    </div>
+
+    @if (data.ByCategory.Count > 0)
+    {
+        <div class="d-flex flex-wrap gap-2 mb-3" aria-label="Totales por categoría">
+            @foreach (var c in data.ByCategory)
+            {
+                <span class="badge text-bg-light border">
+                    <span class="d-inline-block rounded-circle me-1" style="width: .6rem; height: .6rem; background-color: @c.CategoryColor;"></span>
+                    @c.CategoryName: <MoneyText Amount="c.Spent + c.Pending" Currency="baseCurrency" />
+                </span>
+            }
+        </div>
+    }
+
+    <div class="row g-2 mb-3">
+        <div class="col-sm-6 col-md-4">
+            <label class="visually-hidden" for="filter-category">Categoría</label>
+            <select id="filter-category" class="form-select" @bind="categoryFilter">
+                <option value="0">Todas las categorías</option>
+                @foreach (var c in categories)
+                {
+                    <option value="@c.Id">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-6 col-md-4">
+            <label class="visually-hidden" for="filter-type">Tipo</label>
+            <select id="filter-type" class="form-select" @bind="typeFilter">
+                <option value="@TypeFilter.All">Todos</option>
+                <option value="@TypeFilter.OneTime">Únicos</option>
+                <option value="@TypeFilter.Recurring">Recurrentes</option>
+            </select>
+        </div>
+    </div>
+
+    @if (data.Items.Count == 0)
+    {
+        <p class="text-muted">No hay gastos en este mes. Usa "+ Nuevo gasto" para registrar el primero.</p>
+    }
+    else if (VisibleItems.Count == 0)
+    {
+        <p class="text-muted">Ningún gasto coincide con los filtros.</p>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var item in VisibleItems)
+            {
+                var i = item;
+                var pending = i.Status == LedgerStatus.Pending;
+                var rowClass = "list-group-item d-flex justify-content-between align-items-start gap-3 " + (pending ? "text-muted bg-light" : "");
+                @if (i.IsReadOnly)
+                {
+                    <div class="@rowClass">
+                        @ItemContent(i)
+                    </div>
+                }
+                else
+                {
+                    <button type="button" class="@rowClass list-group-item-action text-start" @onclick="() => StartEdit(i)">
+                        @ItemContent(i)
+                    </button>
+                }
+            }
+        </div>
+    }
+}
+
+<ExpenseForm Visible="showForm" Title="@(editingId is null ? "Nuevo gasto" : "Editar gasto")" IsEditing="editingId is not null"
+             Model="input" Categories="categories" Error="formError"
+             OnSave="SaveAsync" OnCancel="CloseForm" OnDelete="AskDelete" />
+
+<ConfirmDialog @bind-Visible="confirmDelete" Title="Eliminar gasto"
+               Message="¿Eliminar este gasto? Esta acción no se puede deshacer."
+               ConfirmText="Eliminar" OnConfirm="DeleteAsync" />
+
+@if (showRecurringDelete)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="rec-del-title">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rec-del-title">Gasto recurrente</h5>
+                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="() => showRecurringDelete = false"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Finalizar</strong> detiene el gasto desde hoy y conserva el historial de los meses anteriores.</p>
+                    <p class="mb-0"><strong>Eliminar por completo</strong> borra el gasto y todas sus ocurrencias pasadas y futuras.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showRecurringDelete = false">Cancelar</button>
+                    <button type="button" class="btn btn-warning" @onclick="EndRecurringAsync">Finalizar</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteRecurringAsync">Eliminar por completo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private enum TypeFilter { All, OneTime, Recurring }
+
+    [Parameter]
+    public int? Year { get; set; }
+
+    [Parameter]
+    public int? Month { get; set; }
+
+    private int CurrentYear => Year ?? DateProvider.Today.Year;
+    private int CurrentMonth => Month ?? DateProvider.Today.Month;
+
+    private bool loading = true;
+    private string? error;
+    private string? message;
+    private string? formError;
+
+    private Currency baseCurrency = Currency.DOP;
+    private List<CategoryDto> categories = new();
+    private MonthExpensesDto? data;
+    private int loadedYear;
+    private int loadedMonth;
+
+    private int categoryFilter;
+    private TypeFilter typeFilter = TypeFilter.All;
+
+    private bool showForm;
+    private int? editingId;
+    private bool editingIsRecurring;
+    private ExpenseInput input = new();
+    private bool confirmDelete;
+    private bool showRecurringDelete;
+
+    private List<LedgerItem> VisibleItems => data is null
+        ? new List<LedgerItem>()
+        : data.Items
+            .Where(i => categoryFilter == 0 || i.CategoryId == categoryFilter)
+            .Where(i => typeFilter switch
+            {
+                TypeFilter.OneTime => i.Source == LedgerSource.OneTimeExpense,
+                TypeFilter.Recurring => i.Source == LedgerSource.RecurringExpense,
+                _ => true
+            })
+            .ToList();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var today = DateProvider.Today;
+        if (Year is null || Month is null || Month < 1 || Month > 12 || Year < 1 || Year > 9999)
+        {
+            Navigation.NavigateTo($"/gastos/{today.Year}/{today.Month}", replace: true);
+            return;
+        }
+
+        if (loadedYear != Year || loadedMonth != Month)
+        {
+            loadedYear = Year.Value;
+            loadedMonth = Month.Value;
+            message = null;
+            loading = true;
+            await RunAsync(LoadAsync);
+            loading = false;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
+        categories = await CategoryService.ListAsync();
+        data = await ExpenseService.GetMonthAsync(CurrentYear, CurrentMonth);
+    }
+
+    private void GoToMonth((int Year, int Month) value)
+        => Navigation.NavigateTo($"/gastos/{value.Year}/{value.Month}");
+
+    private RenderFragment ItemContent(LedgerItem i) => __builder =>
+    {
+        var pending = i.Status == LedgerStatus.Pending;
+        <div>
+            <div class="fw-semibold">
+                @(i.IsReadOnly ? "🏦 " : "")@i.Name
+                @if (i.Frequency is not null)
+                {
+                    <span class="badge text-bg-secondary ms-1">@UiLabels.FrequencyName(i.Frequency.Value)</span>
+                }
+            </div>
+            <small class="@(pending ? "" : "text-muted")">
+                @i.CategoryName · @UiLabels.ShortDate(i.Date) · @(pending ? "Pendiente" : "Pagado")
+            </small>
+        </div>
+        <div class="text-end text-nowrap">
+            <MoneyText Amount="i.Amount" Currency="i.Currency" />
+            @if (i.Currency != baseCurrency)
+            {
+                <span class="ms-1">(<MoneyText Amount="i.AmountInBase" Currency="baseCurrency" />)</span>
+            }
+        </div>
+    };
+
+    // ---------- Create / edit ----------
+
+    private void StartCreate()
+    {
+        ClearMessages();
+        editingId = null;
+        editingIsRecurring = false;
+
+        var today = DateProvider.Today;
+        var inShownMonth = today.Year == CurrentYear && today.Month == CurrentMonth;
+        input = new ExpenseInput
+        {
+            Currency = baseCurrency,
+            Date = inShownMonth ? today : new DateOnly(CurrentYear, CurrentMonth, 1),
+            Frequency = Frequency.Monthly
+        };
+        showForm = true;
+    }
+
+    private async Task StartEdit(LedgerItem item)
+    {
+        ClearMessages();
+        await RunAsync(async () =>
+        {
+            var expense = await ExpenseService.GetByIdAsync(item.SourceId)
+                ?? throw new InvalidOperationException("El gasto ya no existe.");
+
+            editingId = expense.Id;
+            editingIsRecurring = expense.IsRecurring;
+            input = new ExpenseInput
+            {
+                Name = expense.Name,
+                Amount = expense.Amount,
+                Currency = expense.Currency,
+                CategoryId = expense.CategoryId,
+                Date = expense.Date,
+                IsRecurring = expense.IsRecurring,
+                Frequency = expense.Frequency ?? Frequency.Monthly,
+                EndDate = expense.EndDate,
+                Notes = expense.Notes
+            };
+            showForm = true;
+        });
+    }
+
+    private async Task SaveAsync()
+    {
+        formError = null;
+        try
+        {
+            var isNew = editingId is null;
+            if (isNew)
+                await ExpenseService.CreateAsync(input);
+            else
+                await ExpenseService.UpdateAsync(editingId!.Value, input);
+
+            CloseForm();
+            message = isNew ? "Gasto guardado." : "Gasto actualizado.";
+            error = null;
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            formError = ex.Message;
+        }
+    }
+
+    private void CloseForm()
+    {
+        showForm = false;
+        formError = null;
+    }
+
+    // ---------- Delete ----------
+
+    private void AskDelete()
+    {
+        if (editingId is null)
+            return;
+
+        showForm = false;
+        if (editingIsRecurring)
+            showRecurringDelete = true;
+        else
+            confirmDelete = true;
+    }
+
+    private Task DeleteAsync() => FinishDeleteAsync(() => ExpenseService.DeleteAsync(editingId!.Value), "Gasto eliminado.");
+
+    private async Task DeleteRecurringAsync()
+    {
+        showRecurringDelete = false;
+        await FinishDeleteAsync(() => ExpenseService.DeleteAsync(editingId!.Value), "Gasto recurrente eliminado por completo.");
+    }
+
+    private async Task EndRecurringAsync()
+    {
+        showRecurringDelete = false;
+        await FinishDeleteAsync(() => ExpenseService.EndAsync(editingId!.Value), "Gasto recurrente finalizado; se conserva el historial.");
+    }
+
+    private async Task FinishDeleteAsync(Func<Task> action, string successMessage)
+    {
+        ClearMessages();
+        await RunAsync(async () =>
+        {
+            await action();
+            message = successMessage;
+            await LoadAsync();
+        });
+    }
+
+    // ---------- Shared ----------
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void ClearMessages()
+    {
+        error = null;
+        message = null;
+        formError = null;
+    }
+}

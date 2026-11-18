@@ -102,6 +102,14 @@ public class CurrencyService
         return Math.Round(amount * rate.RateToBase, 2, MidpointRounding.AwayFromZero);
     }
 
+    /// <summary>Loads the base currency and all rates once (2 queries) for converting many amounts.</summary>
+    public async Task<CurrencyConverter> GetConverterAsync()
+    {
+        var baseCurrency = await GetBaseCurrencyAsync();
+        var rates = await _rates.ListAsync();
+        return new CurrencyConverter(baseCurrency, rates.ToDictionary(r => r.Currency, r => r.RateToBase));
+    }
+
     private async Task<UserSettings?> GetSettingsAsync()
         => (await _settings.ListAsync()).FirstOrDefault();
 

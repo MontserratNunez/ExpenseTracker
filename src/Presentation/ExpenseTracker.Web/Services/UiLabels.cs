@@ -26,6 +26,12 @@ public static class UiLabels
         return name.Length == 0 ? name : char.ToUpper(name[0], Culture) + name[1..];
     }
 
+    /// <summary>Three-letter month name, e.g. "Nov".</summary>
+    public static string ShortMonthName(int month) => MonthName(month)[..3];
+
+    /// <summary>Short date such as "15 nov".</summary>
+    public static string ShortDate(DateOnly date) => $"{date.Day} {ShortMonthName(date.Month).ToLower(Culture)}";
+
     private static CultureInfo CreateCulture()
     {
         try
