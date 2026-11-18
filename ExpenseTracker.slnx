@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Source/" />
+  <Folder Name="/Source/Core/">
+    <Project Path="src/Core/ExpenseTracker.Core.Application/ExpenseTracker.Core.Application.csproj" />
+    <Project Path="src/Core/ExpenseTracker.Core.Domain/ExpenseTracker.Core.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Source/Infrastructure/">
+    <Project Path="src/Infrastructure/ExpenseTracker.Infrastructure.Identity/ExpenseTracker.Infrastructure.Identity.csproj" />
+    <Project Path="src/Infrastructure/ExpenseTracker.Infrastructure.Persistence/ExpenseTracker.Infrastructure.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/Source/Presentation/">
+    <Project Path="src/Presentation/ExpenseTracker.Web/ExpenseTracker.Web.csproj" />
+  </Folder>
+</Solution>

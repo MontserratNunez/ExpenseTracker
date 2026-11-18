@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\ExpenseTracker.Core.Application\ExpenseTracker.Core.Application.csproj" />
+    <ProjectReference Include="..\..\Core\ExpenseTracker.Core.Domain\ExpenseTracker.Core.Domain.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+  </PropertyGroup>
+
+</Project>
