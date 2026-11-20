@@ -113,7 +113,7 @@ else
 }
 
 <GoalForm Visible="showForm" Title="@(editingId is null ? "Nueva meta" : "Editar meta")" Model="input"
-          Categories="categories" Currency="baseCurrency" Error="formError" OnSave="SaveAsync" OnCancel="CloseForm" />
+          Categories="categories" Currency="baseCurrency" Error="@formError" OnSave="SaveAsync" OnCancel="CloseForm" />
 
 <ConfirmDialog @bind-Visible="confirmDelete" Title="Eliminar meta" Message="@deleteMessage"
                ConfirmText="Eliminar" OnConfirm="DeleteAsync" />

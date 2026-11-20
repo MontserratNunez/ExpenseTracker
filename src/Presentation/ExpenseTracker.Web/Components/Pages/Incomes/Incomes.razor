@@ -139,10 +139,10 @@ else
 }
 
 <IncomeSourceForm Visible="showSourceForm" Title="@(editingSourceId is null ? "Nueva fuente de ingreso" : "Editar fuente de ingreso")"
-                  Model="sourceInput" Error="formError" OnSave="SaveSourceAsync" OnCancel="CloseForms" />
+                  Model="sourceInput" Error="@formError" OnSave="SaveSourceAsync" OnCancel="CloseForms" />
 
 <OneTimeIncomeForm Visible="showOneTimeForm" Title="@(editingOneTimeId is null ? "Nuevo ingreso único" : "Editar ingreso único")"
-                   Model="oneTimeInput" Error="formError" OnSave="SaveOneTimeAsync" OnCancel="CloseForms" />
+                   Model="oneTimeInput" Error="@formError" OnSave="SaveOneTimeAsync" OnCancel="CloseForms" />
 
 <ConfirmDialog @bind-Visible="confirmDelete" Title="Eliminar" Message="@deleteMessage" ConfirmText="Eliminar" OnConfirm="DeleteAsync" />
 

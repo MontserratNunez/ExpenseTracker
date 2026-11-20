@@ -10,7 +10,7 @@
                 <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-payment-form">
                     <div class="modal-header">
                         <h5 class="modal-title" id="payment-title">Registrar pago</h5>
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" Class="ms-auto" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
                     </div>
                     <div class="modal-body">
                         <DataAnnotationsValidator />

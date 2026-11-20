@@ -178,6 +178,39 @@ public class MigratedFormsTests : BunitContext
     }
 
     [Fact]
+    public void EveryForm_ShowsNoErrorAlertByDefault_AndShowsTheServiceErrorWhenGiven()
+    {
+        var expense = RenderExpense();
+        Assert.Empty(expense.FindAll(".alert-danger"));
+
+        var withError = Render<ExpenseForm>(p => p
+            .Add(f => f.Visible, true).Add(f => f.Model, new ExpenseInput()).Add(f => f.Categories, Categories)
+            .Add(f => f.Error, "Ya existe un gasto con ese nombre."));
+        Assert.Equal("Ya existe un gasto con ese nombre.", withError.Find(".alert-danger").TextContent.Trim());
+
+        Assert.Empty(RenderDebt(new DebtInput()).FindAll(".alert-danger"));
+        Assert.Empty(RenderGoal(new GoalInput()).FindAll(".alert-danger"));
+        Assert.Empty(Render<IncomeSourceForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new IncomeSourceInput())).FindAll(".alert-danger"));
+        Assert.Empty(Render<OneTimeIncomeForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new OneTimeIncomeInput())).FindAll(".alert-danger"));
+        Assert.Empty(Render<DebtPaymentForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new DebtPaymentInput())).FindAll(".alert-danger"));
+    }
+
+    [Fact]
+    public void ExpenseForm_EditingARecord_ShowsItsSavedValues()
+    {
+        var model = new ExpenseInput
+        {
+            Name = "Supermercado", Amount = 4885.40m, CategoryId = 1, Date = new DateOnly(2026, 11, 3), Notes = "Compra semanal"
+        };
+        var cut = RenderExpense(model, editing: true);
+
+        Assert.Equal("Supermercado", Control(cut, "Nombre").GetAttribute("value"));
+        Assert.Equal("4,885.40", Control(cut, "Monto").GetAttribute("value"));
+        Assert.Equal("2026-11-03", Control(cut, "Fecha").GetAttribute("value"));
+        Assert.Equal("Compra semanal", Control(cut, "Notas").GetAttribute("value"));
+    }
+
+    [Fact]
     public void ExpenseForm_NotVisible_RendersNothing()
     {
         var cut = Render<ExpenseForm>(p => p.Add(f => f.Visible, false).Add(f => f.Model, new ExpenseInput()));

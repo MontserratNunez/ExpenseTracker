@@ -11,7 +11,7 @@
                 <EditForm Model="Model" OnValidSubmit="OnSave" FormName="income-source-form">
                     <div class="modal-header">
                         <h5 class="modal-title" id="income-source-title">@Title</h5>
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" Class="ms-auto" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
                     </div>
                     <div class="modal-body">
                         <DataAnnotationsValidator />

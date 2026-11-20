@@ -4,7 +4,7 @@
     <ChildContent>
         <InputText id="@Id" class="field" type="@Type" placeholder="@Placeholder" disabled="@Disabled"
                    autocomplete="@Autocomplete" aria-describedby="@(string.IsNullOrEmpty(Hint) ? null : $"{Id}-hint")"
-                   Value="Value" ValueChanged="ValueChanged" ValueExpression="ValueExpression" />
+                   Value="@Value" ValueChanged="ValueChanged" ValueExpression="ValueExpression" />
     </ChildContent>
     <Validation>
         @if (ValueExpression is not null)

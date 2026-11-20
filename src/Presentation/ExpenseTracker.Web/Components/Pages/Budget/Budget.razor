@@ -151,7 +151,7 @@ else if (plan is not null)
 }
 
 <AllocationForm Visible="showEditor" Editor="editor" Rows="editRows" BaseCurrency="baseCurrency"
-                Error="formError" OnSave="SaveAsync" OnCancel="CloseEditor" />
+                Error="@formError" OnSave="SaveAsync" OnCancel="CloseEditor" />
 
 @code {
     private bool loading = true;

@@ -482,3 +482,5 @@ $RECYCLE.BIN/
 *.swp
 
 Agent/
+# Screenshots written by the browser (E2E) tests
+tests/ExpenseTracker.E2E/artifacts/

@@ -25,6 +25,36 @@ public class FormFieldsTests : BunitContext
     }
 
     [Fact]
+    public void InitialModelValues_AreShownInEveryField_NotTheLiteralWordValue()
+    {
+        var model = new FieldsModel
+        {
+            Name = "Supermercado", Rate = 5.5m, Date = new DateOnly(2026, 11, 3), EndDate = new DateOnly(2027, 1, 31),
+            Frequency = Frequency.Quarterly, Notes = "Compra semanal", Active = true
+        };
+
+        var cut = RenderForm(model);
+
+        Assert.Equal("Supermercado", cut.Find("input[type=text]").GetAttribute("value"));
+        Assert.Equal("5.5", cut.Find("input[type=number]").GetAttribute("value"));
+        var dates = cut.FindAll("input[type=date]");
+        Assert.Equal("2026-11-03", dates[0].GetAttribute("value"));
+        Assert.Equal("2027-01-31", dates[1].GetAttribute("value"));
+        Assert.Equal("Quarterly", cut.Find("select").GetAttribute("value"));
+        Assert.Equal("Compra semanal", cut.Find("textarea").GetAttribute("value"));
+        Assert.True(cut.Find("input.toggle__input").HasAttribute("checked"));
+    }
+
+    [Fact]
+    public void EmptyModel_ShowsEmptyTextFields()
+    {
+        var cut = RenderForm();
+
+        Assert.True(string.IsNullOrEmpty(cut.Find("input[type=text]").GetAttribute("value")));
+        Assert.True(string.IsNullOrEmpty(cut.Find("textarea").GetAttribute("value")));
+    }
+
+    [Fact]
     public void Hint_IsRenderedAndReferencedByTheControl()
     {
         var cut = RenderForm();

@@ -95,7 +95,7 @@ else
     </div>
 }
 
-<DebtForm Visible="showForm" Title="Nueva deuda" Model="input" Error="formError" OnSave="SaveAsync" OnCancel="CloseForm" />
+<DebtForm Visible="showForm" Title="Nueva deuda" Model="input" Error="@formError" OnSave="SaveAsync" OnCancel="CloseForm" />
 
 @code {
     private bool loading = true;

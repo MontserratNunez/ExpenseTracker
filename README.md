@@ -45,7 +45,19 @@ En desarrollo las migraciones se aplican solas al iniciar. Regístrate en `/Acco
 dotnet test
 ```
 
-Cubren el dominio (recurrencias, saldo de deuda), los servicios de Application con repositorios falsos en memoria y una fecha fija (ingresos, gastos, deudas, plan, metas, estimaciones, inicio), el aislamiento entre usuarios y el número de consultas por mes del libro de movimientos.
+Cubren el dominio (recurrencias, saldo de deuda), los servicios de Application con repositorios falsos en memoria y una fecha fija (ingresos, gastos, deudas, plan, metas, estimaciones, inicio), el aislamiento entre usuarios, el número de consultas por mes del libro de movimientos y los componentes y formularios de la interfaz (con bUnit).
+
+### Pruebas con navegador (E2E)
+
+`tests/ExpenseTracker.E2E` usa Playwright para .NET: arranca la app real en un puerto libre contra su propia base de datos (`ExpenseTrackerE2E`, que se borra al terminar) y abre el Chrome (o Edge) instalado, sin descargar navegadores. Prueba flujos reales (abrir formularios, validar, guardar, editar, eliminar) y guarda capturas en `tests/ExpenseTracker.E2E/artifacts/` (ignorada por git).
+
+Solo corren con `E2E=1`; sin esa variable se omiten, así que `dotnet test` y el CI no las ejecutan (necesitan Chrome y SQL Server LocalDB).
+
+```bash
+dotnet build
+E2E=1 dotnet test tests/ExpenseTracker.E2E                 # en PowerShell: $env:E2E=1; dotnet test tests/ExpenseTracker.E2E
+E2E=1 E2E_HEADED=1 dotnet test tests/ExpenseTracker.E2E    # para ver el navegador
+```
 
 ## Migraciones
 

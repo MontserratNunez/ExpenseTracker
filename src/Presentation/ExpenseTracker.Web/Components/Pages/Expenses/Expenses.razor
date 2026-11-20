@@ -113,7 +113,7 @@ else if (data is not null)
 }
 
 <ExpenseForm Visible="showForm" Title="@(editingId is null ? "Nuevo gasto" : "Editar gasto")" IsEditing="editingId is not null"
-             Model="input" Categories="categories" Error="formError"
+             Model="input" Categories="categories" Error="@formError"
              OnSave="SaveAsync" OnCancel="CloseForm" OnDelete="AskDelete" />
 
 <ConfirmDialog @bind-Visible="confirmDelete" Title="Eliminar gasto"
