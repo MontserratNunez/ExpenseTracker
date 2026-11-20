@@ -10,11 +10,7 @@
 
 <PageTitle>Inicio</PageTitle>
 
-<h1 class="mb-1">Inicio</h1>
-@if (data is not null)
-{
-    <p class="text-muted">@UiLabels.MonthName(data.Month) @data.Year</p>
-}
+<PageHeader Title="Inicio" Subtitle="@(data is null ? null : $"{UiLabels.MonthName(data.Month)} {data.Year}")" />
 
 <ErrorAlert @bind-Message="error" />
 

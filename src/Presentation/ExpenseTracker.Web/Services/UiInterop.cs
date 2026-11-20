@@ -39,6 +39,18 @@ public sealed class UiInterop : IAsyncDisposable
     public async Task FocusMenuTriggerAsync(ElementReference root)
         => await (await Module).InvokeVoidAsync("focusMenuTrigger", root);
 
+    public async Task<bool> GetSidebarCollapsedAsync()
+        => await (await Module).InvokeAsync<bool>("getSidebarCollapsed");
+
+    public async Task SetSidebarCollapsedAsync(bool collapsed)
+        => await (await Module).InvokeVoidAsync("setSidebarCollapsed", collapsed);
+
+    public async Task FocusMainAsync(string id)
+        => await (await Module).InvokeVoidAsync("focusMain", id);
+
+    public async Task SubmitFormAsync(string id)
+        => await (await Module).InvokeVoidAsync("submitForm", id);
+
     public async ValueTask DisposeAsync()
     {
         if (_module is null)

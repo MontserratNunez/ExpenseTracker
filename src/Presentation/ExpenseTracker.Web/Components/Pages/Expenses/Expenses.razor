@@ -16,11 +16,12 @@
 
 <PageTitle>Gastos</PageTitle>
 
-<h1 class="mb-3">Gastos</h1>
+<PageHeader Title="Gastos">
+    <Actions><AppButton OnClick="StartCreate" Icon="@Icons.Add" Disabled="@loading">Nuevo gasto</AppButton></Actions>
+</PageHeader>
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<div class="mb-3">
     <MonthNavigator Year="CurrentYear" Month="CurrentMonth" OnChange="GoToMonth" />
-    <button type="button" class="btn btn-primary" @onclick="StartCreate" disabled="@loading"><AppIcon Name="@Icons.Add" Size="16" /> Nuevo gasto</button>
 </div>
 
 <ErrorAlert @bind-Message="error" />
@@ -145,6 +146,10 @@ else if (data is not null)
     [Parameter]
     public int? Month { get; set; }
 
+    /// <summary>"?nuevo=1" opens the new-expense panel on arrival (used by the central button of the phone navigation).</summary>
+    [Parameter, SupplyParameterFromQuery(Name = "nuevo")]
+    public string? OpenNew { get; set; }
+
     private int CurrentYear => Year ?? DateProvider.Today.Year;
     private int CurrentMonth => Month ?? DateProvider.Today.Month;
 
@@ -186,7 +191,7 @@ else if (data is not null)
         var today = DateProvider.Today;
         if (Year is null || Month is null || Month < 1 || Month > 12 || Year < 1 || Year > 9999)
         {
-            Navigation.NavigateTo($"/gastos/{today.Year}/{today.Month}", replace: true);
+            Navigation.NavigateTo($"/gastos/{today.Year}/{today.Month}" + (OpenNew == "1" ? "?nuevo=1" : string.Empty), replace: true);
             return;
         }
 
@@ -198,6 +203,13 @@ else if (data is not null)
             loading = true;
             await RunAsync(LoadAsync);
             loading = false;
+        }
+
+        if (OpenNew == "1" && !loading)
+        {
+            OpenNew = null;
+            StartCreate();
+            Navigation.NavigateTo($"/gastos/{CurrentYear}/{CurrentMonth}", replace: true);   // drop the query so a reload does not reopen it
         }
     }
 

@@ -12,10 +12,9 @@
 
 <PageTitle>Metas</PageTitle>
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h1 class="mb-0">Metas</h1>
-    <button type="button" class="btn btn-primary" @onclick="StartCreate" disabled="@loading"><AppIcon Name="@Icons.Add" Size="16" /> Nueva meta</button>
-</div>
+<PageHeader Title="Metas">
+    <Actions><AppButton OnClick="StartCreate" Icon="@Icons.Add" Disabled="@loading">Nueva meta</AppButton></Actions>
+</PageHeader>
 
 <ErrorAlert @bind-Message="error" />
 <SuccessToast Message="@message" />

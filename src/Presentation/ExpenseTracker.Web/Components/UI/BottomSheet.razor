@@ -1,0 +1,21 @@
+<OverlayShell Kind="OverlayKind.Sheet" IsOpen="IsOpen" Title="@Title" OnClose="OnClose" Footer="Footer">
+    @ChildContent
+</OverlayShell>
+
+@code {
+    /// <summary>A panel that rises from the bottom edge, for the "More" options on a phone.</summary>
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+}

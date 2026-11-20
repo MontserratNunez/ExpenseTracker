@@ -142,3 +142,32 @@ export function focusMenuItem(root, which) {
 export function focusMenuTrigger(root) {
   root.querySelector('.dropdown-app__trigger')?.focus();
 }
+
+// ----- Layout helpers -----
+
+const SIDEBAR_KEY = 'et.sidebar';
+
+// The collapsed sidebar is remembered in localStorage and mirrored on <html data-sidebar="collapsed">,
+// which App.razor also sets before the first paint so the page does not jump when it loads.
+export function getSidebarCollapsed() {
+  try { return localStorage.getItem(SIDEBAR_KEY) === 'collapsed'; } catch { return false; }
+}
+
+export function setSidebarCollapsed(collapsed) {
+  if (collapsed) document.documentElement.dataset.sidebar = 'collapsed';
+  else delete document.documentElement.dataset.sidebar;
+  try { collapsed ? localStorage.setItem(SIDEBAR_KEY, 'collapsed') : localStorage.removeItem(SIDEBAR_KEY); } catch { /* storage blocked */ }
+}
+
+// Sends a (hidden) form, for the logout POST that must carry the antiforgery token.
+export function submitForm(id) {
+  document.getElementById(id)?.requestSubmit();
+}
+
+// "Saltar al contenido": the router handles same-page links itself and does not move the focus, so do it here.
+export function focusMain(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView();
+  el.focus({ preventScroll: true });
+}

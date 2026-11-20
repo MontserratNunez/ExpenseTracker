@@ -1,0 +1,89 @@
+@implements IDisposable
+@using ExpenseTracker.Web.Services
+@inject NavigationManager NavigationManager
+@inject UiInterop Ui
+
+@* Phone navigation (below 768 px): Home, Expenses, a central button for a new expense, Plan and More. *@
+<AuthorizeView>
+    <Authorized>
+        <nav class="bottom-nav" aria-label="Navegación inferior">
+            @ItemFor(NavItems.Home)
+            @ItemFor(NavItems.Expenses)
+            <a class="bottom-nav__add" href="gastos?nuevo=1" aria-label="Nuevo gasto"><AppIcon Name="@Icons.Add" Size="22" /></a>
+            @ItemFor(NavItems.Budget)
+            <button type="button" class="bottom-nav__item" aria-haspopup="dialog" @onclick="() => moreOpen = true">
+                <AppIcon Name="@Icons.More" Size="20" />
+                <span>Más</span>
+            </button>
+        </nav>
+
+        <BottomSheet IsOpen="moreOpen" Title="Más" OnClose="CloseMore">
+            <ChildContent>
+                <ul class="sheet-list">
+                    @foreach (var item in NavItems.More)
+                    {
+                        <li>
+                            <a class="sheet-list__item @(item.IsCurrent(currentPath) ? "active" : null)" href="@item.Href"
+                               aria-current="@(item.IsCurrent(currentPath) ? "page" : null)" @onclick="CloseMore">
+                                <AppIcon Name="@item.Icon" Size="20" /> @item.Text
+                            </a>
+                        </li>
+                    }
+                    <li>
+                        <button type="button" class="sheet-list__item" @onclick="SignOutAsync">
+                            <AppIcon Name="@Icons.Logout" Size="20" /> Cerrar sesión
+                        </button>
+                    </li>
+                </ul>
+            </ChildContent>
+        </BottomSheet>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool moreOpen;
+    private string currentPath = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        Track(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void Track(string uri)
+    {
+        var relative = NavigationManager.ToBaseRelativePath(uri);
+        var end = relative.IndexOfAny(new[] { '?', '#' });
+        currentPath = (end < 0 ? relative : relative[..end]).Trim('/');
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        Track(e.Location);
+        moreOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private Task CloseMore()
+    {
+        moreOpen = false;
+        return Task.CompletedTask;
+    }
+
+    private async Task SignOutAsync()
+    {
+        moreOpen = false;
+        await Ui.SubmitFormAsync("logout-form");   // the form lives in the sidebar, which is hidden but present
+    }
+
+    private RenderFragment ItemFor(NavItem item) => __builder =>
+    {
+        var current = item.IsCurrent(currentPath);
+        <a class="bottom-nav__item @(current ? "active" : null)" href="@item.Href" aria-current="@(current ? "page" : null)">
+            <AppIcon Name="@(current ? item.ActiveIcon : item.Icon)" Size="20" />
+            <span>@item.Text</span>
+        </a>
+    };
+
+    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
+}

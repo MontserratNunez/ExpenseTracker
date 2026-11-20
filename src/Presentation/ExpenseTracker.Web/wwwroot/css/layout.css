@@ -1,0 +1,248 @@
+/* App shell: sidebar, content area, bottom navigation (phone) and the "skip to content" link. */
+
+/* "Saltar al contenido": visible only while it has the keyboard focus. */
+.skip-link {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: calc(var(--z-toast) + 1);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary-600);
+  color: var(--color-on-accent);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus { transform: none; }
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* The collapsed state lives on <html data-sidebar="collapsed">, set before the first paint (App.razor) and by ui.js. */
+html[data-sidebar="collapsed"] .shell { grid-template-columns: var(--sidebar-collapsed) minmax(0, 1fr); }
+
+.shell__content {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-8);
+  outline: none;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100vh;
+  padding: var(--space-3);
+  background: var(--color-bg-subtle);
+  border-right: 1px solid var(--color-border);
+}
+
+.sidebar__brand { padding: var(--space-2) 0 var(--space-3); }
+
+.sidebar__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  height: 40px;
+  color: var(--color-primary-700);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sidebar__nav { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.sidebar__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.sidebar__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sidebar__link:hover { background: var(--color-bg-hover); color: var(--color-text); }
+.sidebar__link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.sidebar__link.active { background: var(--color-primary-50); color: var(--color-primary-700); }
+
+.sidebar__link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-600);
+}
+
+.sidebar__label { overflow: hidden; text-overflow: ellipsis; }
+
+.sidebar__user { display: block; width: 100%; }
+.sidebar__user-trigger { min-width: 0; }
+.sidebar__user-name { min-width: 0; }
+
+/* Collapsed: icons only. */
+html[data-sidebar="collapsed"] .sidebar { padding-left: var(--space-2); padding-right: var(--space-2); }
+html[data-sidebar="collapsed"] .sidebar__label { display: none; }
+html[data-sidebar="collapsed"] .sidebar__link,
+html[data-sidebar="collapsed"] .sidebar__logo { justify-content: center; padding: 0; }
+
+/* A menu opened from the bottom of the sidebar rises above its button. */
+.dropdown-app__menu--up { top: auto; bottom: calc(100% + var(--space-1)); }
+
+/* ---------- Bottom navigation (phones) ---------- */
+.bottom-nav { display: none; }
+
+@media (max-width: 767px) {
+  .shell,
+  html[data-sidebar="collapsed"] .shell { grid-template-columns: minmax(0, 1fr); }
+
+  .sidebar { display: none; }
+
+  .shell__content { padding: var(--space-4) var(--space-4) 88px; }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-dropdown);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: center;
+    height: calc(64px + env(safe-area-inset-bottom));
+    padding: 0 var(--space-2) env(safe-area-inset-bottom);
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .bottom-nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 56px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .bottom-nav__item.active { color: var(--color-primary-700); }
+  .bottom-nav__item:focus-visible,
+  .bottom-nav__add:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  .bottom-nav__add {
+    justify-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-primary-600);
+    color: var(--color-on-accent);
+    box-shadow: var(--shadow-lg);
+    text-decoration: none;
+  }
+
+  /* The toasts sit above the bottom navigation. */
+  .toast-host { bottom: 64px; }
+}
+
+/* ---------- The "More" sheet ---------- */
+.overlay--sheet { align-items: flex-end; }
+
+.overlay--sheet .overlay__panel {
+  width: 100%;
+  max-height: 85%;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  animation: overlay-rise var(--duration-base) var(--ease);
+}
+
+@keyframes overlay-rise { from { transform: translateY(24px); opacity: 0; } }
+
+.sheet-list { list-style: none; margin: 0; padding: var(--space-2) var(--space-3) var(--space-4); overflow-y: auto; }
+
+.sheet-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 48px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sheet-list__item:hover { background: var(--color-bg-hover); }
+.sheet-list__item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.sheet-list__item.active { background: var(--color-primary-50); color: var(--color-primary-700); }
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay--sheet .overlay__panel { animation: none; }
+}
+
+/* ---------- Framework error bar ---------- */
+#blazor-error-ui {
+  color-scheme: light only;
+  background: lightyellow;
+  bottom: 0;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  display: none;
+  left: 0;
+  padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+  position: fixed;
+  width: 100%;
+  z-index: 1000;
+}
+
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }

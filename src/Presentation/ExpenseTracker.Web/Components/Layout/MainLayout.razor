@@ -1,21 +1,57 @@
 ﻿@inherits LayoutComponentBase
+@using ExpenseTracker.Web.Services
+@inject UiInterop Ui
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<a class="skip-link" href="#main" @onclick="SkipToContentAsync" @onclick:preventDefault="true">Saltar al contenido</a>
 
-    <main>
-        <article class="content px-4">
-            @Body
-        </article>
+<div class="shell">
+    <NavMenu Collapsed="collapsed" OnToggle="ToggleSidebarAsync" />
+
+    <main class="shell__content" id="main" tabindex="-1">
+        @Body
     </main>
-</div>
 
-<ToastHost />
+    <BottomNav />
+    <ToastHost />
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     Ocurrió un error inesperado.
     <a href="." class="reload">Recargar</a>
     <span class="dismiss" role="button" aria-label="Cerrar"><AppIcon Name="@Icons.Close" Size="14" /></span>
 </div>
+
+@code {
+    // The layout itself is driven by an attribute on the html element (see layout.css), so it is right from the
+    // first paint. This field only keeps the button's label and aria-expanded in step.
+    private bool collapsed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            collapsed = await Ui.GetSidebarCollapsedAsync();
+            StateHasChanged();
+        }
+        catch (JSException)
+        {
+            // storage or script unavailable: keep the default
+        }
+        catch (InvalidOperationException)
+        {
+            // static rendering: there is no browser to ask
+        }
+    }
+
+    // Without a circuit (static pages) this handler does not run and the browser follows the link itself.
+    private async Task SkipToContentAsync() => await Ui.FocusMainAsync("main");
+
+    private async Task ToggleSidebarAsync()
+    {
+        collapsed = !collapsed;
+        await Ui.SetSidebarCollapsedAsync(collapsed);
+    }
+}

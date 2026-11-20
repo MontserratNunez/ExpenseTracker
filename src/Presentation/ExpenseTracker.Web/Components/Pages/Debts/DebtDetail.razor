@@ -24,20 +24,19 @@ else if (detail is not null)
 {
     var d = detail.Debt;
 
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-        <div>
-            <h1 class="mb-1">@d.Name</h1>
-            <span class="badge text-bg-secondary">@UiLabels.DebtTypeName(d.DebtType)</span>
-            @if (d.IsClosed)
-            {
-                <span class="badge text-bg-success">Saldada</span>
-            }
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-primary" @onclick="StartPayment" disabled="@d.IsClosed">Registrar pago</button>
-            <button type="button" class="btn btn-outline-secondary" @onclick="StartEdit">Editar</button>
-            <button type="button" class="btn btn-outline-danger" @onclick="() => confirmDeleteDebt = true">Eliminar</button>
-        </div>
+    <PageHeader Title="@d.Name">
+        <Actions>
+            <AppButton OnClick="StartPayment" Disabled="@d.IsClosed">Registrar pago</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="StartEdit">Editar</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Danger" OnClick="() => confirmDeleteDebt = true">Eliminar</AppButton>
+        </Actions>
+    </PageHeader>
+    <div class="mb-3">
+        <Badge Tone="Badge.BadgeTone.Gray">@UiLabels.DebtTypeName(d.DebtType)</Badge>
+        @if (d.IsClosed)
+        {
+            <Badge Tone="Badge.BadgeTone.Green" Icon="@Icons.Paid">Saldada</Badge>
+        }
     </div>
 
     <div class="card mb-4">

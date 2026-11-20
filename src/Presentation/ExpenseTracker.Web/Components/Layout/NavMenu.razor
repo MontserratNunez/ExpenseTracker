@@ -1,103 +1,113 @@
 ﻿@implements IDisposable
-
+@using ExpenseTracker.Web.Services
 @inject NavigationManager NavigationManager
+@inject UiInterop Ui
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Expense Tracker</a>
+<aside class="sidebar" aria-label="Barra lateral">
+    <div class="sidebar__brand">
+        <a href="" class="sidebar__logo" title="Expense Tracker" aria-label="Expense Tracker, inicio">
+            <AppIcon Name="@Icons.Logo" Size="22" />
+            <span class="sidebar__label">Expense Tracker</span>
+        </a>
     </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <AuthorizeView>
-            <Authorized>
-                @foreach (var item in MenuItems)
+    <AuthorizeView>
+        <Authorized>
+            <nav class="sidebar__nav" aria-label="Principal">
+                @foreach (var item in NavItems.Main)
                 {
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="@item.Href" Match="@(item.Href.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix)">
-                            <span class="bi @item.IconClass" aria-hidden="true"></span> @item.Text
-                        </NavLink>
-                    </div>
+                    @NavLinkFor(item)
                 }
+            </nav>
 
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <form action="Account/Logout" method="post">
-                        <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                        <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Cerrar sesión
-                        </button>
-                    </form>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Registrarse
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Iniciar sesión
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</div>
+            <div class="sidebar__bottom">
+                @NavLinkFor(NavItems.Settings)
+
+                <DropdownMenu AriaLabel="@($"Menú de {context.User.Identity?.Name}")" Items="userMenu" Align="DropdownMenu.MenuAlign.Start"
+                              OpenUp="true" Class="sidebar__user" TriggerClass="sidebar__link sidebar__user-trigger">
+                    <TriggerContent>
+                        <AppIcon Name="@Icons.User" Size="20" />
+                        <span class="sidebar__label sidebar__user-name" title="@context.User.Identity?.Name">@context.User.Identity?.Name</span>
+                    </TriggerContent>
+                </DropdownMenu>
+
+                @if (RendererInfo.IsInteractive)
+                {
+                    <button type="button" class="sidebar__link sidebar__toggle" @onclick="OnToggle"
+                            aria-expanded="@(Collapsed ? "false" : "true")"
+                            aria-label="@(Collapsed ? "Expandir barra lateral" : "Colapsar barra lateral")"
+                            title="@(Collapsed ? "Expandir barra lateral" : "Colapsar barra lateral")">
+                        <AppIcon Name="@Icons.CollapseSidebar" Size="20" />
+                        <span class="sidebar__label">Colapsar</span>
+                    </button>
+                }
+            </div>
+
+            @* The sign-out is a POST that needs the antiforgery token, so the menu item submits this form. *@
+            <form id="logout-form" action="Account/Logout" method="post" hidden>
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+            </form>
+        </Authorized>
+        <NotAuthorized>
+            <nav class="sidebar__nav" aria-label="Cuenta">
+                <NavLink class="sidebar__link" href="Account/Login" title="Iniciar sesión">
+                    <AppIcon Name="@Icons.Login" Size="20" /><span class="sidebar__label">Iniciar sesión</span>
+                </NavLink>
+                <NavLink class="sidebar__link" href="Account/Register" title="Registrarse">
+                    <AppIcon Name="@Icons.Register" Size="20" /><span class="sidebar__label">Registrarse</span>
+                </NavLink>
+            </nav>
+        </NotAuthorized>
+    </AuthorizeView>
+</aside>
 
 @code {
-    private string? currentUrl;
+    /// <summary>Only icons are shown (the page is laid out by a rule on the html element; this keeps labels and the button in step).</summary>
+    [Parameter]
+    public bool Collapsed { get; set; }
 
-    private sealed class MenuItem
-    {
-        public MenuItem(string href, string text, string iconClass)
-        {
-            Href = href;
-            Text = text;
-            IconClass = iconClass;
-        }
+    [Parameter]
+    public EventCallback OnToggle { get; set; }
 
-        public string Href { get; }
-        public string Text { get; }
-        public string IconClass { get; }
-    }
-
-    private static readonly MenuItem[] MenuItems =
-    {
-        new("", "Inicio", "bi-house-door-fill-nav-menu"),
-        new("ingresos", "Ingresos", "bi-plus-square-fill-nav-menu"),
-        new("gastos", "Gastos", "bi-list-nested-nav-menu"),
-        new("deudas", "Deudas", "bi-lock-nav-menu"),
-        new("plan", "Plan", "bi-list-nested-nav-menu"),
-        new("metas", "Metas", "bi-plus-square-fill-nav-menu"),
-        new("estimaciones", "Estimaciones", "bi-list-nested-nav-menu"),
-        new("configuracion", "Configuración", "bi-person-badge-nav-menu"),
-    };
+    private string currentUrl = string.Empty;
+    private string currentPath = string.Empty;
+    private IReadOnlyList<DropdownMenuItem> userMenu = Array.Empty<DropdownMenuItem>();
 
     protected override void OnInitialized()
     {
-        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        Track(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
+
+        userMenu = new[]
+        {
+            new DropdownMenuItem("Mi cuenta", Icons.Account, EventCallback.Factory.Create(this, () => NavigationManager.NavigateTo("Account/Manage"))),
+            new DropdownMenuItem("Cerrar sesión", Icons.Logout, EventCallback.Factory.Create(this, () => Ui.SubmitFormAsync("logout-form")))
+        };
+    }
+
+    private void Track(string uri)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(uri);
+        var end = currentUrl.IndexOfAny(new[] { '?', '#' });
+        currentPath = (end < 0 ? currentUrl : currentUrl[..end]).Trim('/');
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
-        StateHasChanged();
+        Track(e.Location);
+        InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
+    private RenderFragment NavLinkFor(NavItem item) => __builder =>
     {
-        NavigationManager.LocationChanged -= OnLocationChanged;
-    }
-}
+        var current = item.IsCurrent(currentPath);
+        <a class="sidebar__link @(current ? "active" : null)" href="@item.Href" title="@item.Text" aria-label="@item.Text"
+           aria-current="@(current ? "page" : null)">
+            <AppIcon Name="@(current ? item.ActiveIcon : item.Icon)" Size="20" />
+            <span class="sidebar__label">@item.Text</span>
+        </a>
+    };
 
+    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
+}

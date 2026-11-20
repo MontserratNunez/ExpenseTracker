@@ -10,11 +10,12 @@
 
 <PageTitle>Plan</PageTitle>
 
-<h1 class="mb-3">Plan</h1>
+<PageHeader Title="Plan">
+    <Actions><AppButton OnClick="StartEditAsync" Disabled="@loading">Editar plan</AppButton></Actions>
+</PageHeader>
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<div class="mb-3">
     <MonthNavigator Year="year" Month="month" OnChange="OnMonthChanged" />
-    <button type="button" class="btn btn-primary" @onclick="StartEditAsync" disabled="@loading">Editar plan</button>
 </div>
 
 <ErrorAlert @bind-Message="error" />

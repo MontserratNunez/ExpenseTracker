@@ -6,16 +6,23 @@
 @* A "more actions" button (three dots) that opens a menu. Keyboard: Enter, Space, ArrowDown or ArrowUp open it;
    arrows, Home and End move; Enter or Space choose; Esc closes and returns to the button; Tab closes. *@
 <div class="dropdown-app @Class" @ref="root">
-    <button type="button" class="btn-app btn-app--ghost btn-app--sm btn-app--icon dropdown-app__trigger"
+    <button type="button" class="dropdown-app__trigger @(TriggerContent is null ? "btn-app btn-app--ghost btn-app--sm btn-app--icon" : TriggerClass)"
             aria-haspopup="menu" aria-expanded="@(open ? "true" : "false")" aria-label="@AriaLabel"
             @onclick="ToggleAsync">
-        <AppIcon Name="@Icons.More" Size="16" />
+        @if (TriggerContent is null)
+        {
+            <AppIcon Name="@Icons.More" Size="16" />
+        }
+        else
+        {
+            @TriggerContent
+        }
     </button>
 
     @if (open)
     {
         <div class="dropdown-app__backdrop" @onclick="() => CloseAsync(false)"></div>
-        <div class="dropdown-app__menu dropdown-app__menu--@Align.ToString().ToLower()" role="menu" aria-label="@AriaLabel" @ref="menu">
+        <div class="dropdown-app__menu dropdown-app__menu--@Align.ToString().ToLower() @(OpenUp ? "dropdown-app__menu--up" : null)" role="menu" aria-label="@AriaLabel" @ref="menu">
             @foreach (var item in Items)
             {
                 var current = item;
@@ -49,6 +56,17 @@
 
     [Parameter]
     public string? Class { get; set; }
+
+    /// <summary>Replaces the three dots, for example with an icon and a name (the user menu). Style it with <see cref="TriggerClass"/>.</summary>
+    [Parameter]
+    public RenderFragment? TriggerContent { get; set; }
+
+    [Parameter]
+    public string? TriggerClass { get; set; }
+
+    /// <summary>Opens the menu above the button, for a button at the bottom of the screen.</summary>
+    [Parameter]
+    public bool OpenUp { get; set; }
 
     private ElementReference root;
     private ElementReference menu;
