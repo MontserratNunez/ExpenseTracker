@@ -2,6 +2,7 @@
 @using ExpenseTracker.Core.Application.DTOs.Debts
 @using ExpenseTracker.Core.Application.Interfaces
 @using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
 @inject DebtService DebtService
 @inject IDateProvider DateProvider
@@ -163,7 +164,7 @@ else if (detail is not null)
 }
 
 <DebtForm Visible="showEdit" Title="Editar deuda" Model="debtInput" Error="formError" OnSave="SaveEditAsync" OnCancel="CloseForms" />
-<DebtPaymentForm Visible="showPayment" Model="paymentInput" Error="formError" OnSave="SavePaymentAsync" OnCancel="CloseForms" />
+<DebtPaymentForm Visible="showPayment" Model="paymentInput" Currency="detail?.Debt.Currency ?? Currency.DOP" Error="formError" OnSave="SavePaymentAsync" OnCancel="CloseForms" />
 
 <ConfirmDialog @bind-Visible="confirmDeleteDebt" Title="Eliminar deuda"
                Message="¿Eliminar esta deuda y todo su historial de pagos? Los pagos desaparecerán también de los gastos de cada mes."

@@ -1,5 +1,4 @@
 @using ExpenseTracker.Core.Application.DTOs.Incomes
-@using ExpenseTracker.Core.Domain.Enums
 
 @if (Visible)
 {
@@ -10,40 +9,21 @@
                 <EditForm Model="Model" OnValidSubmit="OnSave" FormName="one-time-income-form">
                     <div class="modal-header">
                         <h5 class="modal-title" id="one-time-title">@Title</h5>
-                        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
                     </div>
                     <div class="modal-body">
                         <DataAnnotationsValidator />
                         <ErrorAlert Message="@Error" />
-                        <ValidationSummary class="text-danger" />
 
-                        <div class="mb-3">
-                            <label class="form-label" for="one-desc">Descripción</label>
-                            <InputText id="one-desc" class="form-control" @bind-Value="Model.Description" placeholder="Bono" />
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-7">
-                                <label class="form-label" for="one-amount">Monto</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="one-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
-                            </div>
-                            <div class="col-5">
-                                <label class="form-label" for="one-currency">Moneda</label>
-                                <InputSelect id="one-currency" class="form-select" @bind-Value="Model.Currency">
-                                    @foreach (var currency in Enum.GetValues<Currency>())
-                                    {
-                                        <option value="@currency">@currency</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="form-label" for="one-date">Fecha</label>
-                            <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="one-date" class="form-control" @bind-Value="Model.Date" />
-                        </div>
+                        <AppInput Label="Descripción" Placeholder="Bono" @bind-Value="Model.Description" />
+
+                        <MoneyInput Label="Monto" @bind-Amount="Model.Amount" @bind-Currency="Model.Currency" />
+
+                        <AppDate TValue="DateOnly" Label="Fecha" @bind-Value="Model.Date" />
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+                        <AppButton Type="submit">Guardar</AppButton>
                     </div>
                 </EditForm>
             </div>

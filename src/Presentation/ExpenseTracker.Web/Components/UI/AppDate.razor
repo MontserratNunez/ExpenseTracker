@@ -1,0 +1,46 @@
+@typeparam TValue
+@using System.Linq.Expressions
+
+@* A date field for DateOnly, DateTime or their nullable versions. *@
+<FormField Label="@Label" InputId="@Id" Hint="@Hint" Class="@Class">
+    <ChildContent>
+        <InputDate TValue="TValue" DisplayName="@Label" id="@Id" class="field" disabled="@Disabled"
+                   ParsingErrorMessage="El campo {0} debe ser una fecha válida."
+                   aria-describedby="@(string.IsNullOrEmpty(Hint) ? null : $"{Id}-hint")"
+                   Value="Value" ValueChanged="ValueChanged" ValueExpression="ValueExpression" />
+    </ChildContent>
+    <Validation>
+        @if (ValueExpression is not null)
+        {
+            <ValidationMessage For="ValueExpression" class="validation-message" />
+        }
+    </Validation>
+</FormField>
+
+@code {
+    [Parameter]
+    public TValue? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<TValue?> ValueChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<TValue?>>? ValueExpression { get; set; }
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string? Id { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    protected override void OnInitialized() => Id ??= FieldId.Next();
+}

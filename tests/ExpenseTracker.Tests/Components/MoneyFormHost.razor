@@ -1,0 +1,19 @@
+@* A real form around MoneyInput, so the tests exercise validation and submit the way the app does. *@
+<EditForm Model="Model" OnValidSubmit="@(() => Submitted++)" OnInvalidSubmit="@(() => InvalidSubmits++)">
+    <DataAnnotationsValidator />
+    <MoneyInput Label="Monto" Hint="Solo el monto" @bind-Amount="Model.Amount" @bind-Currency="Model.Currency"
+                ShowCurrencySelector="ShowCurrencySelector" />
+    <button type="submit">Guardar</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public MoneyModel Model { get; set; } = new();
+
+    [Parameter]
+    public bool ShowCurrencySelector { get; set; } = true;
+
+    public int Submitted { get; private set; }
+
+    public int InvalidSubmits { get; private set; }
+}

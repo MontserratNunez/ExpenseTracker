@@ -1,0 +1,26 @@
+<EditForm Model="Model" OnValidSubmit="@(() => Submitted++)" OnInvalidSubmit="@(() => InvalidSubmits++)">
+    <DataAnnotationsValidator />
+    <AppInput Label="Nombre" Hint="Como aparece en la lista" @bind-Value="Model.Name" />
+    <AppNumber TValue="decimal" Label="Tasa" Suffix="%" @bind-Value="Model.Rate" />
+    <AppDate TValue="DateOnly" Label="Fecha" @bind-Value="Model.Date" />
+    <AppDate TValue="DateOnly?" Label="Fecha de fin" @bind-Value="Model.EndDate" />
+    <AppSelect TValue="Frequency?" Label="Frecuencia" @bind-Value="Model.Frequency">
+        <option value="">Seleccione...</option>
+        @foreach (var frequency in Enum.GetValues<Frequency>())
+        {
+            <option value="@frequency">@frequency</option>
+        }
+    </AppSelect>
+    <AppTextarea Label="Notas" @bind-Value="Model.Notes" />
+    <AppToggle Label="Activa" Hint="Cuenta en los totales" @bind-Value="Model.Active" />
+    <button type="submit">Guardar</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public FieldsModel Model { get; set; } = new();
+
+    public int Submitted { get; private set; }
+
+    public int InvalidSubmits { get; private set; }
+}

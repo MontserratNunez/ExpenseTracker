@@ -1,0 +1,38 @@
+@* Label, control, hint and validation message with the same structure in every form. *@
+<div class="form-field @Class">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="form-field__label" for="@InputId">@Label</label>
+    }
+    @ChildContent
+    @if (!string.IsNullOrEmpty(Hint))
+    {
+        <div class="form-field__hint" id="@HintId">@Hint</div>
+    }
+    @Validation
+</div>
+
+@code {
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>Id of the control the label points to.</summary>
+    [Parameter]
+    public string? InputId { get; set; }
+
+    /// <summary>Help text under the control. The control should reference it with aria-describedby = <see cref="HintId"/>.</summary>
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Usually a ValidationMessage; shown under the hint.</summary>
+    [Parameter]
+    public RenderFragment? Validation { get; set; }
+
+    public string HintId => $"{InputId}-hint";
+}

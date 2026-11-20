@@ -11,59 +11,33 @@
                 <EditForm Model="Model" OnValidSubmit="OnSave" FormName="income-source-form">
                     <div class="modal-header">
                         <h5 class="modal-title" id="income-source-title">@Title</h5>
-                        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
                     </div>
                     <div class="modal-body">
                         <DataAnnotationsValidator />
                         <ErrorAlert Message="@Error" />
-                        <ValidationSummary class="text-danger" />
 
-                        <div class="mb-3">
-                            <label class="form-label" for="src-name">Nombre</label>
-                            <InputText id="src-name" class="form-control" @bind-Value="Model.Name" placeholder="Sueldo trabajo" />
+                        <AppInput Label="Nombre" Placeholder="Sueldo trabajo" @bind-Value="Model.Name" />
+
+                        <MoneyInput Label="Monto" @bind-Amount="Model.Amount" @bind-Currency="Model.Currency" />
+
+                        <AppSelect TValue="Frequency" Label="Frecuencia" @bind-Value="Model.Frequency">
+                            @foreach (var frequency in Enum.GetValues<Frequency>())
+                            {
+                                <option value="@frequency">@UiLabels.FrequencyName(frequency)</option>
+                            }
+                        </AppSelect>
+
+                        <div class="form-grid">
+                            <AppDate TValue="DateOnly" Label="Inicio" @bind-Value="Model.StartDate" />
+                            <AppDate TValue="DateOnly?" Label="Fin (opcional)" @bind-Value="Model.EndDate" />
                         </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-7">
-                                <label class="form-label" for="src-amount">Monto</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="src-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
-                            </div>
-                            <div class="col-5">
-                                <label class="form-label" for="src-currency">Moneda</label>
-                                <InputSelect id="src-currency" class="form-select" @bind-Value="Model.Currency">
-                                    @foreach (var currency in Enum.GetValues<Currency>())
-                                    {
-                                        <option value="@currency">@currency</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="src-frequency">Frecuencia</label>
-                            <InputSelect id="src-frequency" class="form-select" @bind-Value="Model.Frequency">
-                                @foreach (var frequency in Enum.GetValues<Frequency>())
-                                {
-                                    <option value="@frequency">@UiLabels.FrequencyName(frequency)</option>
-                                }
-                            </InputSelect>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-6">
-                                <label class="form-label" for="src-start">Inicio</label>
-                                <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="src-start" class="form-control" @bind-Value="Model.StartDate" />
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label" for="src-end">Fin (opcional)</label>
-                                <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="src-end" class="form-control" @bind-Value="Model.EndDate" />
-                            </div>
-                        </div>
-                        <div class="form-check">
-                            <InputCheckbox id="src-active" class="form-check-input" @bind-Value="Model.IsActive" />
-                            <label class="form-check-label" for="src-active">Activa</label>
-                        </div>
+
+                        <AppToggle Label="Activa" @bind-Value="Model.IsActive" />
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+                        <AppButton Type="submit">Guardar</AppButton>
                     </div>
                 </EditForm>
             </div>

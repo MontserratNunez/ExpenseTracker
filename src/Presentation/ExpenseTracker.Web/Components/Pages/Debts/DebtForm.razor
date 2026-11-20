@@ -11,76 +11,43 @@
                 <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-form">
                     <div class="modal-header">
                         <h5 class="modal-title" id="debt-title">@Title</h5>
-                        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
                     </div>
                     <div class="modal-body">
                         <DataAnnotationsValidator />
                         <ErrorAlert Message="@Error" />
-                        <ValidationSummary class="text-danger" />
 
-                        <div class="mb-3">
-                            <label class="form-label" for="debt-name">Nombre</label>
-                            <InputText id="debt-name" class="form-control" @bind-Value="Model.Name" placeholder="Préstamo del carro" />
+                        <AppInput Label="Nombre" Placeholder="Préstamo del carro" @bind-Value="Model.Name" />
+
+                        <AppSelect TValue="DebtType" Label="Tipo" @bind-Value="Model.DebtType">
+                            @foreach (var type in Enum.GetValues<DebtType>())
+                            {
+                                <option value="@type">@UiLabels.DebtTypeName(type)</option>
+                            }
+                        </AppSelect>
+
+                        <MoneyInput Label="Monto original" @bind-Amount="Model.OriginalAmount" @bind-Currency="Model.Currency" />
+
+                        <MoneyInput Label="Ya pagado antes de usar la app" ShowCurrencySelector="false"
+                                    Currency="Model.Currency" @bind-Amount="Model.InitialPaidAmount" />
+
+                        <div class="form-grid">
+                            <AppNumber TValue="decimal" Label="Tasa anual" Suffix="%" Min="0" Max="100" @bind-Value="Model.AnnualInterestRate" />
+                            <AppNumber TValue="int" Label="Día de pago (1-28)" Step="1" Min="1" Max="28" InputMode="numeric" @bind-Value="Model.PaymentDay" />
                         </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-7">
-                                <label class="form-label" for="debt-type">Tipo</label>
-                                <InputSelect id="debt-type" class="form-select" @bind-Value="Model.DebtType">
-                                    @foreach (var type in Enum.GetValues<DebtType>())
-                                    {
-                                        <option value="@type">@UiLabels.DebtTypeName(type)</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                            <div class="col-5">
-                                <label class="form-label" for="debt-currency">Moneda</label>
-                                <InputSelect id="debt-currency" class="form-select" @bind-Value="Model.Currency">
-                                    @foreach (var currency in Enum.GetValues<Currency>())
-                                    {
-                                        <option value="@currency">@currency</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-6">
-                                <label class="form-label" for="debt-original">Monto original</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-original" class="form-control" @bind-Value="Model.OriginalAmount" step="0.01" />
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label" for="debt-paid">Ya pagado antes de usar la app</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-paid" class="form-control" @bind-Value="Model.InitialPaidAmount" step="0.01" />
-                            </div>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-6">
-                                <label class="form-label" for="debt-rate">Tasa anual (%)</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-rate" class="form-control" @bind-Value="Model.AnnualInterestRate" step="0.01" />
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label" for="debt-day">Día de pago (1-28)</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-day" class="form-control" @bind-Value="Model.PaymentDay" />
-                            </div>
-                        </div>
-                        <div class="row g-3 mb-1">
-                            <div class="col-6">
-                                <label class="form-label" for="debt-installment">Cuota mensual</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-installment" class="form-control" @bind-Value="Model.MonthlyPayment" step="0.01" />
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label" for="debt-term">Plazo (meses)</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="debt-term" class="form-control" @bind-Value="Model.TermMonths" />
-                            </div>
-                        </div>
-                        <p class="form-text mb-3">Indica la cuota, o deja la cuota en 0 y el plazo para calcularla.</p>
-                        <div>
-                            <label class="form-label" for="debt-start">Fecha de inicio</label>
-                            <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="debt-start" class="form-control" @bind-Value="Model.StartDate" />
+
+                        <MoneyInput Label="Cuota mensual" ShowCurrencySelector="false" Currency="Model.Currency"
+                                    Hint="Indica la cuota, o déjala en 0 y escribe el plazo para calcularla."
+                                    @bind-Amount="Model.MonthlyPayment" />
+
+                        <div class="form-grid">
+                            <AppNumber TValue="int?" Label="Plazo (meses)" Step="1" Min="1" InputMode="numeric" @bind-Value="Model.TermMonths" />
+                            <AppDate TValue="DateOnly" Label="Fecha de inicio" @bind-Value="Model.StartDate" />
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+                        <AppButton Type="submit">Guardar</AppButton>
                     </div>
                 </EditForm>
             </div>

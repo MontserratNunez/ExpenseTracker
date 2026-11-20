@@ -1,5 +1,7 @@
 @page "/dev/ui"
+@using System.ComponentModel.DataAnnotations
 @using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
 @inject IWebHostEnvironment Env
 
 <PageTitle>Catálogo de componentes</PageTitle>
@@ -255,9 +257,128 @@ else
             <PageHeader Title="Sin acciones" />
         </div>
     </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-forms">
+        <h2 id="catalog-forms">Formularios</h2>
+        <p class="text-muted">
+            Cada campo trae su etiqueta, ayuda y mensaje de error en español debajo del campo.
+            Prueba enviar vacío, escribir <code>5000,5</code> en el monto (se rechaza), o <code>5000</code> (se formatea al salir).
+        </p>
+
+        <div class="demo-frame">
+            <EditForm EditContext="catalogContext" OnValidSubmit="OnCatalogValid" OnInvalidSubmit="OnCatalogInvalid">
+                <DataAnnotationsValidator />
+
+                <AppInput Label="Nombre" Hint="Como aparece en la lista" Placeholder="Supermercado" @bind-Value="catalogForm.Name" />
+
+                <MoneyInput Label="Monto" Hint="Acepta 5000, 5,000, 5000.5 y 5,000.50"
+                            @bind-Amount="catalogForm.Amount" @bind-Currency="catalogForm.Currency" />
+
+                <div class="form-grid">
+                    <AppNumber TValue="decimal" Label="Tasa anual" Suffix="%" Min="0" Max="100" @bind-Value="catalogForm.Rate" />
+                    <AppNumber TValue="int" Label="Día de pago (1-28)" Step="1" InputMode="numeric" @bind-Value="catalogForm.Day" />
+                </div>
+
+                <div class="form-grid">
+                    <AppSelect TValue="Frequency" Label="Frecuencia" @bind-Value="catalogForm.Frequency">
+                        @foreach (var frequency in Enum.GetValues<Frequency>())
+                        {
+                            <option value="@frequency">@UiLabels.FrequencyName(frequency)</option>
+                        }
+                    </AppSelect>
+                    <AppDate TValue="DateOnly" Label="Fecha" @bind-Value="catalogForm.Date" />
+                </div>
+
+                <AppTextarea Label="Notas" Rows="2" @bind-Value="catalogForm.Notes" />
+                <AppToggle Label="Es recurrente" Hint="Se repite según la frecuencia" @bind-Value="catalogForm.Recurring" />
+
+                <div class="demo-row">
+                    <AppButton Type="submit">Guardar</AppButton>
+                    <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="ValidateNow">Validar ahora</AppButton>
+                    <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="ResetCatalogForm">Limpiar</AppButton>
+                </div>
+            </EditForm>
+
+            @if (catalogResult is not null)
+            {
+                <p class="catalog-note" role="status">@catalogResult</p>
+            }
+        </div>
+
+        <h3 class="catalog-group">Deshabilitados y moneda fija</h3>
+        <div class="demo-frame">
+            <EditForm Model="disabledDemo" FormName="catalog-disabled">
+                <AppInput Label="Nombre" Disabled="true" @bind-Value="disabledDemo.Name" />
+                <MoneyInput Label="Monto con moneda fija" ShowCurrencySelector="false" Currency="Currency.USD" Amount="1250.5m" />
+                <MoneyInput Label="Monto deshabilitado" Amount="300m" Disabled="true" />
+                <AppToggle Label="Interruptor deshabilitado" Disabled="true" @bind-Value="disabledDemo.On" />
+            </EditForm>
+        </div>
+    </section>
 }
 
 @code {
+    private sealed class CatalogFormModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El nombre no puede superar {1} caracteres.")]
+        [Display(Name = "Nombre")]
+        public string? Name { get; set; }
+
+        [Range(typeof(decimal), "0.01", "999999999999", ErrorMessage = "El monto debe ser mayor que cero.")]
+        [Display(Name = "Monto")]
+        public decimal Amount { get; set; }
+
+        public Currency Currency { get; set; } = Currency.DOP;
+
+        [Range(typeof(decimal), "0", "100", ErrorMessage = "La tasa anual debe estar entre 0 y 100.")]
+        [Display(Name = "Tasa anual")]
+        public decimal Rate { get; set; }
+
+        [Range(1, 28, ErrorMessage = "El día de pago debe estar entre 1 y 28.")]
+        [Display(Name = "Día de pago")]
+        public int Day { get; set; } = 1;
+
+        [Display(Name = "Frecuencia")]
+        public Frequency Frequency { get; set; } = Frequency.Monthly;
+
+        [Display(Name = "Fecha")]
+        public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+
+        [Display(Name = "Notas")]
+        public string? Notes { get; set; }
+
+        public bool Recurring { get; set; }
+    }
+
+    private sealed class DisabledDemoModel
+    {
+        public string? Name { get; set; } = "No editable";
+        public bool On { get; set; } = true;
+    }
+
+    // Form fields need an EditForm around them, even when they are only shown.
+    private readonly DisabledDemoModel disabledDemo = new();
+
+    private CatalogFormModel catalogForm = new();
+    private EditContext catalogContext = default!;
+    private string? catalogResult;
+
+    protected override void OnInitialized() => catalogContext = new EditContext(catalogForm);
+
+    private void OnCatalogValid() => catalogResult = $"Formulario válido: {catalogForm.Name}, {catalogForm.Currency} {catalogForm.Amount:N2}.";
+
+    private void OnCatalogInvalid() => catalogResult = "El formulario tiene errores; revisa los mensajes bajo cada campo.";
+
+    private void ValidateNow() => catalogContext.Validate();
+
+    private void ResetCatalogForm()
+    {
+        catalogForm = new CatalogFormModel();
+        catalogContext = new EditContext(catalogForm);
+        catalogResult = null;
+    }
+
     private bool saving;
     private int clicks;
 

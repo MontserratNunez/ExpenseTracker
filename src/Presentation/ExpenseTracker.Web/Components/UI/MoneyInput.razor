@@ -1,0 +1,189 @@
+@implements IDisposable
+@using System.Linq.Expressions
+@using ExpenseTracker.Core.Application.Helpers
+@using ExpenseTracker.Core.Domain.Enums
+
+@* One field for an amount: the currency selector on the left (or its symbol), the amount on the right.
+   It accepts 5000, 5,000, 5000.5 and 5,000.50 and formats the amount (es-DO) when the field loses focus.
+   A comma is never read as a decimal separator: "5000,5" is rejected instead of becoming 50005. *@
+<FormField Label="@Label" InputId="@Id" Hint="@Hint" Class="@Class">
+    <ChildContent>
+        <div class="field-group @(Disabled ? "field-group--disabled" : null)">
+            @if (ShowCurrencySelector)
+            {
+                <select class="field-group__select" aria-label="Moneda" disabled="@Disabled"
+                        value="@Currency.ToString()" @onchange="OnCurrencyChanged">
+                    @foreach (var currency in Enum.GetValues<Currency>())
+                    {
+                        <option value="@currency">@currency</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <span class="field-group__affix field-group__affix--start" aria-hidden="true">@MoneyFormatter.GetSymbol(Currency)</span>
+            }
+            <input id="@Id" type="text" inputmode="decimal" autocomplete="off"
+                   class="field-group__control field-group__control--money @(HasError ? "invalid" : null)"
+                   placeholder="@Placeholder" disabled="@Disabled"
+                   aria-invalid="@(HasError ? "true" : null)"
+                   aria-describedby="@(string.IsNullOrEmpty(Hint) ? null : $"{Id}-hint")"
+                   value="@text" @onchange="OnAmountChanged" />
+        </div>
+    </ChildContent>
+    <Validation>
+        @foreach (var message in Messages)
+        {
+            <div class="validation-message">@message</div>
+        }
+    </Validation>
+</FormField>
+
+@code {
+    [CascadingParameter]
+    private EditContext? EditContext { get; set; }
+
+    [Parameter]
+    public decimal Amount { get; set; }
+
+    [Parameter]
+    public EventCallback<decimal> AmountChanged { get; set; }
+
+    [Parameter]
+    public Expression<Func<decimal>>? AmountExpression { get; set; }
+
+    [Parameter]
+    public Currency Currency { get; set; } = Currency.DOP;
+
+    [Parameter]
+    public EventCallback<Currency> CurrencyChanged { get; set; }
+
+    /// <summary>False when the currency is fixed by the context (a debt, the base currency): only its symbol is shown.</summary>
+    [Parameter]
+    public bool ShowCurrencySelector { get; set; } = true;
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string? Placeholder { get; set; } = "0.00";
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string? Id { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    private string text = string.Empty;
+    private decimal? lastAmount;
+    private string? parseError;
+
+    private EditContext? hookedContext;
+    private ValidationMessageStore? parseErrors;
+
+    private FieldIdentifier? Field => EditContext is not null && AmountExpression is not null
+        ? FieldIdentifier.Create(AmountExpression)
+        : null;
+
+    private bool HasError => parseError is not null
+        || (EditContext is not null && Field is { } fieldId && EditContext.GetValidationMessages(fieldId).Any());
+
+    // A format error replaces the model's messages: "must be greater than zero" is misleading while the text is not an amount yet.
+    private IEnumerable<string> Messages => parseError is not null
+        ? new[] { parseError }
+        : EditContext is not null && Field is { } fieldId ? EditContext.GetValidationMessages(fieldId) : Enumerable.Empty<string>();
+
+    protected override void OnInitialized() => Id ??= FieldId.Next();
+
+    protected override void OnParametersSet()
+    {
+        // Follow the model when it changes from outside (opening the form, editing another record).
+        if (lastAmount != Amount)
+        {
+            lastAmount = Amount;
+            text = Amount == 0m ? string.Empty : MoneyParser.Format(Amount);
+            parseError = null;
+        }
+
+        if (!ReferenceEquals(hookedContext, EditContext))
+        {
+            Unhook();
+            hookedContext = EditContext;
+            if (hookedContext is not null)
+            {
+                parseErrors = new ValidationMessageStore(hookedContext);
+                hookedContext.OnValidationRequested += OnValidationRequested;
+                hookedContext.OnValidationStateChanged += OnValidationStateChanged;
+            }
+        }
+    }
+
+    private async Task OnAmountChanged(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString();
+
+        if (MoneyParser.TryParse(raw, out var parsed, out var error))
+        {
+            parseError = null;
+            lastAmount = parsed;
+            text = string.IsNullOrWhiteSpace(raw) ? string.Empty : MoneyParser.Format(parsed);
+            await AmountChanged.InvokeAsync(parsed);
+        }
+        else
+        {
+            // Keep what the user typed so they can fix it; the model keeps its last valid amount
+            // but the form cannot be submitted while this error stands.
+            parseError = error;
+            text = raw ?? string.Empty;
+        }
+
+        if (Field is { } fieldId)
+        {
+            EditContext!.NotifyFieldChanged(fieldId);
+            ApplyParseError(fieldId);
+        }
+    }
+
+    private async Task OnCurrencyChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<Currency>(e.Value?.ToString(), out var currency))
+            await CurrencyChanged.InvokeAsync(currency);
+    }
+
+    // The standard validator clears its own messages on submit; ours is re-added so a bad amount blocks the form.
+    private void OnValidationRequested(object? sender, ValidationRequestedEventArgs e)
+    {
+        if (Field is { } fieldId)
+            ApplyParseError(fieldId);
+    }
+
+    private void ApplyParseError(FieldIdentifier fieldId)
+    {
+        parseErrors?.Clear(fieldId);
+        if (parseError is not null)
+            parseErrors?.Add(fieldId, parseError);
+        EditContext?.NotifyValidationStateChanged();
+    }
+
+    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs e)
+        => _ = InvokeAsync(StateHasChanged);
+
+    private void Unhook()
+    {
+        if (hookedContext is null)
+            return;
+
+        hookedContext.OnValidationRequested -= OnValidationRequested;
+        hookedContext.OnValidationStateChanged -= OnValidationStateChanged;
+        hookedContext = null;
+        parseErrors = null;
+    }
+
+    public void Dispose() => Unhook();
+}

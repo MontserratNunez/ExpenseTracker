@@ -12,88 +12,58 @@
                 <EditForm Model="Model" OnValidSubmit="OnSave" FormName="expense-form">
                     <div class="modal-header">
                         <h5 class="modal-title" id="expense-title">@Title</h5>
-                        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
                     </div>
                     <div class="modal-body">
                         <DataAnnotationsValidator />
                         <ErrorAlert Message="@Error" />
-                        <ValidationSummary class="text-danger" />
 
                         @if (IsEditing && Model.IsRecurring)
                         {
                             <div class="alert alert-info py-2">Al editar un gasto recurrente se modifican todas sus ocurrencias.</div>
                         }
 
-                        <div class="mb-3">
-                            <label class="form-label" for="exp-name">Nombre</label>
-                            <InputText id="exp-name" class="form-control" @bind-Value="Model.Name" placeholder="Supermercado" />
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-7">
-                                <label class="form-label" for="exp-amount">Monto</label>
-                                <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="exp-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
-                            </div>
-                            <div class="col-5">
-                                <label class="form-label" for="exp-currency">Moneda</label>
-                                <InputSelect id="exp-currency" class="form-select" @bind-Value="Model.Currency">
-                                    @foreach (var currency in Enum.GetValues<Currency>())
-                                    {
-                                        <option value="@currency">@currency</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="exp-category">Categoría</label>
-                            <InputSelect id="exp-category" class="form-select" @bind-Value="Model.CategoryId">
-                                <option value="0">Seleccione...</option>
-                                @foreach (var category in Categories.Where(c => c.IsActive || c.Id == Model.CategoryId))
-                                {
-                                    <option value="@category.Id">@category.Name@(category.IsActive ? "" : " (inactiva)")</option>
-                                }
-                            </InputSelect>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="exp-date">@(Model.IsRecurring ? "Primera ocurrencia" : "Fecha")</label>
-                            <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="exp-date" class="form-control" @bind-Value="Model.Date" />
-                        </div>
-                        <div class="form-check form-switch mb-3">
-                            <InputCheckbox id="exp-recurring" class="form-check-input" role="switch" @bind-Value="Model.IsRecurring" />
-                            <label class="form-check-label" for="exp-recurring">Es recurrente</label>
-                        </div>
+                        <AppInput Label="Nombre" Placeholder="Supermercado" @bind-Value="Model.Name" />
+
+                        <MoneyInput Label="Monto" @bind-Amount="Model.Amount" @bind-Currency="Model.Currency" />
+
+                        <AppSelect TValue="int" Label="Categoría" @bind-Value="Model.CategoryId">
+                            <option value="0">Seleccione...</option>
+                            @foreach (var category in Categories.Where(c => c.IsActive || c.Id == Model.CategoryId))
+                            {
+                                <option value="@category.Id">@category.Name@(category.IsActive ? "" : " (inactiva)")</option>
+                            }
+                        </AppSelect>
+
+                        <AppDate TValue="DateOnly" Label="@(Model.IsRecurring ? "Primera ocurrencia" : "Fecha")" @bind-Value="Model.Date" />
+
+                        <AppToggle Label="Es recurrente" @bind-Value="Model.IsRecurring" />
+
                         @if (Model.IsRecurring)
                         {
-                            <div class="row g-3 mb-3">
-                                <div class="col-6">
-                                    <label class="form-label" for="exp-frequency">Frecuencia</label>
-                                    <InputSelect id="exp-frequency" class="form-select" @bind-Value="Model.Frequency">
-                                        @foreach (var frequency in Enum.GetValues<Frequency>())
-                                        {
-                                            <option value="@frequency">@UiLabels.FrequencyName(frequency)</option>
-                                        }
-                                    </InputSelect>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label" for="exp-end">Fin (opcional)</label>
-                                    <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="exp-end" class="form-control" @bind-Value="Model.EndDate" />
-                                </div>
+                            <div class="form-grid">
+                                <AppSelect TValue="Frequency?" Label="Frecuencia" @bind-Value="Model.Frequency">
+                                    @foreach (var frequency in Enum.GetValues<Frequency>())
+                                    {
+                                        <option value="@frequency">@UiLabels.FrequencyName(frequency)</option>
+                                    }
+                                </AppSelect>
+                                <AppDate TValue="DateOnly?" Label="Fin (opcional)" @bind-Value="Model.EndDate" />
                             </div>
                         }
-                        <div>
-                            <label class="form-label" for="exp-notes">Notas</label>
-                            <InputTextArea id="exp-notes" class="form-control" rows="2" @bind-Value="Model.Notes" />
-                        </div>
+
+                        <AppTextarea Label="Notas" Rows="2" @bind-Value="Model.Notes" />
                     </div>
                     <div class="modal-footer justify-content-between">
                         <div>
                             @if (IsEditing)
                             {
-                                <button type="button" class="btn btn-outline-danger" @onclick="OnDelete">Eliminar</button>
+                                <AppButton Variant="AppButton.ButtonVariant.Danger" Icon="@Icons.Delete" OnClick="() => OnDelete.InvokeAsync()">Eliminar</AppButton>
                             }
                         </div>
-                        <div>
-                            <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Guardar</button>
+                        <div class="d-flex gap-2">
+                            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+                            <AppButton Type="submit">Guardar</AppButton>
                         </div>
                     </div>
                 </EditForm>

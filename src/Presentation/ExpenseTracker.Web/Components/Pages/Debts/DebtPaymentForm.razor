@@ -1,4 +1,5 @@
 @using ExpenseTracker.Core.Application.DTOs.Debts
+@using ExpenseTracker.Core.Domain.Enums
 
 @if (Visible)
 {
@@ -9,30 +10,22 @@
                 <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-payment-form">
                     <div class="modal-header">
                         <h5 class="modal-title" id="payment-title">Registrar pago</h5>
-                        <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
                     </div>
                     <div class="modal-body">
                         <DataAnnotationsValidator />
                         <ErrorAlert Message="@Error" />
-                        <ValidationSummary class="text-danger" />
 
-                        <div class="mb-3">
-                            <label class="form-label" for="pay-amount">Monto</label>
-                            <InputNumber ParsingErrorMessage="El campo {0} debe ser un número." id="pay-amount" class="form-control" @bind-Value="Model.Amount" step="0.01" />
-                            <div class="form-text">Se divide automáticamente en interés y capital.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="pay-date">Fecha</label>
-                            <InputDate ParsingErrorMessage="El campo {0} debe ser una fecha válida." id="pay-date" class="form-control" @bind-Value="Model.Date" />
-                        </div>
-                        <div>
-                            <label class="form-label" for="pay-notes">Notas</label>
-                            <InputText id="pay-notes" class="form-control" @bind-Value="Model.Notes" />
-                        </div>
+                        <MoneyInput Label="Monto" ShowCurrencySelector="false" Currency="Currency"
+                                    Hint="Se divide automáticamente en interés y capital." @bind-Amount="Model.Amount" />
+
+                        <AppDate TValue="DateOnly" Label="Fecha" @bind-Value="Model.Date" />
+
+                        <AppInput Label="Notas" @bind-Value="Model.Notes" />
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Registrar</button>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+                        <AppButton Type="submit">Registrar</AppButton>
                     </div>
                 </EditForm>
             </div>
@@ -46,6 +39,10 @@
 
     [Parameter, EditorRequired]
     public DebtPaymentInput Model { get; set; } = new();
+
+    /// <summary>Currency of the debt: the payment is made in it.</summary>
+    [Parameter]
+    public Currency Currency { get; set; } = Currency.DOP;
 
     [Parameter]
     public string? Error { get; set; }

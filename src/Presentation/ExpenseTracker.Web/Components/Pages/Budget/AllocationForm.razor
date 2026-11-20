@@ -9,11 +9,11 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="plan-title">Editar plan</h5>
-                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnCancel"></button>
+                    <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
                 </div>
                 <div class="modal-body">
                     <ErrorAlert Message="@Error" />
-                    <p class="form-text">
+                    <p class="form-field__hint">
                         Define cuánto quieres gastar por categoría. Un valor de 0 quita la categoría del plan.
                         Con porcentaje se usa el ingreso de la fuente elegida o, si no eliges ninguna, el total de tus ingresos recurrentes
                         (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
@@ -32,25 +32,25 @@
                                             <span class="d-inline-block rounded-circle me-2 align-middle" style="width: 1rem; height: 1rem; background-color: @r.CategoryColor;"></span>@r.CategoryName@(r.IsActive ? "" : " (inactiva)")
                                         </td>
                                         <td style="min-width: 11rem;">
-                                            <select class="form-select form-select-sm" aria-label="Tipo de @r.CategoryName" @bind="r.AllocationType">
+                                            <select class="field field--sm" aria-label="Tipo de @r.CategoryName" @bind="r.AllocationType">
                                                 <option value="@AllocationType.FixedAmount">Monto fijo</option>
                                                 <option value="@AllocationType.PercentageOfIncome">% de ingreso</option>
                                             </select>
                                         </td>
                                         <td style="min-width: 8rem;">
-                                            <div class="input-group input-group-sm">
-                                                <input type="number" step="any" min="0" class="form-control" aria-label="Valor de @r.CategoryName"
-                                                       @bind="r.Value" @bind:event="oninput" />
+                                            <div class="field-group field-group--sm">
+                                                <input type="number" step="any" min="0" class="field-group__control field-group__control--money"
+                                                       aria-label="Valor de @r.CategoryName" @bind="r.Value" @bind:event="oninput" />
                                                 @if (r.AllocationType == AllocationType.PercentageOfIncome)
                                                 {
-                                                    <span class="input-group-text">%</span>
+                                                    <span class="field-group__affix field-group__affix--end" aria-hidden="true">%</span>
                                                 }
                                             </div>
                                         </td>
                                         <td style="min-width: 12rem;">
                                             @if (r.AllocationType == AllocationType.PercentageOfIncome)
                                             {
-                                                <select class="form-select form-select-sm" aria-label="Fuente de @r.CategoryName" @bind="r.IncomeSourceId">
+                                                <select class="field field--sm" aria-label="Fuente de @r.CategoryName" @bind="r.IncomeSourceId">
                                                     <option value="">Total recurrente</option>
                                                     @foreach (var source in Editor.IncomeBases.Sources)
                                                     {
@@ -93,8 +93,8 @@
                     }
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="OnCancel">Cancelar</button>
-                    <button type="button" class="btn btn-primary" @onclick="OnSave">Guardar plan</button>
+                    <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+                    <AppButton OnClick="() => OnSave.InvokeAsync()">Guardar plan</AppButton>
                 </div>
             </div>
         </div>
