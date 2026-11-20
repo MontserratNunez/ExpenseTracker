@@ -240,6 +240,58 @@ public class ExpenseServiceTests
     }
 
     [Fact]
+    public async Task Restore_AfterDelete_BringsBackTheSameExpense_KeepingItsBaseAmount()
+    {
+        await _currency.SetRateAsync(new ExchangeRateInput { Currency = Currency.USD, RateToBase = 60.50m });
+        var created = await _service.CreateAsync(OneTime("Spotify", 10m, new DateOnly(2026, 11, 4), Subscriptions, Currency.USD));
+        var before = await _service.GetByIdAsync(created.Id);
+        await _service.DeleteAsync(created.Id);
+        Assert.Null(await _service.GetByIdAsync(created.Id));
+
+        // The rate changes while the toast is on screen: the restored amount keeps the value it had.
+        await _currency.SetRateAsync(new ExchangeRateInput { Currency = Currency.USD, RateToBase = 70m });
+        var restored = await _service.RestoreAsync(before!);
+
+        var again = await _service.GetByIdAsync(restored.Id);
+        Assert.NotNull(again);
+        Assert.Equal("Spotify", again.Name);
+        Assert.Equal(10m, again.Amount);
+        Assert.Equal(Currency.USD, again.Currency);
+        Assert.Equal(before!.AmountInBase, again.AmountInBase);
+        Assert.Equal(new DateOnly(2026, 11, 4), again.Date);
+        Assert.Equal(Subscriptions, again.CategoryId);
+        Assert.Single((await _service.GetMonthAsync(2026, 11)).Items, i => i.Name == "Spotify");
+    }
+
+    [Fact]
+    public async Task Restore_OfARecurringExpense_KeepsItsFrequencyAndEnd()
+    {
+        var created = await _service.CreateAsync(Recurring("Gym", 500m, new DateOnly(2026, 1, 5), Frequency.Monthly, Food, end: new DateOnly(2026, 12, 31)));
+        var before = await _service.GetByIdAsync(created.Id);
+        await _service.DeleteAsync(created.Id);
+
+        var restored = await _service.RestoreAsync(before!);
+
+        Assert.True(restored.IsRecurring);
+        Assert.Equal(Frequency.Monthly, restored.Frequency);
+        Assert.Equal(new DateOnly(2026, 12, 31), restored.EndDate);
+    }
+
+    [Fact]
+    public async Task Restore_WithAnInactiveCategory_StillWorks_ButNotWithAMissingOne()
+    {
+        var created = await _service.CreateAsync(OneTime("Cine", 300m, new DateOnly(2026, 11, 6), Leisure));
+        var before = await _service.GetByIdAsync(created.Id);
+        await _service.DeleteAsync(created.Id);
+
+        _categories.Items.Single(c => c.Id == Leisure).IsActive = false;
+        await _service.RestoreAsync(before!);   // it already had that category
+
+        before!.CategoryId = 999;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.RestoreAsync(before));
+    }
+
+    [Fact]
     public async Task Update_ConvertingOneTimeToRecurring_ChangesItsType()
     {
         var created = await _service.CreateAsync(OneTime("Gym", 500m, new DateOnly(2026, 10, 5)));

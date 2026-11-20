@@ -1,0 +1,44 @@
+@* A message inside the page (not a toast): deficits, plan warnings, business errors. *@
+@if (Visible)
+{
+    <div class="inline-alert inline-alert--@Tone.ToString().ToLower() @Class" role="@(Tone == AlertTone.Danger ? "alert" : "status")">
+        <AppIcon Name="@IconName" Size="18" Class="inline-alert__icon" />
+        <div class="inline-alert__text">@ChildContent</div>
+        @if (OnDismiss.HasDelegate)
+        {
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar aviso" OnClick="OnDismiss" />
+        }
+    </div>
+}
+
+@code {
+    public enum AlertTone { Info, Success, Warning, Danger }
+
+    [Parameter]
+    public AlertTone Tone { get; set; } = AlertTone.Info;
+
+    /// <summary>Overrides the icon of the tone.</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>When set, a close button is shown and this runs when it is pressed.</summary>
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
+
+    [Parameter]
+    public bool Visible { get; set; } = true;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string IconName => Icon ?? Tone switch
+    {
+        AlertTone.Success => Icons.Success,
+        AlertTone.Warning => Icons.AtRisk,
+        AlertTone.Danger => Icons.Deficit,
+        _ => Icons.Info
+    };
+}

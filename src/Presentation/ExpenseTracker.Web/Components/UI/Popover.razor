@@ -1,0 +1,92 @@
+@implements IAsyncDisposable
+@using ExpenseTracker.Web.Services
+@inject UiInterop Ui
+
+@* A floating panel anchored under its trigger. Put the trigger and this component inside an element with the
+   "popover-anchor" class (position: relative). While open the focus stays inside it, Esc and a click outside close
+   it, and the focus returns to the trigger. *@
+@if (IsOpen)
+{
+    <div class="popover-backdrop" @onclick="RequestCloseAsync"></div>
+    <div class="popover-app popover-app--@Align.ToString().ToLower() @Class" role="dialog" aria-label="@AriaLabel"
+         tabindex="-1" @ref="panel" @onkeydown="OnKeyDownAsync">
+        @ChildContent
+    </div>
+}
+
+@code {
+    public enum PopoverAlign { Start, End }
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    /// <summary>Names the popover for screen readers.</summary>
+    [Parameter, EditorRequired]
+    public string AriaLabel { get; set; } = string.Empty;
+
+    /// <summary>Which edge of the trigger the popover lines up with.</summary>
+    [Parameter]
+    public PopoverAlign Align { get; set; } = PopoverAlign.Start;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private ElementReference panel;
+    private bool active;
+    private int? trapId;
+    private DotNetObjectReference<EscapeCallbacks>? escape;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen && !active)
+        {
+            active = true;
+            escape = DotNetObjectReference.Create(new EscapeCallbacks(() => InvokeAsync(RequestCloseAsync)));
+            trapId = await Ui.TrapFocusAsync(panel, escape);
+        }
+        else if (!IsOpen && active)
+        {
+            await ReleaseAsync();
+        }
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await RequestCloseAsync();
+    }
+
+    private Task RequestCloseAsync() => OnClose.InvokeAsync();
+
+    private async Task ReleaseAsync()
+    {
+        active = false;
+        try
+        {
+            if (trapId is { } id)
+                await Ui.ReleaseFocusAsync(id);
+            trapId = null;
+        }
+        catch (JSDisconnectedException)
+        {
+            // the circuit is gone
+        }
+        finally
+        {
+            escape?.Dispose();
+            escape = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (active)
+            await ReleaseAsync();
+    }
+}

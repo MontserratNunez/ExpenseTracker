@@ -346,3 +346,141 @@ textarea.field { height: auto; padding: var(--space-2) var(--space-3); resize: v
 /* Compact variants for fields inside tables. */
 .field--sm { height: 30px; font-size: var(--text-sm); }
 .field-group--sm { height: 30px; font-size: var(--text-sm); }
+
+/* ---------- Overlays: AppModal, SidePanel (shared shell) ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  background: var(--color-scrim);
+  animation: overlay-fade var(--duration-base) var(--ease);
+}
+
+.overlay--modal { align-items: center; justify-content: center; padding: var(--space-4); }
+.overlay--side { justify-content: flex-end; }
+
+.overlay__panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+
+.overlay--modal .overlay__panel {
+  width: 100%;
+  max-width: 520px;
+  max-height: 100%;
+  border-radius: var(--radius-lg);
+  animation: overlay-pop var(--duration-base) var(--ease);
+}
+
+.overlay--modal.overlay--w-sm .overlay__panel { max-width: 440px; }
+.overlay--modal.overlay--w-lg .overlay__panel { max-width: 720px; }
+.overlay--modal.overlay--w-xl .overlay__panel { max-width: 1000px; }
+
+.overlay--side .overlay__panel {
+  width: min(420px, 100%);
+  height: 100%;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  animation: overlay-slide var(--duration-base) var(--ease);
+}
+
+.overlay__header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.overlay__title { flex: 1; margin: 0; font-size: var(--text-lg); font-weight: 600; }
+
+.overlay__body { flex: 1 1 auto; min-height: 0; padding: var(--space-6); overflow-y: auto; }
+
+.overlay__footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+.overlay__footer--between { justify-content: space-between; }
+
+/* An EditForm that wraps OverlayBody and OverlayFooter must keep the panel's column layout. */
+.overlay__panel > form { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+
+@keyframes overlay-fade { from { opacity: 0; } }
+@keyframes overlay-pop { from { opacity: 0; transform: scale(.98); } }
+@keyframes overlay-slide { from { transform: translateX(24px); opacity: 0; } }
+
+/* ---------- Popover ---------- */
+.popover-anchor { position: relative; display: inline-block; }
+
+.popover-backdrop { position: fixed; inset: 0; z-index: var(--z-dropdown); }
+
+.popover-app {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  z-index: calc(var(--z-dropdown) + 1);
+  min-width: 240px;
+  padding: var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+  animation: overlay-pop var(--duration-base) var(--ease);
+}
+
+.popover-app--start { left: 0; }
+.popover-app--end { right: 0; }
+
+/* ---------- DropdownMenu ---------- */
+.dropdown-app { position: relative; display: inline-block; }
+
+.dropdown-app__backdrop { position: fixed; inset: 0; z-index: var(--z-dropdown); }
+
+.dropdown-app__menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  z-index: calc(var(--z-dropdown) + 1);
+  min-width: 180px;
+  padding: var(--space-1);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: overlay-pop var(--duration-base) var(--ease);
+}
+
+.dropdown-app__menu--end { right: 0; }
+.dropdown-app__menu--start { left: 0; }
+
+.dropdown-app__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-app__item:hover:not(:disabled),
+.dropdown-app__item:focus-visible { background: var(--color-bg-hover); }
+.dropdown-app__item:disabled { color: var(--color-text-subtle); cursor: not-allowed; }
+.dropdown-app__item--danger { color: var(--color-spent-strong); }

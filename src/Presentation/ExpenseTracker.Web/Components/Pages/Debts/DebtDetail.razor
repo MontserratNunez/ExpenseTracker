@@ -7,6 +7,7 @@
 @inject DebtService DebtService
 @inject IDateProvider DateProvider
 @inject NavigationManager Navigation
+@inject ToastService Toasts
 
 <PageTitle>@(detail?.Debt.Name ?? "Deuda")</PageTitle>
 
@@ -17,7 +18,7 @@
 
 @if (loading)
 {
-    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    <Skeleton Lines="4" Height="2.5rem" />
 }
 else if (detail is not null)
 {
@@ -41,7 +42,7 @@ else if (detail is not null)
 
     <div class="card mb-4">
         <div class="card-body">
-            <ProgressBar Percent="d.PaidPercent" Label="@($"{d.PaidPercent:0.#}% pagado")" Height="14" />
+            <ProgressBar Percent="d.PaidPercent" Label="@($"{d.PaidPercent:0.#}% pagado")" Height="8" />
             <div class="d-flex justify-content-between small text-muted mt-1 mb-3">
                 <span>@d.PaidPercent.ToString("0.#")% pagado</span>
                 <span><MoneyText Amount="d.PaidAmount" Currency="d.Currency" /> de <MoneyText Amount="d.OriginalAmount" Currency="d.Currency" /></span>
@@ -86,7 +87,7 @@ else if (detail is not null)
     <h2 class="h5">Historial de pagos</h2>
     @if (detail.Payments.Count == 0)
     {
-        <p class="text-muted">Aún no hay pagos registrados.</p>
+        <EmptyState Icon="@Icons.Paid" Title="Aún no hay pagos registrados" />
     }
     else
     {
@@ -122,23 +123,23 @@ else if (detail is not null)
     {
         @if (amortization is null)
         {
-            <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+            <Skeleton Lines="4" Height="2.5rem" />
         }
         else if (amortization.Rows.Count == 0)
         {
-            <p class="text-muted">No hay cuotas pendientes.</p>
+            <EmptyState Icon="@Icons.OnTrack" Title="No hay cuotas pendientes" />
         }
         else
         {
             @if (!amortization.PaysOff)
             {
-                <div class="alert alert-warning">
+                <InlineAlert Tone="InlineAlert.AlertTone.Warning">
                     La cuota actual no cubre los intereses, por lo que el saldo no baja.
                     @if (amortization.Truncated)
                     {
                         <span>Se muestran solo las primeras @amortization.Rows.Count cuotas.</span>
                     }
-                </div>
+                </InlineAlert>
             }
             <div class="table-responsive">
                 <table class="table table-sm align-middle">
@@ -298,6 +299,7 @@ else if (detail is not null)
         await RunAsync(async () =>
         {
             await DebtService.DeleteAsync(Id);
+            Toasts.ShowSuccess("Deuda eliminada.");   // the toast host lives in the layout, so it survives the navigation
             Navigation.NavigateTo("/deudas");
         });
     }

@@ -11,6 +11,8 @@
 @inject CurrencyService CurrencyService
 @inject IDateProvider DateProvider
 @inject NavigationManager Navigation
+@inject ToastService Toasts
+@implements IDisposable
 
 <PageTitle>Gastos</PageTitle>
 
@@ -26,7 +28,7 @@
 
 @if (loading)
 {
-    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    <Skeleton Lines="4" Height="2.5rem" />
 }
 else if (data is not null)
 {
@@ -81,7 +83,9 @@ else if (data is not null)
 
     @if (data.Items.Count == 0)
     {
-        <p class="text-muted">No hay gastos en este mes. Usa "+ Nuevo gasto" para registrar el primero.</p>
+        <EmptyState Icon="@Icons.Expenses" Title="No hay gastos en este mes" Description="Registra el primero para ver cómo avanza tu mes.">
+            <Action><AppButton OnClick="StartCreate" Icon="@Icons.Add">Nuevo gasto</AppButton></Action>
+        </EmptyState>
     }
     else if (VisibleItems.Count == 0)
     {
@@ -120,29 +124,17 @@ else if (data is not null)
                Message="¿Eliminar este gasto? Esta acción no se puede deshacer."
                ConfirmText="Eliminar" OnConfirm="DeleteAsync" />
 
-@if (showRecurringDelete)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="rec-del-title">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="rec-del-title">Gasto recurrente</h5>
-                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="() => showRecurringDelete = false"></button>
-                </div>
-                <div class="modal-body">
-                    <p><strong>Finalizar</strong> detiene el gasto desde hoy y conserva el historial de los meses anteriores.</p>
-                    <p class="mb-0"><strong>Eliminar por completo</strong> borra el gasto y todas sus ocurrencias pasadas y futuras.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="() => showRecurringDelete = false">Cancelar</button>
-                    <button type="button" class="btn btn-warning" @onclick="EndRecurringAsync">Finalizar</button>
-                    <button type="button" class="btn btn-danger" @onclick="DeleteRecurringAsync">Eliminar por completo</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<AppModal IsOpen="showRecurringDelete" Title="Gasto recurrente" OnClose="() => { showRecurringDelete = false; return Task.CompletedTask; }">
+    <ChildContent>
+        <p><strong>Finalizar</strong> detiene el gasto desde hoy y conserva el historial de los meses anteriores.</p>
+        <p class="mb-0"><strong>Eliminar por completo</strong> borra el gasto y todas sus ocurrencias pasadas y futuras.</p>
+    </ChildContent>
+    <Footer>
+        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => showRecurringDelete = false" data-autofocus="true">Cancelar</AppButton>
+        <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="EndRecurringAsync">Finalizar</AppButton>
+        <AppButton Variant="AppButton.ButtonVariant.Danger" OnClick="DeleteRecurringAsync">Eliminar por completo</AppButton>
+    </Footer>
+</AppModal>
 
 @code {
     private enum TypeFilter { All, OneTime, Recurring }
@@ -337,12 +329,12 @@ else if (data is not null)
             confirmDelete = true;
     }
 
-    private Task DeleteAsync() => FinishDeleteAsync(() => ExpenseService.DeleteAsync(editingId!.Value), "Gasto eliminado.");
+    private Task DeleteAsync() => DeleteWithUndoAsync("Gasto eliminado.");
 
     private async Task DeleteRecurringAsync()
     {
         showRecurringDelete = false;
-        await FinishDeleteAsync(() => ExpenseService.DeleteAsync(editingId!.Value), "Gasto recurrente eliminado por completo.");
+        await DeleteWithUndoAsync("Gasto recurrente eliminado por completo.");
     }
 
     private async Task EndRecurringAsync()
@@ -350,6 +342,53 @@ else if (data is not null)
         showRecurringDelete = false;
         await FinishDeleteAsync(() => ExpenseService.EndAsync(editingId!.Value), "Gasto recurrente finalizado; se conserva el historial.");
     }
+
+    // Deleting offers "Deshacer": the expense is created again with the values it had.
+    private async Task DeleteWithUndoAsync(string successMessage)
+    {
+        var id = editingId!.Value;
+        ClearMessages();
+        await RunAsync(async () =>
+        {
+            var deleted = await ExpenseService.GetByIdAsync(id);
+            await ExpenseService.DeleteAsync(id);
+
+            if (deleted is null)
+                message = successMessage;
+            else
+                Toasts.Show(ToastKind.Success, successMessage, "Deshacer", () => UndoDeleteAsync(deleted));
+
+            await LoadAsync();
+        });
+    }
+
+    private async Task UndoDeleteAsync(ExpenseDto deleted)
+    {
+        try
+        {
+            await ExpenseService.RestoreAsync(deleted);
+            Toasts.ShowSuccess("Gasto restaurado.");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            Toasts.ShowError(ex.Message);
+            return;
+        }
+
+        // The page may have been left while the toast was on screen.
+        await InvokeAsync(async () =>
+        {
+            if (disposed)
+                return;
+
+            await RunAsync(LoadAsync);
+            StateHasChanged();
+        });
+    }
+
+    private bool disposed;
+
+    public void Dispose() => disposed = true;
 
     private async Task FinishDeleteAsync(Func<Task> action, string successMessage)
     {

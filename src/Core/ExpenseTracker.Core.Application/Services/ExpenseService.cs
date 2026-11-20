@@ -63,6 +63,37 @@ public class ExpenseService
         await _expenses.DeleteAsync(entity);
     }
 
+    /// <summary>
+    /// Brings back an expense that was just deleted (the Undo of a delete). It is created again with the same values,
+    /// keeping the amount in base currency it had, and gets a new id.
+    /// </summary>
+    public async Task<ExpenseDto> RestoreAsync(ExpenseDto deleted)
+    {
+        var input = new ExpenseInput
+        {
+            Name = deleted.Name,
+            Amount = deleted.Amount,
+            Currency = deleted.Currency,
+            CategoryId = deleted.CategoryId,
+            Date = deleted.Date,
+            IsRecurring = deleted.IsRecurring,
+            Frequency = deleted.Frequency,
+            EndDate = deleted.EndDate,
+            Notes = deleted.Notes
+        };
+        Validate(input);
+
+        // The expense already had this category, so an inactive one is accepted, as when editing.
+        await EnsureCategoryAsync(deleted.CategoryId, previousCategoryId: deleted.CategoryId);
+
+        var entity = new Expense();
+        await ApplyAsync(entity, input);
+        entity.AmountInBase = deleted.AmountInBase;
+        entity.IsActive = deleted.IsActive;
+        await _expenses.AddAsync(entity);
+        return ToDto(entity);
+    }
+
     /// <summary>Stops a recurring expense today and keeps its history.</summary>
     public async Task EndAsync(int id)
     {

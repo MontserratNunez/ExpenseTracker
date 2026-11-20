@@ -20,7 +20,7 @@ namespace ExpenseTracker.Tests.Components;
 /// The seven forms that save data, driven like a user would: fill the fields, submit, cancel.
 /// They guard the migration to the design-system components.
 /// </summary>
-public class MigratedFormsTests : BunitContext
+public class MigratedFormsTests : UiTestContext
 {
     private int saved;
     private int cancelled;
@@ -181,18 +181,18 @@ public class MigratedFormsTests : BunitContext
     public void EveryForm_ShowsNoErrorAlertByDefault_AndShowsTheServiceErrorWhenGiven()
     {
         var expense = RenderExpense();
-        Assert.Empty(expense.FindAll(".alert-danger"));
+        Assert.Empty(expense.FindAll(".inline-alert--danger"));
 
         var withError = Render<ExpenseForm>(p => p
             .Add(f => f.Visible, true).Add(f => f.Model, new ExpenseInput()).Add(f => f.Categories, Categories)
             .Add(f => f.Error, "Ya existe un gasto con ese nombre."));
-        Assert.Equal("Ya existe un gasto con ese nombre.", withError.Find(".alert-danger").TextContent.Trim());
+        Assert.Equal("Ya existe un gasto con ese nombre.", withError.Find(".inline-alert--danger").TextContent.Trim());
 
-        Assert.Empty(RenderDebt(new DebtInput()).FindAll(".alert-danger"));
-        Assert.Empty(RenderGoal(new GoalInput()).FindAll(".alert-danger"));
-        Assert.Empty(Render<IncomeSourceForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new IncomeSourceInput())).FindAll(".alert-danger"));
-        Assert.Empty(Render<OneTimeIncomeForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new OneTimeIncomeInput())).FindAll(".alert-danger"));
-        Assert.Empty(Render<DebtPaymentForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new DebtPaymentInput())).FindAll(".alert-danger"));
+        Assert.Empty(RenderDebt(new DebtInput()).FindAll(".inline-alert--danger"));
+        Assert.Empty(RenderGoal(new GoalInput()).FindAll(".inline-alert--danger"));
+        Assert.Empty(Render<IncomeSourceForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new IncomeSourceInput())).FindAll(".inline-alert--danger"));
+        Assert.Empty(Render<OneTimeIncomeForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new OneTimeIncomeInput())).FindAll(".inline-alert--danger"));
+        Assert.Empty(Render<DebtPaymentForm>(p => p.Add(f => f.Visible, true).Add(f => f.Model, new DebtPaymentInput())).FindAll(".inline-alert--danger"));
     }
 
     [Fact]

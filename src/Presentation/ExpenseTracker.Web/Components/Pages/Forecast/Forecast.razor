@@ -17,7 +17,7 @@
 
 @if (loading)
 {
-    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    <Skeleton Lines="4" Height="2.5rem" />
 }
 else if (nextMonth is not null && restOfYear is not null && nextYear is not null)
 {

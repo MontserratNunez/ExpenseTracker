@@ -20,16 +20,16 @@
 
 @if (loading)
 {
-    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    <Skeleton Lines="4" Height="2.5rem" />
 }
 else if (data is not null)
 {
     @if (data.IsDeficit)
     {
-        <div class="alert alert-danger" role="alert">
+        <InlineAlert Tone="InlineAlert.AlertTone.Danger">
             <strong>Déficit de <MoneyText Amount="data.DeficitAmount" Currency="baseCurrency" /> este mes.</strong>
             Lo gastado y lo comprometido supera tus ingresos.
-        </div>
+        </InlineAlert>
     }
 
     @if (!data.HasIncome)
@@ -192,7 +192,7 @@ else if (data is not null)
                                         <strong>@goal.Name</strong>
                                         <span>@goal.ProgressPercent.ToString("0.#") %</span>
                                     </div>
-                                    <ProgressBar Percent="goal.ProgressPercent" BarClass="@GoalBar(goal.State)"
+                                    <ProgressBar Percent="goal.ProgressPercent" ColorVar="@GoalBar(goal.State)" Height="6"
                                                  Label="@($"{goal.ProgressPercent:0.#}% de {goal.Name}")" />
                                 </li>
                             }
@@ -250,9 +250,9 @@ else if (data is not null)
 
     private static string GoalBar(GoalState state) => state switch
     {
-        GoalState.Behind => "bg-warning",
-        GoalState.Missed => "bg-danger",
-        GoalState.NotStarted => "bg-secondary",
-        _ => "bg-success"
+        GoalState.Behind => "--color-warning",
+        GoalState.Missed => "--color-spent",
+        GoalState.NotStarted => "--color-text-subtle",
+        _ => "--color-available"
     };
 }

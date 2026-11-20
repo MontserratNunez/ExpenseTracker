@@ -3,74 +3,62 @@
 @using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
 
-@if (Visible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="expense-title">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <EditForm Model="Model" OnValidSubmit="OnSave" FormName="expense-form">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="expense-title">@Title</h5>
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" Class="ms-auto" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
-                    </div>
-                    <div class="modal-body">
-                        <DataAnnotationsValidator />
-                        <ErrorAlert Message="@Error" />
+<AppModal IsOpen="Visible" Title="@Title" OnClose="OnCancel">
+    <EditForm Model="Model" OnValidSubmit="OnSave" FormName="expense-form">
+        <OverlayBody>
+            <DataAnnotationsValidator />
+            <ErrorAlert Message="@Error" />
 
-                        @if (IsEditing && Model.IsRecurring)
+            @if (IsEditing && Model.IsRecurring)
+            {
+                <InlineAlert>Al editar un gasto recurrente se modifican todas sus ocurrencias.</InlineAlert>
+            }
+
+            <AppInput Label="Nombre" Placeholder="Supermercado" @bind-Value="Model.Name" />
+
+            <MoneyInput Label="Monto" @bind-Amount="Model.Amount" @bind-Currency="Model.Currency" />
+
+            <AppSelect TValue="int" Label="Categoría" @bind-Value="Model.CategoryId">
+                <option value="0">Seleccione...</option>
+                @foreach (var category in Categories.Where(c => c.IsActive || c.Id == Model.CategoryId))
+                {
+                    <option value="@category.Id">@category.Name@(category.IsActive ? "" : " (inactiva)")</option>
+                }
+            </AppSelect>
+
+            <AppDate TValue="DateOnly" Label="@(Model.IsRecurring ? "Primera ocurrencia" : "Fecha")" @bind-Value="Model.Date" />
+
+            <AppToggle Label="Es recurrente" @bind-Value="Model.IsRecurring" />
+
+            @if (Model.IsRecurring)
+            {
+                <div class="form-grid">
+                    <AppSelect TValue="Frequency?" Label="Frecuencia" @bind-Value="Model.Frequency">
+                        @foreach (var frequency in Enum.GetValues<Frequency>())
                         {
-                            <div class="alert alert-info py-2">Al editar un gasto recurrente se modifican todas sus ocurrencias.</div>
+                            <option value="@frequency">@UiLabels.FrequencyName(frequency)</option>
                         }
+                    </AppSelect>
+                    <AppDate TValue="DateOnly?" Label="Fin (opcional)" @bind-Value="Model.EndDate" />
+                </div>
+            }
 
-                        <AppInput Label="Nombre" Placeholder="Supermercado" @bind-Value="Model.Name" />
-
-                        <MoneyInput Label="Monto" @bind-Amount="Model.Amount" @bind-Currency="Model.Currency" />
-
-                        <AppSelect TValue="int" Label="Categoría" @bind-Value="Model.CategoryId">
-                            <option value="0">Seleccione...</option>
-                            @foreach (var category in Categories.Where(c => c.IsActive || c.Id == Model.CategoryId))
-                            {
-                                <option value="@category.Id">@category.Name@(category.IsActive ? "" : " (inactiva)")</option>
-                            }
-                        </AppSelect>
-
-                        <AppDate TValue="DateOnly" Label="@(Model.IsRecurring ? "Primera ocurrencia" : "Fecha")" @bind-Value="Model.Date" />
-
-                        <AppToggle Label="Es recurrente" @bind-Value="Model.IsRecurring" />
-
-                        @if (Model.IsRecurring)
-                        {
-                            <div class="form-grid">
-                                <AppSelect TValue="Frequency?" Label="Frecuencia" @bind-Value="Model.Frequency">
-                                    @foreach (var frequency in Enum.GetValues<Frequency>())
-                                    {
-                                        <option value="@frequency">@UiLabels.FrequencyName(frequency)</option>
-                                    }
-                                </AppSelect>
-                                <AppDate TValue="DateOnly?" Label="Fin (opcional)" @bind-Value="Model.EndDate" />
-                            </div>
-                        }
-
-                        <AppTextarea Label="Notas" Rows="2" @bind-Value="Model.Notes" />
-                    </div>
-                    <div class="modal-footer justify-content-between">
-                        <div>
-                            @if (IsEditing)
-                            {
-                                <AppButton Variant="AppButton.ButtonVariant.Danger" Icon="@Icons.Delete" OnClick="() => OnDelete.InvokeAsync()">Eliminar</AppButton>
-                            }
-                        </div>
-                        <div class="d-flex gap-2">
-                            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
-                            <AppButton Type="submit">Guardar</AppButton>
-                        </div>
-                    </div>
-                </EditForm>
+            <AppTextarea Label="Notas" Rows="2" @bind-Value="Model.Notes" />
+        </OverlayBody>
+        <OverlayFooter Class="overlay__footer--between">
+            <div>
+                @if (IsEditing)
+                {
+                    <AppButton Variant="AppButton.ButtonVariant.Danger" Icon="@Icons.Delete" OnClick="() => OnDelete.InvokeAsync()">Eliminar</AppButton>
+                }
             </div>
-        </div>
-    </div>
-}
+            <div class="d-flex gap-2">
+                <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+                <AppButton Type="submit">Guardar</AppButton>
+            </div>
+        </OverlayFooter>
+    </EditForm>
+</AppModal>
 
 @code {
     [Parameter]

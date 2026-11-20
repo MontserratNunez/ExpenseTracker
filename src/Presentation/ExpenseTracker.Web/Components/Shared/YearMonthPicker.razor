@@ -2,44 +2,37 @@
 @using ExpenseTracker.Web.Services
 @inject IDateProvider DateProvider
 
-@if (Visible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="ym-title">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div class="d-flex align-items-center gap-2 w-100 justify-content-center">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Año anterior" @onclick="() => pickerYear--"><AppIcon Name="@Icons.Previous" Size="14" /></button>
-                        <strong id="ym-title" class="px-2">@pickerYear</strong>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" aria-label="Año siguiente" @onclick="() => pickerYear++"
-                                disabled="@(pickerYear >= MaxYear)"><AppIcon Name="@Icons.Next" Size="14" /></button>
-                    </div>
-                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="OnClose"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-2">
-                        @for (var m = 1; m <= 12; m++)
-                        {
-                            var monthNumber = m;
-                            var isSelected = pickerYear == Year && monthNumber == Month;
-                            var isCurrent = pickerYear == DateProvider.Today.Year && monthNumber == DateProvider.Today.Month;
-                            <div class="col-3">
-                                <button type="button"
-                                        class="btn btn-sm w-100 @(isSelected ? "btn-primary" : isCurrent ? "btn-outline-primary" : "btn-outline-secondary")"
-                                        aria-pressed="@isSelected"
-                                        disabled="@IsBeyondLimit(pickerYear, monthNumber)"
-                                        @onclick="() => Select(monthNumber)">
-                                    @UiLabels.ShortMonthName(monthNumber)
-                                </button>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
+<AppModal IsOpen="Visible" Title="Elegir mes" Width="OverlayWidth.Sm" OnClose="OnClose">
+    <ChildContent>
+        <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Previous"
+                       AriaLabel="Año anterior" OnClick="() => pickerYear--" />
+            <strong class="px-2" aria-live="polite">@pickerYear</strong>
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Next"
+                       AriaLabel="Año siguiente" Disabled="@(pickerYear >= MaxYear)" OnClick="() => pickerYear++" />
         </div>
-    </div>
-}
+        <div class="row g-2">
+            @for (var m = 1; m <= 12; m++)
+            {
+                var monthNumber = m;
+                var isSelected = pickerYear == Year && monthNumber == Month;
+                var isCurrent = pickerYear == DateProvider.Today.Year && monthNumber == DateProvider.Today.Month;
+                <div class="col-3">
+                    <button type="button"
+                            class="btn btn-sm w-100 @(isSelected ? "btn-primary" : isCurrent ? "btn-outline-primary" : "btn-outline-secondary")"
+                            aria-pressed="@isSelected"
+                            disabled="@IsBeyondLimit(pickerYear, monthNumber)"
+                            @onclick="() => Select(monthNumber)">
+                        @UiLabels.ShortMonthName(monthNumber)
+                    </button>
+                </div>
+            }
+        </div>
+    </ChildContent>
+    <Footer>
+        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnClose.InvokeAsync()">Cancelar</AppButton>
+    </Footer>
+</AppModal>
 
 @code {
     [Parameter]

@@ -20,11 +20,13 @@
 
 @if (loading)
 {
-    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    <Skeleton Lines="4" Height="2.5rem" />
 }
 else if (debts.Count == 0)
 {
-    <p class="text-muted">Aún no has registrado deudas. Usa "+ Nueva deuda" para agregar un préstamo, hipoteca o tarjeta.</p>
+    <EmptyState Icon="@Icons.Debts" Title="Aún no has registrado deudas" Description="Agrega un préstamo, hipoteca o tarjeta para seguir su saldo y sus cuotas.">
+        <Action><AppButton OnClick="StartCreate" Icon="@Icons.Add">Nueva deuda</AppButton></Action>
+    </EmptyState>
 }
 else
 {

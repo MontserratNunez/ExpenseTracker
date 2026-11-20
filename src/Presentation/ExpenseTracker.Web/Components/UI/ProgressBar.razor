@@ -1,0 +1,67 @@
+@using System.Globalization
+
+@* A thin bar made of colored segments, with an optional marker (for example the month-end estimate).
+   For a single segment use Percent and ColorVar. *@
+<div class="progress-app" style="height: @(Height)px;" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+     aria-valuenow="@Total.ToString("0", CultureInfo.InvariantCulture)" aria-label="@Label">
+    @foreach (var segment in Visible)
+    {
+        <div class="progress-app__segment @(segment.Striped ? "progress-app__segment--striped" : null)"
+             style="width: @Css(segment.Value)%; background-color: var(@segment.ColorVar);"></div>
+    }
+    @if (Marker is { } marker)
+    {
+        <div class="progress-app__marker" style="left: @Css(Math.Clamp(marker, 0m, 100m))%;" title="@MarkerLabel"></div>
+    }
+</div>
+
+@code {
+    /// <summary>Segments in drawing order. Their total is limited to 100.</summary>
+    [Parameter]
+    public IReadOnlyList<ProgressSegment>? Segments { get; set; }
+
+    /// <summary>Shortcut for a single segment: a percentage from 0 to 100 (values outside are clamped).</summary>
+    [Parameter]
+    public decimal Percent { get; set; }
+
+    /// <summary>Color token of the single segment.</summary>
+    [Parameter]
+    public string ColorVar { get; set; } = "--color-available";
+
+    /// <summary>Position of the marker line as a percentage of the bar.</summary>
+    [Parameter]
+    public decimal? Marker { get; set; }
+
+    [Parameter]
+    public string? MarkerLabel { get; set; }
+
+    /// <summary>Describes the value for screen readers, for example "40% pagado".</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>Height in pixels: 6 for compact lists, 8 for emphasis.</summary>
+    [Parameter]
+    public int Height { get; set; } = 8;
+
+    private IReadOnlyList<ProgressSegment> Visible
+    {
+        get
+        {
+            var source = Segments ?? new[] { new ProgressSegment { Value = Percent, ColorVar = ColorVar } };
+            var remaining = 100m;
+            var result = new List<ProgressSegment>();
+            foreach (var segment in source)
+            {
+                var value = Math.Clamp(segment.Value, 0m, remaining);
+                remaining -= value;
+                result.Add(new ProgressSegment { Value = value, ColorVar = segment.ColorVar, Striped = segment.Striped });
+            }
+
+            return result;
+        }
+    }
+
+    private decimal Total => Visible.Sum(s => s.Value);
+
+    private static string Css(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

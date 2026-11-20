@@ -1,37 +1,25 @@
 @using ExpenseTracker.Core.Application.DTOs.Debts
 @using ExpenseTracker.Core.Domain.Enums
 
-@if (Visible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="payment-title">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-payment-form">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="payment-title">Registrar pago</h5>
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" Class="ms-auto" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
-                    </div>
-                    <div class="modal-body">
-                        <DataAnnotationsValidator />
-                        <ErrorAlert Message="@Error" />
+<AppModal IsOpen="Visible" Title="Registrar pago" OnClose="OnCancel">
+    <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-payment-form">
+        <OverlayBody>
+            <DataAnnotationsValidator />
+            <ErrorAlert Message="@Error" />
 
-                        <MoneyInput Label="Monto" ShowCurrencySelector="false" Currency="Currency"
-                                    Hint="Se divide automáticamente en interés y capital." @bind-Amount="Model.Amount" />
+            <MoneyInput Label="Monto" ShowCurrencySelector="false" Currency="Currency"
+                        Hint="Se divide automáticamente en interés y capital." @bind-Amount="Model.Amount" />
 
-                        <AppDate TValue="DateOnly" Label="Fecha" @bind-Value="Model.Date" />
+            <AppDate TValue="DateOnly" Label="Fecha" @bind-Value="Model.Date" />
 
-                        <AppInput Label="Notas" @bind-Value="Model.Notes" />
-                    </div>
-                    <div class="modal-footer">
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
-                        <AppButton Type="submit">Registrar</AppButton>
-                    </div>
-                </EditForm>
-            </div>
-        </div>
-    </div>
-}
+            <AppInput Label="Notas" @bind-Value="Model.Notes" />
+        </OverlayBody>
+        <OverlayFooter>
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+            <AppButton Type="submit">Registrar</AppButton>
+        </OverlayFooter>
+    </EditForm>
+</AppModal>
 
 @code {
     [Parameter]

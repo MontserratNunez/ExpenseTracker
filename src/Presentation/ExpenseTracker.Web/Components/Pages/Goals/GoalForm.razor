@@ -3,65 +3,53 @@
 @using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
 
-@if (Visible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="goal-title">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <EditForm Model="Model" OnValidSubmit="OnSave" FormName="goal-form">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="goal-title">@Title</h5>
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" Class="ms-auto" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
-                    </div>
-                    <div class="modal-body">
-                        <DataAnnotationsValidator />
-                        <ErrorAlert Message="@Error" />
+<AppModal IsOpen="Visible" Title="@Title" OnClose="OnCancel">
+    <EditForm Model="Model" OnValidSubmit="OnSave" FormName="goal-form">
+        <OverlayBody>
+            <DataAnnotationsValidator />
+            <ErrorAlert Message="@Error" />
 
-                        <AppInput Label="Nombre" Placeholder="Ahorro de 200,000 anualmente" @bind-Value="Model.Name" />
+            <AppInput Label="Nombre" Placeholder="Ahorro de 200,000 anualmente" @bind-Value="Model.Name" />
 
-                        <MoneyInput Label="Monto objetivo" ShowCurrencySelector="false" Currency="Currency"
-                                    @bind-Amount="Model.TargetAmount" />
+            <MoneyInput Label="Monto objetivo" ShowCurrencySelector="false" Currency="Currency"
+                        @bind-Amount="Model.TargetAmount" />
 
-                        <AppSelect TValue="GoalPeriod" Label="Periodo" @bind-Value="Model.Period"
-                                   Hint="@(Model.Period == GoalPeriod.Monthly ? "Se reinicia cada mes: el objetivo se mide con lo aportado en el mes en curso." : null)">
-                            @foreach (var period in Enum.GetValues<GoalPeriod>())
-                            {
-                                <option value="@period">@UiLabels.GoalPeriodName(period)</option>
-                            }
-                        </AppSelect>
+            <AppSelect TValue="GoalPeriod" Label="Periodo" @bind-Value="Model.Period"
+                       Hint="@(Model.Period == GoalPeriod.Monthly ? "Se reinicia cada mes: el objetivo se mide con lo aportado en el mes en curso." : null)">
+                @foreach (var period in Enum.GetValues<GoalPeriod>())
+                {
+                    <option value="@period">@UiLabels.GoalPeriodName(period)</option>
+                }
+            </AppSelect>
 
-                        @if (Model.Period == GoalPeriod.Annual)
-                        {
-                            <AppNumber TValue="int" Label="Año" Step="1" InputMode="numeric" Hint="Del 1 de enero al 31 de diciembre."
-                                       @bind-Value="Model.Year" />
-                        }
-                        else if (Model.Period == GoalPeriod.Custom)
-                        {
-                            <div class="form-grid">
-                                <AppDate TValue="DateOnly" Label="Inicio" @bind-Value="Model.StartDate" />
-                                <AppDate TValue="DateOnly" Label="Fin" @bind-Value="Model.EndDate" />
-                            </div>
-                        }
+            @if (Model.Period == GoalPeriod.Annual)
+            {
+                <AppNumber TValue="int" Label="Año" Step="1" InputMode="numeric" Hint="Del 1 de enero al 31 de diciembre."
+                           @bind-Value="Model.Year" />
+            }
+            else if (Model.Period == GoalPeriod.Custom)
+            {
+                <div class="form-grid">
+                    <AppDate TValue="DateOnly" Label="Inicio" @bind-Value="Model.StartDate" />
+                    <AppDate TValue="DateOnly" Label="Fin" @bind-Value="Model.EndDate" />
+                </div>
+            }
 
-                        <AppSelect TValue="int" Label="Categoría vinculada" @bind-Value="Model.CategoryId"
-                                   Hint="El progreso es lo que gastas (aportas) en esta categoría durante el periodo.">
-                            <option value="0">Seleccione...</option>
-                            @foreach (var category in Categories)
-                            {
-                                <option value="@category.Id">@category.Name@(category.IsSavings ? " (ahorro)" : "")</option>
-                            }
-                        </AppSelect>
-                    </div>
-                    <div class="modal-footer">
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
-                        <AppButton Type="submit">Guardar</AppButton>
-                    </div>
-                </EditForm>
-            </div>
-        </div>
-    </div>
-}
+            <AppSelect TValue="int" Label="Categoría vinculada" @bind-Value="Model.CategoryId"
+                       Hint="El progreso es lo que gastas (aportas) en esta categoría durante el periodo.">
+                <option value="0">Seleccione...</option>
+                @foreach (var category in Categories)
+                {
+                    <option value="@category.Id">@category.Name@(category.IsSavings ? " (ahorro)" : "")</option>
+                }
+            </AppSelect>
+        </OverlayBody>
+        <OverlayFooter>
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+            <AppButton Type="submit">Guardar</AppButton>
+        </OverlayFooter>
+    </EditForm>
+</AppModal>
 
 @code {
     [Parameter]

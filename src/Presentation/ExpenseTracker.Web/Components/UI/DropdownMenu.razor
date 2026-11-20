@@ -1,0 +1,133 @@
+@implements IAsyncDisposable
+@using ExpenseTracker.Web.Services
+@using Microsoft.JSInterop
+@inject UiInterop Ui
+
+@* A "more actions" button (three dots) that opens a menu. Keyboard: Enter, Space, ArrowDown or ArrowUp open it;
+   arrows, Home and End move; Enter or Space choose; Esc closes and returns to the button; Tab closes. *@
+<div class="dropdown-app @Class" @ref="root">
+    <button type="button" class="btn-app btn-app--ghost btn-app--sm btn-app--icon dropdown-app__trigger"
+            aria-haspopup="menu" aria-expanded="@(open ? "true" : "false")" aria-label="@AriaLabel"
+            @onclick="ToggleAsync">
+        <AppIcon Name="@Icons.More" Size="16" />
+    </button>
+
+    @if (open)
+    {
+        <div class="dropdown-app__backdrop" @onclick="() => CloseAsync(false)"></div>
+        <div class="dropdown-app__menu dropdown-app__menu--@Align.ToString().ToLower()" role="menu" aria-label="@AriaLabel" @ref="menu">
+            @foreach (var item in Items)
+            {
+                var current = item;
+                <button type="button" role="menuitem" tabindex="-1" disabled="@current.Disabled"
+                        class="dropdown-app__item @(current.Danger ? "dropdown-app__item--danger" : null)"
+                        @onclick="() => SelectAsync(current)">
+                    @if (!string.IsNullOrEmpty(current.Icon))
+                    {
+                        <AppIcon Name="@current.Icon" Size="16" />
+                    }
+                    <span>@current.Label</span>
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    public enum MenuAlign { Start, End }
+
+    /// <summary>Names the button and the menu for screen readers, e.g. "Acciones de Supermercado".</summary>
+    [Parameter, EditorRequired]
+    public string AriaLabel { get; set; } = "Más acciones";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<DropdownMenuItem> Items { get; set; } = Array.Empty<DropdownMenuItem>();
+
+    /// <summary>Which edge of the button the menu lines up with.</summary>
+    [Parameter]
+    public MenuAlign Align { get; set; } = MenuAlign.End;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    private ElementReference root;
+    private ElementReference menu;
+    private bool open;
+    private string? pendingFocus;
+    private int? menuId;
+    private DotNetObjectReference<DropdownMenuCallbacks>? callbacks;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            callbacks = DotNetObjectReference.Create(new DropdownMenuCallbacks(OpenFromKeyboardAsync, CloseFromKeyboardAsync));
+            menuId = await Ui.AttachMenuAsync(root, callbacks);
+        }
+
+        // The menu exists in the page only after the render that opened it.
+        if (open && pendingFocus is not null)
+        {
+            var which = pendingFocus;
+            pendingFocus = null;
+            await Ui.FocusMenuItemAsync(menu, which);
+        }
+    }
+
+    private async Task ToggleAsync()
+    {
+        if (open)
+            await CloseAsync(restoreFocus: false);
+        else
+            Open("first");
+    }
+
+    private void Open(string focus)
+    {
+        open = true;
+        pendingFocus = focus;
+    }
+
+    private Task OpenFromKeyboardAsync(string focus) => InvokeAsync(() =>
+    {
+        Open(focus);
+        StateHasChanged();
+    });
+
+    private Task CloseFromKeyboardAsync(bool restoreFocus) => InvokeAsync(() => CloseAsync(restoreFocus));
+
+    private async Task CloseAsync(bool restoreFocus)
+    {
+        open = false;
+        StateHasChanged();
+        if (restoreFocus)
+            await Ui.FocusMenuTriggerAsync(root);
+    }
+
+    private async Task SelectAsync(DropdownMenuItem item)
+    {
+        if (item.Disabled)
+            return;
+
+        // Close first and return the focus to the button, so a dialog opened by the action
+        // gives the focus back to the button when it closes.
+        await CloseAsync(restoreFocus: true);
+        if (item.OnSelect.HasDelegate)
+            await item.OnSelect.InvokeAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (menuId is { } id)
+                await Ui.DetachMenuAsync(id);
+        }
+        catch (JSDisconnectedException)
+        {
+            // the circuit is gone
+        }
+
+        callbacks?.Dispose();
+    }
+}

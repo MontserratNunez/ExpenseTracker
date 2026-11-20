@@ -26,7 +26,7 @@
 
 @if (loading)
 {
-    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    <Skeleton Lines="4" Height="2.5rem" />
 }
 else if (tab == Tab.Recurring)
 {
@@ -37,7 +37,9 @@ else if (tab == Tab.Recurring)
 
     @if (sources.Count == 0)
     {
-        <p class="text-muted">Aún no tienes fuentes de ingreso. Agrega tu sueldo para empezar.</p>
+        <EmptyState Icon="@Icons.EmptyIncomes" Title="Aún no tienes fuentes de ingreso" Description="Agrega tu sueldo para empezar.">
+            <Action><AppButton OnClick="StartCreateSource" Icon="@Icons.Add">Nueva fuente</AppButton></Action>
+        </EmptyState>
     }
     else
     {
@@ -102,7 +104,7 @@ else
 
     @if (oneTime.Count == 0)
     {
-        <p class="text-muted">No hay ingresos únicos en este mes.</p>
+        <EmptyState Icon="@Icons.EmptyIncomes" Title="No hay ingresos únicos en este mes" />
     }
     else
     {

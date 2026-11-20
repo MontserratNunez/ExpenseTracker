@@ -1,35 +1,23 @@
 @using ExpenseTracker.Core.Application.DTOs.Incomes
 
-@if (Visible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="one-time-title">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <EditForm Model="Model" OnValidSubmit="OnSave" FormName="one-time-income-form">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="one-time-title">@Title</h5>
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" Class="ms-auto" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
-                    </div>
-                    <div class="modal-body">
-                        <DataAnnotationsValidator />
-                        <ErrorAlert Message="@Error" />
+<AppModal IsOpen="Visible" Title="@Title" OnClose="OnCancel">
+    <EditForm Model="Model" OnValidSubmit="OnSave" FormName="one-time-income-form">
+        <OverlayBody>
+            <DataAnnotationsValidator />
+            <ErrorAlert Message="@Error" />
 
-                        <AppInput Label="Descripción" Placeholder="Bono" @bind-Value="Model.Description" />
+            <AppInput Label="Descripción" Placeholder="Bono" @bind-Value="Model.Description" />
 
-                        <MoneyInput Label="Monto" @bind-Amount="Model.Amount" @bind-Currency="Model.Currency" />
+            <MoneyInput Label="Monto" @bind-Amount="Model.Amount" @bind-Currency="Model.Currency" />
 
-                        <AppDate TValue="DateOnly" Label="Fecha" @bind-Value="Model.Date" />
-                    </div>
-                    <div class="modal-footer">
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
-                        <AppButton Type="submit">Guardar</AppButton>
-                    </div>
-                </EditForm>
-            </div>
-        </div>
-    </div>
-}
+            <AppDate TValue="DateOnly" Label="Fecha" @bind-Value="Model.Date" />
+        </OverlayBody>
+        <OverlayFooter>
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+            <AppButton Type="submit">Guardar</AppButton>
+        </OverlayFooter>
+    </EditForm>
+</AppModal>
 
 @code {
     [Parameter]

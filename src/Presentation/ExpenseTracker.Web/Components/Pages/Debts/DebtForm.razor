@@ -2,58 +2,46 @@
 @using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
 
-@if (Visible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="debt-title">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-form">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="debt-title">@Title</h5>
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" Class="ms-auto" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
-                    </div>
-                    <div class="modal-body">
-                        <DataAnnotationsValidator />
-                        <ErrorAlert Message="@Error" />
+<AppModal IsOpen="Visible" Title="@Title" OnClose="OnCancel">
+    <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-form">
+        <OverlayBody>
+            <DataAnnotationsValidator />
+            <ErrorAlert Message="@Error" />
 
-                        <AppInput Label="Nombre" Placeholder="Préstamo del carro" @bind-Value="Model.Name" />
+            <AppInput Label="Nombre" Placeholder="Préstamo del carro" @bind-Value="Model.Name" />
 
-                        <AppSelect TValue="DebtType" Label="Tipo" @bind-Value="Model.DebtType">
-                            @foreach (var type in Enum.GetValues<DebtType>())
-                            {
-                                <option value="@type">@UiLabels.DebtTypeName(type)</option>
-                            }
-                        </AppSelect>
+            <AppSelect TValue="DebtType" Label="Tipo" @bind-Value="Model.DebtType">
+                @foreach (var type in Enum.GetValues<DebtType>())
+                {
+                    <option value="@type">@UiLabels.DebtTypeName(type)</option>
+                }
+            </AppSelect>
 
-                        <MoneyInput Label="Monto original" @bind-Amount="Model.OriginalAmount" @bind-Currency="Model.Currency" />
+            <MoneyInput Label="Monto original" @bind-Amount="Model.OriginalAmount" @bind-Currency="Model.Currency" />
 
-                        <MoneyInput Label="Ya pagado antes de usar la app" ShowCurrencySelector="false"
-                                    Currency="Model.Currency" @bind-Amount="Model.InitialPaidAmount" />
+            <MoneyInput Label="Ya pagado antes de usar la app" ShowCurrencySelector="false"
+                        Currency="Model.Currency" @bind-Amount="Model.InitialPaidAmount" />
 
-                        <div class="form-grid">
-                            <AppNumber TValue="decimal" Label="Tasa anual" Suffix="%" Min="0" Max="100" @bind-Value="Model.AnnualInterestRate" />
-                            <AppNumber TValue="int" Label="Día de pago (1-28)" Step="1" Min="1" Max="28" InputMode="numeric" @bind-Value="Model.PaymentDay" />
-                        </div>
-
-                        <MoneyInput Label="Cuota mensual" ShowCurrencySelector="false" Currency="Model.Currency"
-                                    Hint="Indica la cuota, o déjala en 0 y escribe el plazo para calcularla."
-                                    @bind-Amount="Model.MonthlyPayment" />
-
-                        <div class="form-grid">
-                            <AppNumber TValue="int?" Label="Plazo (meses)" Step="1" Min="1" InputMode="numeric" @bind-Value="Model.TermMonths" />
-                            <AppDate TValue="DateOnly" Label="Fecha de inicio" @bind-Value="Model.StartDate" />
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
-                        <AppButton Type="submit">Guardar</AppButton>
-                    </div>
-                </EditForm>
+            <div class="form-grid">
+                <AppNumber TValue="decimal" Label="Tasa anual" Suffix="%" Min="0" Max="100" @bind-Value="Model.AnnualInterestRate" />
+                <AppNumber TValue="int" Label="Día de pago (1-28)" Step="1" Min="1" Max="28" InputMode="numeric" @bind-Value="Model.PaymentDay" />
             </div>
-        </div>
-    </div>
-}
+
+            <MoneyInput Label="Cuota mensual" ShowCurrencySelector="false" Currency="Model.Currency"
+                        Hint="Indica la cuota, o déjala en 0 y escribe el plazo para calcularla."
+                        @bind-Amount="Model.MonthlyPayment" />
+
+            <div class="form-grid">
+                <AppNumber TValue="int?" Label="Plazo (meses)" Step="1" Min="1" InputMode="numeric" @bind-Value="Model.TermMonths" />
+                <AppDate TValue="DateOnly" Label="Fecha de inicio" @bind-Value="Model.StartDate" />
+            </div>
+        </OverlayBody>
+        <OverlayFooter>
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+            <AppButton Type="submit">Guardar</AppButton>
+        </OverlayFooter>
+    </EditForm>
+</AppModal>
 
 @code {
     [Parameter]

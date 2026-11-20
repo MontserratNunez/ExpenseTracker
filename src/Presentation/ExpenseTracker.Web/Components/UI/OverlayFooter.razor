@@ -1,0 +1,10 @@
+<div class="overlay__footer @Class">@ChildContent</div>
+
+@code {
+    /// <summary>"overlay__footer--between" puts a destructive action on the left and the main ones on the right.</summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

@@ -44,11 +44,11 @@
 
         @if (loading)
         {
-            <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+            <Skeleton Lines="4" Height="2.5rem" />
         }
         else if (categories.Count == 0)
         {
-            <p class="text-muted mb-0">Aún no hay categorías. Crea la primera.</p>
+            <EmptyState Icon="@Icons.DefaultCategory" Title="Aún no hay categorías" Description="Crea la primera para clasificar tus gastos." />
         }
         else
         {

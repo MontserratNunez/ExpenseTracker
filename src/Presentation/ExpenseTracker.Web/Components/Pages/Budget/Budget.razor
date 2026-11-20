@@ -22,7 +22,7 @@
 
 @if (loading)
 {
-    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    <Skeleton Lines="4" Height="2.5rem" />
 }
 else if (plan is not null)
 {
@@ -59,19 +59,18 @@ else if (plan is not null)
 
     @if (plan.IsOverAssigned)
     {
-        <div class="alert alert-warning">
+        <InlineAlert Tone="InlineAlert.AlertTone.Warning">
             Asignaste más de lo que ingresas este mes:
             <MoneyText Amount="plan.TotalAssigned" Currency="baseCurrency" /> asignados frente a
             <MoneyText Amount="plan.Income" Currency="baseCurrency" /> de ingresos.
-        </div>
+        </InlineAlert>
     }
 
     @if (plan.Categories.Count == 0)
     {
-        <div class="text-center text-muted py-4">
-            <p>Aún no tienes un plan. Reparte tus ingresos por categoría para ver si lo estás cumpliendo.</p>
-            <button type="button" class="btn btn-primary" @onclick="StartEditAsync">Crear mi plan</button>
-        </div>
+        <EmptyState Icon="@Icons.Budget" Title="Aún no tienes un plan" Description="Reparte tus ingresos por categoría para ver si lo estás cumpliendo.">
+            <Action><AppButton OnClick="StartEditAsync">Crear mi plan</AppButton></Action>
+        </EmptyState>
     }
     else
     {

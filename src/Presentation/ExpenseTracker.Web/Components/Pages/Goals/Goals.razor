@@ -22,11 +22,13 @@
 
 @if (loading)
 {
-    <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    <Skeleton Lines="4" Height="2.5rem" />
 }
 else if (statuses.Count == 0)
 {
-    <p class="text-muted">Aún no tienes metas. Crea una, por ejemplo "Ahorro de 200,000 anualmente", y sigue tu avance mes a mes.</p>
+    <EmptyState Icon="@Icons.EmptyGoals" Title="Aún no tienes metas" Description="Crea una, por ejemplo Ahorro de 200,000 anualmente, y sigue tu avance mes a mes.">
+        <Action><AppButton OnClick="StartCreate" Icon="@Icons.Add">Nueva meta</AppButton></Action>
+    </EmptyState>
 }
 else
 {
@@ -49,7 +51,7 @@ else
                         </div>
 
                         <div class="mt-3">
-                            <ProgressBar Percent="s.ProgressPercent" BarClass="@BarClass(s.State)" Height="14"
+                            <ProgressBar Percent="s.ProgressPercent" ColorVar="@BarClass(s.State)" Height="8"
                                          Label="@($"{s.ProgressPercent:0.#}% de la meta")" />
                             <div class="mt-1">
                                 <MoneyText Amount="s.Progress" Currency="baseCurrency" /> de
@@ -95,11 +97,11 @@ else
 
                         @if (s.PlanBelowRequired && s.PlannedMonthly is not null)
                         {
-                            <div class="alert alert-warning py-2 mt-3 mb-0 small">
+                            <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="mt-3 mb-0">
                                 Tu plan asigna <MoneyText Amount="s.PlannedMonthly.Value" Currency="baseCurrency" />/mes a @s.Goal.CategoryName;
                                 la meta necesita <MoneyText Amount="s.RequiredMonthly" Currency="baseCurrency" />/mes.
                                 <a href="/plan">Ajustar el plan</a>
-                            </div>
+                            </InlineAlert>
                         }
                     </div>
                     <div class="card-footer bg-transparent text-end">
@@ -168,10 +170,10 @@ else
 
     private static string BarClass(GoalState state) => state switch
     {
-        GoalState.Behind => "bg-warning",
-        GoalState.Missed => "bg-danger",
-        GoalState.NotStarted => "bg-secondary",
-        _ => "bg-success"
+        GoalState.Behind => "--color-warning",
+        GoalState.Missed => "--color-spent",
+        GoalState.NotStarted => "--color-text-subtle",
+        _ => "--color-available"
     };
 
     // ---------- Create / edit ----------

@@ -1,0 +1,30 @@
+@* A gray shimmering placeholder shown while data loads. Screen readers hear "Cargando..." once. *@
+<div class="skeleton-group @Class" role="status" aria-busy="true">
+    <span class="sr-only">Cargando...</span>
+    @for (var i = 0; i < Math.Max(1, Lines); i++)
+    {
+        var last = i == Lines - 1 && Lines > 1;
+        <div class="skeleton @(Circle ? "skeleton--circle" : null)" aria-hidden="true"
+             style="width: @(last ? "60%" : Width); height: @Height;"></div>
+    }
+</div>
+
+@code {
+    /// <summary>Any CSS width. The last line of a multi-line skeleton is shorter, like the end of a paragraph.</summary>
+    [Parameter]
+    public string Width { get; set; } = "100%";
+
+    /// <summary>Any CSS height, per line.</summary>
+    [Parameter]
+    public string Height { get; set; } = "1rem";
+
+    [Parameter]
+    public int Lines { get; set; } = 1;
+
+    /// <summary>A round placeholder, for avatars and icons. Uses Height for both sides.</summary>
+    [Parameter]
+    public bool Circle { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+}

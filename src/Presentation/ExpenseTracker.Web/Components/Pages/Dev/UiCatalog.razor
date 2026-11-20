@@ -3,6 +3,7 @@
 @using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
 @inject IWebHostEnvironment Env
+@inject ToastService Toasts
 
 <PageTitle>Catálogo de componentes</PageTitle>
 
@@ -315,9 +316,204 @@ else
             </EditForm>
         </div>
     </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-overlays">
+        <h2 id="catalog-overlays">Modales, paneles, menús y popover</h2>
+        <p class="text-muted">
+            Con una superposición abierta: el foco queda dentro (Tab y Mayús+Tab giran), <kbd>Esc</kbd> la cierra,
+            un clic en la zona oscura la cierra, la página de atrás no se desplaza y el foco vuelve al botón que la abrió.
+        </p>
+
+        <h3 class="catalog-group">Modal, panel y confirmación</h3>
+        <div class="demo-row">
+            <AppButton OnClick="() => modalOpen = true">Abrir modal</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => longModalOpen = true">Modal con contenido largo</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => nestedOpen = true">Modal con otro encima</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => panelOpen = true">Panel lateral</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Danger" Icon="@Icons.Delete" OnClick="() => confirmOpen = true">Eliminar…</AppButton>
+        </div>
+
+        <h3 class="catalog-group">Menú desplegable</h3>
+        <p class="text-muted catalog-note">
+            En el botón: <kbd>Enter</kbd>, <kbd>Espacio</kbd> o <kbd>↓</kbd> abren; <kbd>↑</kbd> y <kbd>↓</kbd> se mueven;
+            <kbd>Inicio</kbd> y <kbd>Fin</kbd> saltan; <kbd>Esc</kbd> cierra y vuelve al botón; <kbd>Tab</kbd> cierra.
+        </p>
+        <div class="demo-frame">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>Suscripción Netflix</span>
+                <DropdownMenu AriaLabel="Acciones de Suscripción Netflix" Items="menuItems" />
+            </div>
+        </div>
+        <p class="catalog-note" role="status">Última acción: <strong>@(lastAction ?? "ninguna")</strong></p>
+
+        <h3 class="catalog-group">Popover</h3>
+        <div class="demo-row">
+            <div class="popover-anchor">
+                <AppButton Variant="AppButton.ButtonVariant.Secondary" Icon="@Icons.Calendar" OnClick="() => popoverOpen = !popoverOpen"
+                           aria-haspopup="dialog" aria-expanded="@(popoverOpen ? "true" : "false")">Elegir mes</AppButton>
+                <Popover IsOpen="popoverOpen" OnClose="() => popoverOpen = false" AriaLabel="Elegir mes">
+                    <p class="mb-2"><strong>Contenido del popover</strong></p>
+                    <div class="demo-row">
+                        <AppButton Size="AppButton.ButtonSize.Sm" OnClick="PickFromPopover">Noviembre 2026</AppButton>
+                        <AppButton Size="AppButton.ButtonSize.Sm" Variant="AppButton.ButtonVariant.Ghost" OnClick="() => popoverOpen = false">Cerrar</AppButton>
+                    </div>
+                </Popover>
+            </div>
+        </div>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-feedback">
+        <h2 id="catalog-feedback">Estados y avisos</h2>
+
+        <h3 class="h6">Toasts</h3>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => ShowToast(ToastKind.Success)">Éxito</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => ShowToast(ToastKind.Error)">Error</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => ShowToast(ToastKind.Info)">Información</AppButton>
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="ShowUndoToast">Con Deshacer</AppButton>
+        </div>
+        <p class="text-muted" data-testid="toast-result">@toastResult</p>
+
+        <h3 class="h6">InlineAlert</h3>
+        <InlineAlert Tone="InlineAlert.AlertTone.Info">Información: tu plan se recalcula al cambiar un ingreso.</InlineAlert>
+        <InlineAlert Tone="InlineAlert.AlertTone.Success">Todo al día: no tienes pagos pendientes.</InlineAlert>
+        <InlineAlert Tone="InlineAlert.AlertTone.Warning">Asignaste más de lo que ingresas este mes.</InlineAlert>
+        <InlineAlert Tone="InlineAlert.AlertTone.Danger" OnDismiss="() => { }">Déficit de RD$ 1,200.00 este mes.</InlineAlert>
+
+        <h3 class="h6">ProgressBar</h3>
+        <div class="d-grid gap-3 mb-3" style="max-width: 420px;">
+            <ProgressBar Percent="45" Label="45% de la meta" />
+            <ProgressBar Percent="45" ColorVar="--color-warning" Height="6" Label="Compacta, 45%" />
+            <ProgressBar Segments="progressSegments" Marker="80" MarkerLabel="Estimado a fin de mes" Label="Gastado, pendiente y estimado" />
+        </div>
+
+        <h3 class="h6">Skeleton</h3>
+        <div class="d-flex gap-3 align-items-center mb-3">
+            <Skeleton Circle="true" Width="40px" Height="40px" Class="flex-none" />
+            <Skeleton Lines="3" Height="1rem" Class="flex-grow-1" />
+        </div>
+
+        <h3 class="h6">EmptyState</h3>
+        <EmptyState Icon="@Icons.EmptyGoals" Title="Aún no tienes metas" Description="Crea una, por ejemplo Ahorro de 200,000 anualmente, y sigue tu avance mes a mes.">
+            <Action><AppButton Icon="@Icons.Add">Nueva meta</AppButton></Action>
+        </EmptyState>
+    </section>
+
+    <AppModal IsOpen="modalOpen" Title="Un modal" OnClose="() => modalOpen = false">
+        <ChildContent>
+            <p>Este es el modal normal: 520 px de ancho como máximo.</p>
+            <EditForm Model="overlayDemo" FormName="catalog-modal">
+                <AppInput Label="Un campo" Placeholder="El foco empieza aquí" @bind-Value="overlayDemo.Text" />
+            </EditForm>
+        </ChildContent>
+        <Footer>
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => modalOpen = false">Cancelar</AppButton>
+            <AppButton OnClick="() => modalOpen = false">Aceptar</AppButton>
+        </Footer>
+    </AppModal>
+
+    <AppModal IsOpen="longModalOpen" Title="Contenido largo" OnClose="() => longModalOpen = false">
+        <ChildContent>
+            @for (var i = 1; i <= 30; i++)
+            {
+                <p>Párrafo @i de relleno: el cuerpo se desplaza dentro del modal mientras el encabezado y el pie quedan fijos.</p>
+            }
+        </ChildContent>
+        <Footer>
+            <AppButton OnClick="() => longModalOpen = false">Entendido</AppButton>
+        </Footer>
+    </AppModal>
+
+    <AppModal IsOpen="nestedOpen" Title="Primer modal" OnClose="() => nestedOpen = false">
+        <ChildContent>
+            <p>Abre otra superposición encima. Al cerrarla, el foco vuelve a este modal.</p>
+            <AppButton Variant="AppButton.ButtonVariant.Danger" OnClick="() => nestedConfirmOpen = true">Abrir confirmación</AppButton>
+        </ChildContent>
+        <Footer>
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => nestedOpen = false">Cerrar</AppButton>
+        </Footer>
+    </AppModal>
+
+    <ConfirmDialog @bind-Visible="nestedConfirmOpen" Title="Confirmación anidada" Message="Se muestra encima del primer modal." ConfirmText="Confirmar" />
+
+    <SidePanel IsOpen="panelOpen" Title="Panel lateral" OnClose="() => panelOpen = false">
+        <ChildContent>
+            <p>Entra desde la derecha y deja la página visible detrás.</p>
+            <EditForm Model="overlayDemo" FormName="catalog-panel">
+                <AppInput Label="Nombre" @bind-Value="overlayDemo.Text" />
+            </EditForm>
+        </ChildContent>
+        <Footer>
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => panelOpen = false">Cancelar</AppButton>
+            <AppButton OnClick="() => panelOpen = false">Guardar</AppButton>
+        </Footer>
+    </SidePanel>
+
+    <ConfirmDialog @bind-Visible="confirmOpen" Title="Eliminar elemento" Message="¿Eliminar este elemento? Esta acción no se puede deshacer."
+                   ConfirmText="Eliminar" OnConfirm="ConfirmDemoDelete" />
 }
 
 @code {
+    private bool modalOpen;
+    private bool longModalOpen;
+    private bool nestedOpen;
+    private bool nestedConfirmOpen;
+    private bool panelOpen;
+    private bool confirmOpen;
+    private bool popoverOpen;
+    private string? lastAction;
+    private string? toastResult;
+
+    private readonly IReadOnlyList<ProgressSegment> progressSegments = new[]
+    {
+        new ProgressSegment { Value = 45m, ColorVar = "--color-spent" },
+        new ProgressSegment { Value = 25m, ColorVar = "--color-committed", Striped = true }
+    };
+
+    private void ShowToast(ToastKind kind)
+    {
+        switch (kind)
+        {
+            case ToastKind.Success: Toasts.ShowSuccess("Gasto guardado."); break;
+            case ToastKind.Error: Toasts.ShowError("No se pudo guardar."); break;
+            default: Toasts.ShowInfo("Se actualizó la tasa."); break;
+        }
+    }
+
+    private void ShowUndoToast()
+    {
+        toastResult = null;
+        Toasts.Show(ToastKind.Success, "Gasto eliminado.", "Deshacer", () =>
+        {
+            toastResult = "Deshacer ejecutado";
+            return InvokeAsync(StateHasChanged);
+        });
+    }
+    private sealed class OverlayDemoModel
+    {
+        public string? Text { get; set; }
+    }
+
+    private readonly OverlayDemoModel overlayDemo = new();
+    private IReadOnlyList<DropdownMenuItem> menuItems = Array.Empty<DropdownMenuItem>();
+
+    private void PickFromPopover()
+    {
+        popoverOpen = false;
+        lastAction = "Noviembre 2026 elegido";
+    }
+
+    private void ConfirmDemoDelete() => lastAction = "Eliminado (confirmado)";
+
+    // An EventCallback created here re-renders this page after it runs, so the page reacts to the menu.
+    private EventCallback Callback(Func<Task> work) => EventCallback.Factory.Create(this, work);
+
+    private Task SetActionAsync(string action)
+    {
+        lastAction = action;
+        return Task.CompletedTask;
+    }
+
     private sealed class CatalogFormModel
     {
         [Required(ErrorMessage = "El nombre es obligatorio.")]
@@ -364,7 +560,17 @@ else
     private EditContext catalogContext = default!;
     private string? catalogResult;
 
-    protected override void OnInitialized() => catalogContext = new EditContext(catalogForm);
+    protected override void OnInitialized()
+    {
+        catalogContext = new EditContext(catalogForm);
+        menuItems = new[]
+        {
+            new DropdownMenuItem("Editar", Icons.Edit, Callback(() => SetActionAsync("Editar"))),
+            new DropdownMenuItem("Duplicar", Icons.Duplicate, Callback(() => SetActionAsync("Duplicar"))),
+            new DropdownMenuItem("No disponible", Icons.Close, disabled: true),
+            new DropdownMenuItem("Eliminar", Icons.Delete, Callback(() => { confirmOpen = true; return Task.CompletedTask; }), danger: true)
+        };
+    }
 
     private void OnCatalogValid() => catalogResult = $"Formulario válido: {catalogForm.Name}, {catalogForm.Currency} {catalogForm.Amount:N2}.";
 

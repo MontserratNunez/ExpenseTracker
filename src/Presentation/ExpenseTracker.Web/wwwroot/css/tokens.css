@@ -98,6 +98,14 @@
   --duration-base: 150ms;
   --ease: cubic-bezier(.2, 0, 0, 1);
 
+  /* Stacking order */
+  --z-dropdown: 1000;
+  --z-overlay: 1100;
+  --z-toast: 1200;
+
+  /* Dimmed layer behind modals and panels */
+  --color-scrim: rgba(15, 23, 41, .35);
+
   /* Layout */
   --sidebar-width: 240px;
   --sidebar-collapsed: 64px;

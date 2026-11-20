@@ -10,7 +10,7 @@ namespace ExpenseTracker.Tests.Components;
 /// Renders the whole /dev/ui catalog. It exercises every design-system component in every variant, so a
 /// component that throws when rendered (a missing parameter, a field outside an EditForm) fails here.
 /// </summary>
-public class CatalogSmokeTests : BunitContext
+public class CatalogSmokeTests : UiTestContext
 {
     private sealed class FakeEnvironment : IWebHostEnvironment
     {

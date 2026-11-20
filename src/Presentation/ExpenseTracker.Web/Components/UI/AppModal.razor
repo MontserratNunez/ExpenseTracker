@@ -1,0 +1,26 @@
+<OverlayShell Kind="OverlayKind.Modal" Width="Width" IsOpen="IsOpen" Title="@Title" OnClose="OnClose" Footer="Footer">
+    @ChildContent
+</OverlayShell>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>Raised on Esc, on a click outside the dialog and on the close button. The parent decides to close it.</summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public OverlayWidth Width { get; set; } = OverlayWidth.Md;
+
+    /// <summary>The dialog content. For a form, wrap an EditForm around OverlayBody and OverlayFooter and leave <see cref="Footer"/> empty.</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Buttons at the bottom. When given, the content is wrapped in the scrollable body automatically.</summary>
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+}

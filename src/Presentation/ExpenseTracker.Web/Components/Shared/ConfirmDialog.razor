@@ -1,31 +1,20 @@
-@if (Visible)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="confirm-title">@Title</h5>
-                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="Cancel"></button>
-                </div>
-                <div class="modal-body">
-                    @if (ChildContent is not null)
-                    {
-                        @ChildContent
-                    }
-                    else
-                    {
-                        <p class="mb-0">@Message</p>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="Cancel">@CancelText</button>
-                    <button type="button" class="btn @ConfirmCssClass" @onclick="Confirm">@ConfirmText</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<AppModal IsOpen="Visible" Title="@Title" Width="OverlayWidth.Sm" OnClose="CancelAsync">
+    <ChildContent>
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else
+        {
+            <p class="mb-0">@Message</p>
+        }
+    </ChildContent>
+    <Footer>
+        @* The safe choice gets the focus first, so a stray Enter never confirms a deletion. *@
+        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="CancelAsync" data-autofocus="true">@CancelText</AppButton>
+        <AppButton Variant="ConfirmVariant" OnClick="ConfirmAsync">@ConfirmText</AppButton>
+    </Footer>
+</AppModal>
 
 @code {
     [Parameter]
@@ -50,7 +39,7 @@
     public string CancelText { get; set; } = "Cancelar";
 
     [Parameter]
-    public string ConfirmCssClass { get; set; } = "btn-danger";
+    public AppButton.ButtonVariant ConfirmVariant { get; set; } = AppButton.ButtonVariant.Danger;
 
     [Parameter]
     public EventCallback OnConfirm { get; set; }
@@ -58,19 +47,19 @@
     [Parameter]
     public EventCallback OnCancel { get; set; }
 
-    private async Task Confirm()
+    private async Task ConfirmAsync()
     {
-        await Close();
+        await CloseAsync();
         await OnConfirm.InvokeAsync();
     }
 
-    private async Task Cancel()
+    private async Task CancelAsync()
     {
-        await Close();
+        await CloseAsync();
         await OnCancel.InvokeAsync();
     }
 
-    private async Task Close()
+    private async Task CloseAsync()
     {
         Visible = false;
         await VisibleChanged.InvokeAsync(false);

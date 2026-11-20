@@ -1,0 +1,112 @@
+@implements IAsyncDisposable
+@using ExpenseTracker.Web.Services
+@inject UiInterop Ui
+
+@* The behavior shared by AppModal and SidePanel. Use those two, not this one.
+   While open: the focus moves inside and stays there, Esc and a click on the dimmed area close it,
+   the page behind does not scroll, and the focus returns to what had it when it closes. *@
+@if (IsOpen)
+{
+    <div class="overlay overlay--@Kind.ToString().ToLower() overlay--w-@Width.ToString().ToLower()" @onclick="RequestCloseAsync">
+        <div class="overlay__panel" role="dialog" aria-modal="true" aria-labelledby="@titleId" tabindex="-1"
+             @ref="panel" @onclick:stopPropagation="true" @onkeydown="OnKeyDownAsync">
+            <header class="overlay__header">
+                <h2 class="overlay__title" id="@titleId">@Title</h2>
+                <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="RequestCloseAsync" />
+            </header>
+
+            @if (Footer is null)
+            {
+                @ChildContent
+            }
+            else
+            {
+                <div class="overlay__body">@ChildContent</div>
+                <div class="overlay__footer">@Footer</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public OverlayKind Kind { get; set; }
+
+    [Parameter]
+    public OverlayWidth Width { get; set; } = OverlayWidth.Md;
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    /// <summary>
+    /// With <see cref="Footer"/> the content is wrapped in the scrollable body. Without it the content is placed
+    /// as is, so a form can wrap its own OverlayBody and OverlayFooter inside an EditForm.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+
+    private readonly string titleId = $"overlay-title-{Guid.NewGuid():N}";
+    private ElementReference panel;
+    private bool active;
+    private int? trapId;
+    private DotNetObjectReference<EscapeCallbacks>? escape;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen && !active)
+        {
+            active = true;
+            await Ui.LockScrollAsync(true);
+            escape = DotNetObjectReference.Create(new EscapeCallbacks(() => InvokeAsync(RequestCloseAsync)));
+            trapId = await Ui.TrapFocusAsync(panel, escape);
+        }
+        else if (!IsOpen && active)
+        {
+            await ReleaseAsync();
+        }
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await RequestCloseAsync();
+    }
+
+    private Task RequestCloseAsync() => OnClose.InvokeAsync();
+
+    private async Task ReleaseAsync()
+    {
+        active = false;
+        try
+        {
+            if (trapId is { } id)
+                await Ui.ReleaseFocusAsync(id);
+            trapId = null;
+            await Ui.LockScrollAsync(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // the circuit is gone; the browser state goes with it
+        }
+        finally
+        {
+            escape?.Dispose();
+            escape = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (active)
+            await ReleaseAsync();
+    }
+}

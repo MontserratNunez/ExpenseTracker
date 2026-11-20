@@ -1,105 +1,96 @@
 @using ExpenseTracker.Core.Application.DTOs.Budget
 @using ExpenseTracker.Core.Domain.Enums
 
-@if (Visible && Editor is not null)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="plan-title">
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="plan-title">Editar plan</h5>
-                    <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" Class="ms-auto" AriaLabel="Cerrar" OnClick="() => OnCancel.InvokeAsync()" />
-                </div>
-                <div class="modal-body">
-                    <ErrorAlert Message="@Error" />
-                    <p class="form-field__hint">
-                        Define cuánto quieres gastar por categoría. Un valor de 0 quita la categoría del plan.
-                        Con porcentaje se usa el ingreso de la fuente elegida o, si no eliges ninguna, el total de tus ingresos recurrentes
-                        (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
-                    </p>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr><th>Categoría</th><th>Tipo</th><th>Valor</th><th>Fuente de ingreso</th><th class="text-end">Equivale a</th></tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var row in Rows)
-                                {
-                                    var r = row;
-                                    <tr>
-                                        <td class="text-nowrap">
-                                            <span class="d-inline-block rounded-circle me-2 align-middle" style="width: 1rem; height: 1rem; background-color: @r.CategoryColor;"></span>@r.CategoryName@(r.IsActive ? "" : " (inactiva)")
-                                        </td>
-                                        <td style="min-width: 11rem;">
-                                            <select class="field field--sm" aria-label="Tipo de @r.CategoryName" @bind="r.AllocationType">
-                                                <option value="@AllocationType.FixedAmount">Monto fijo</option>
-                                                <option value="@AllocationType.PercentageOfIncome">% de ingreso</option>
-                                            </select>
-                                        </td>
-                                        <td style="min-width: 8rem;">
-                                            <div class="field-group field-group--sm">
-                                                <input type="number" step="any" min="0" class="field-group__control field-group__control--money"
-                                                       aria-label="Valor de @r.CategoryName" @bind="r.Value" @bind:event="oninput" />
-                                                @if (r.AllocationType == AllocationType.PercentageOfIncome)
-                                                {
-                                                    <span class="field-group__affix field-group__affix--end" aria-hidden="true">%</span>
-                                                }
-                                            </div>
-                                        </td>
-                                        <td style="min-width: 12rem;">
-                                            @if (r.AllocationType == AllocationType.PercentageOfIncome)
+<AppModal IsOpen="Visible && Editor is not null" Title="Editar plan" Width="OverlayWidth.Xl" OnClose="OnCancel">
+    <ChildContent>
+        @if (Editor is not null)
+        {
+            <ErrorAlert Message="@Error" />
+            <p class="form-field__hint">
+                Define cuánto quieres gastar por categoría. Un valor de 0 quita la categoría del plan.
+                Con porcentaje se usa el ingreso de la fuente elegida o, si no eliges ninguna, el total de tus ingresos recurrentes
+                (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
+            </p>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr><th>Categoría</th><th>Tipo</th><th>Valor</th><th>Fuente de ingreso</th><th class="text-end">Equivale a</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Rows)
+                        {
+                            var r = row;
+                            <tr>
+                                <td class="text-nowrap">
+                                    <span class="d-inline-block rounded-circle me-2 align-middle" style="width: 1rem; height: 1rem; background-color: @r.CategoryColor;"></span>@r.CategoryName@(r.IsActive ? "" : " (inactiva)")
+                                </td>
+                                <td style="min-width: 11rem;">
+                                    <select class="field field--sm" aria-label="Tipo de @r.CategoryName" @bind="r.AllocationType">
+                                        <option value="@AllocationType.FixedAmount">Monto fijo</option>
+                                        <option value="@AllocationType.PercentageOfIncome">% de ingreso</option>
+                                    </select>
+                                </td>
+                                <td style="min-width: 8rem;">
+                                    <div class="field-group field-group--sm">
+                                        <input type="number" step="any" min="0" class="field-group__control field-group__control--money"
+                                               aria-label="Valor de @r.CategoryName" @bind="r.Value" @bind:event="oninput" />
+                                        @if (r.AllocationType == AllocationType.PercentageOfIncome)
+                                        {
+                                            <span class="field-group__affix field-group__affix--end" aria-hidden="true">%</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td style="min-width: 12rem;">
+                                    @if (r.AllocationType == AllocationType.PercentageOfIncome)
+                                    {
+                                        <select class="field field--sm" aria-label="Fuente de @r.CategoryName" @bind="r.IncomeSourceId">
+                                            <option value="">Total recurrente</option>
+                                            @foreach (var source in Editor.IncomeBases.Sources)
                                             {
-                                                <select class="field field--sm" aria-label="Fuente de @r.CategoryName" @bind="r.IncomeSourceId">
-                                                    <option value="">Total recurrente</option>
-                                                    @foreach (var source in Editor.IncomeBases.Sources)
-                                                    {
-                                                        <option value="@source.SourceId">@source.Name</option>
-                                                    }
-                                                </select>
+                                                <option value="@source.SourceId">@source.Name</option>
                                             }
-                                            else
-                                            {
-                                                <span class="text-muted">—</span>
-                                            }
-                                        </td>
-                                        <td class="text-end text-nowrap">
-                                            @if (r.Value > 0)
-                                            {
-                                                <MoneyText Amount="Equivalent(r)" Currency="BaseCurrency" />
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">—</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                            <tfoot>
-                                <tr class="fw-bold">
-                                    <td colspan="4" class="text-end">Total asignado</td>
-                                    <td class="text-end"><MoneyText Amount="TotalEquivalent" Currency="BaseCurrency" /></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    @if (TotalEquivalent > Editor.IncomeBases.RecurringTotal)
-                    {
-                        <div class="alert alert-warning mb-0">
-                            El total asignado supera tus ingresos recurrentes
-                            (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
-                    <AppButton OnClick="() => OnSave.InvokeAsync()">Guardar plan</AppButton>
-                </div>
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    @if (r.Value > 0)
+                                    {
+                                        <MoneyText Amount="Equivalent(r)" Currency="BaseCurrency" />
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td colspan="4" class="text-end">Total asignado</td>
+                            <td class="text-end"><MoneyText Amount="TotalEquivalent" Currency="BaseCurrency" /></td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
-        </div>
-    </div>
-}
+            @if (TotalEquivalent > Editor.IncomeBases.RecurringTotal)
+            {
+                <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="mb-0">
+                    El total asignado supera tus ingresos recurrentes
+                    (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
+                </InlineAlert>
+            }
+        }
+    </ChildContent>
+    <Footer>
+        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+        <AppButton OnClick="() => OnSave.InvokeAsync()">Guardar plan</AppButton>
+    </Footer>
+</AppModal>
 
 @code {
     [Parameter]
