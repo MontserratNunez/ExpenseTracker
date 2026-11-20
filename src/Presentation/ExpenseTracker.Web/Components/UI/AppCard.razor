@@ -1,0 +1,29 @@
+<section class="card-app @Class" aria-label="@AriaLabel">
+    @if (Header is not null)
+    {
+        <div class="card-app__header">@Header</div>
+    }
+    <div class="card-app__body">@ChildContent</div>
+    @if (Footer is not null)
+    {
+        <div class="card-app__footer">@Footer</div>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public RenderFragment? Header { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? Footer { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>Names the card for screen readers when it has no visible heading.</summary>
+    [Parameter]
+    public string? AriaLabel { get; set; }
+}

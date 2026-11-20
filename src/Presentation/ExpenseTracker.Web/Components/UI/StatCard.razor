@@ -1,0 +1,56 @@
+@using ExpenseTracker.Core.Domain.Enums
+@using System.Globalization
+
+<div class="card-app stat-card @(Large ? "stat-card--large" : null) @Class">
+    <div class="stat-card__label">
+        @if (Tone != StatTone.None)
+        {
+            <span class="stat-card__dot stat-card__dot--@Tone.ToString().ToLower()" aria-hidden="true"></span>
+        }
+        <span>@Label</span>
+    </div>
+    <div class="stat-card__amount"><MoneyText Amount="Amount" Currency="Currency" /></div>
+    @if (Trend is not null)
+    {
+        <div class="stat-card__trend">
+            <AppIcon Name="@(Trend >= 0 ? Icons.TrendUp : Icons.TrendDown)" Size="14" />
+            <span>@Math.Abs(Trend.Value).ToString("0.#", CultureInfo.CurrentCulture) % @TrendLabel</span>
+        </div>
+    }
+    @ChildContent
+</div>
+
+@code {
+    /// <summary>The financial meaning of the card, shown as a colored dot. Use None for neutral figures.</summary>
+    public enum StatTone { None, Available, Spent, Committed }
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public decimal Amount { get; set; }
+
+    [Parameter]
+    public Currency Currency { get; set; } = Currency.DOP;
+
+    [Parameter]
+    public StatTone Tone { get; set; } = StatTone.None;
+
+    /// <summary>Change versus the reference period, in percent. Positive shows an up arrow, negative a down arrow. Null hides it.</summary>
+    [Parameter]
+    public decimal? Trend { get; set; }
+
+    [Parameter]
+    public string TrendLabel { get; set; } = "vs. mes anterior";
+
+    /// <summary>Uses the display size (32 px) for the amount instead of 24 px.</summary>
+    [Parameter]
+    public bool Large { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    /// <summary>Extra content under the amount (a note, a progress bar).</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

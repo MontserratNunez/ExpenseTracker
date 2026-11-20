@@ -1,4 +1,5 @@
 @page "/dev/ui"
+@using ExpenseTracker.Core.Domain.Enums
 @inject IWebHostEnvironment Env
 
 <PageTitle>Catálogo de componentes</PageTitle>
@@ -129,9 +130,146 @@ else
             <span><AppIcon Name="@Icons.Delete" Size="24" Label="Eliminar" /> con etiqueta accesible</span>
         </div>
     </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-buttons">
+        <h2 id="catalog-buttons">AppButton</h2>
+        <p class="text-muted">Cuatro variantes, dos tamaños, ícono opcional, estado de carga y versión solo ícono (con <code>AriaLabel</code>).</p>
+
+        @foreach (var variant in Enum.GetValues<AppButton.ButtonVariant>())
+        {
+            <h3 class="catalog-group">@variant</h3>
+            <div class="demo-row">
+                <AppButton Variant="variant">Guardar</AppButton>
+                <AppButton Variant="variant" Icon="@Icons.Add">Con ícono</AppButton>
+                <AppButton Variant="variant" Size="AppButton.ButtonSize.Sm">Pequeño</AppButton>
+                <AppButton Variant="variant" Disabled="true">Deshabilitado</AppButton>
+                <AppButton Variant="variant" Loading="saving" OnClick="SimulateSaveAsync">@(saving ? "Guardando" : "Probar carga")</AppButton>
+                <AppButton Variant="variant" Icon="@Icons.Edit" AriaLabel="Editar" />
+                <AppButton Variant="variant" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Delete" AriaLabel="Eliminar" />
+            </div>
+        }
+        <p class="text-muted catalog-note">Clics de botones de prueba: @clicks</p>
+        <div class="demo-row">
+            <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="CountClick">Contar un clic</AppButton>
+        </div>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-badges">
+        <h2 id="catalog-badges">Badge</h2>
+        <p class="text-muted">El color nunca va solo: los estados llevan ícono y texto.</p>
+
+        <h3 class="catalog-group">Tonos</h3>
+        <div class="demo-row">
+            @foreach (var tone in Enum.GetValues<Badge.BadgeTone>())
+            {
+                <Badge Tone="tone">@tone</Badge>
+            }
+        </div>
+
+        <h3 class="catalog-group">Usos</h3>
+        <div class="demo-row">
+            <Badge Tone="Badge.BadgeTone.Blue" Icon="@Icons.Recurring">Mensual</Badge>
+            <Badge Tone="Badge.BadgeTone.Green" Icon="@Icons.Paid">Pagado</Badge>
+            <Badge Tone="Badge.BadgeTone.Gray" Icon="@Icons.Pending">Pendiente</Badge>
+            <Badge Tone="Badge.BadgeTone.Green" Icon="@Icons.OnTrack">En plan</Badge>
+            <Badge Tone="Badge.BadgeTone.Amber" Icon="@Icons.AtRisk">En riesgo</Badge>
+            <Badge Tone="Badge.BadgeTone.Red" Icon="@Icons.Exceeded">Excedido</Badge>
+            <Badge Tone="Badge.BadgeTone.Green" Icon="@Icons.GoalOnTrack">En camino</Badge>
+            <Badge Tone="Badge.BadgeTone.Amber" Icon="@Icons.GoalBehind">Atrasada</Badge>
+            <Badge Tone="Badge.BadgeTone.Blue" Icon="@Icons.GoalDone">Lograda</Badge>
+        </div>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-chips">
+        <h2 id="catalog-chips">CategoryChip</h2>
+
+        <h3 class="catalog-group">Con nombre</h3>
+        <div class="demo-row">
+            <CategoryChip Name="Comida" Color="#E67E22" Icon="basket" />
+            <CategoryChip Name="Servicios" Color="#3498DB" Icon="lightning-charge" />
+            <CategoryChip Name="Ahorro" Color="#2E9E5B" Icon="piggy-bank" />
+            <CategoryChip Name="Entretenimiento" Color="#F1C40F" Icon="film" />
+            <CategoryChip Name="Sin ícono" Color="#9B59B6" />
+            <CategoryChip Name="Color inválido" Color="rojo; x:y" Icon="tag" />
+        </div>
+
+        <h3 class="catalog-group">Solo ícono (el nombre queda como tooltip y para lectores de pantalla)</h3>
+        <div class="demo-row">
+            <CategoryChip Name="Comida" Color="#E67E22" Icon="basket" ShowName="false" />
+            <CategoryChip Name="Servicios" Color="#3498DB" Icon="lightning-charge" ShowName="false" />
+            <CategoryChip Name="Ahorro" Color="#2E9E5B" Icon="piggy-bank" ShowName="false" />
+            <CategoryChip Name="Entretenimiento" Color="#F1C40F" Icon="film" ShowName="false" />
+            <CategoryChip Name="Sin ícono" Color="#9B59B6" ShowName="false" />
+        </div>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-cards">
+        <h2 id="catalog-cards">AppCard</h2>
+        <div class="grid-auto">
+            <AppCard AriaLabel="Tarjeta simple">
+                Tarjeta simple, solo contenido.
+            </AppCard>
+            <AppCard>
+                <Header>Con encabezado</Header>
+                <ChildContent>Contenido con título arriba y un divisor fino.</ChildContent>
+            </AppCard>
+            <AppCard>
+                <Header>Con encabezado y pie</Header>
+                <ChildContent>Los tres espacios (encabezado, cuerpo y pie) son opcionales.</ChildContent>
+                <Footer><AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm">Ver detalle</AppButton></Footer>
+            </AppCard>
+        </div>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-stats">
+        <h2 id="catalog-stats">StatCard</h2>
+        <p class="text-muted">El punto de color indica el significado financiero; la tendencia usa ícono y texto.</p>
+        <div class="grid-auto">
+            <StatCard Label="Disponible" Amount="21300m" Tone="StatCard.StatTone.Available" />
+            <StatCard Label="Gastado" Amount="28067m" Tone="StatCard.StatTone.Spent" Trend="12m" />
+            <StatCard Label="Comprometido" Amount="1905m" Tone="StatCard.StatTone.Committed" Trend="-4.5m" />
+            <StatCard Label="Ingresos del mes" Amount="65000m" />
+            <StatCard Label="Gasto en dólares" Amount="120.5m" Currency="Currency.USD" />
+            <StatCard Label="Con nota" Amount="5000m" Tone="StatCard.StatTone.Available">
+                <div class="text-muted">Asignado 10 % de tus ingresos</div>
+            </StatCard>
+        </div>
+
+        <h3 class="catalog-group">Tamaño grande</h3>
+        <div class="grid-auto">
+            <StatCard Label="Disponible" Amount="21300m" Tone="StatCard.StatTone.Available" Large="true" />
+        </div>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="catalog-header">
+        <h2 id="catalog-header">PageHeader</h2>
+        <div class="demo-frame">
+            <PageHeader Title="Gastos" Subtitle="Noviembre 2026">
+                <Actions>
+                    <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Filter">Filtros</AppButton>
+                    <AppButton Icon="@Icons.Add">Nuevo gasto</AppButton>
+                </Actions>
+            </PageHeader>
+        </div>
+        <div class="demo-frame">
+            <PageHeader Title="Sin acciones" />
+        </div>
+    </section>
 }
 
 @code {
+    private bool saving;
+    private int clicks;
+
+    private async Task SimulateSaveAsync()
+    {
+        saving = true;
+        await Task.Delay(1500);
+        saving = false;
+    }
+
+    private void CountClick() => clicks++;
+
     private sealed class Swatch
     {
         public Swatch(string token, string value, string use)
@@ -226,7 +364,13 @@ else
             new("--color-available-bg", "#E8F7F0", "Fondo suave de disponible"),
             new("--color-spent-bg", "#FDECEC", "Fondo suave de gastado"),
             new("--color-committed-bg", "#F1F3F6", "Fondo suave de comprometido"),
-            new("--color-warning-bg", "#FEF5E6", "Fondo suave de advertencia"))
+            new("--color-warning-bg", "#FEF5E6", "Fondo suave de advertencia")),
+        new("Variantes fuertes (texto accesible)",
+            new("--color-available-strong", "#0E6B45", "Texto sobre disponible-bg · 5.9:1"),
+            new("--color-spent-strong", "#B42318", "Texto sobre gastado-bg y botón de peligro · 5.8:1 / 6.6:1"),
+            new("--color-warning-strong", "#8A5A00", "Texto sobre advertencia-bg · 5.5:1"),
+            new("--color-committed-strong", "#4B5563", "Texto sobre comprometido-bg · 6.8:1"),
+            new("--color-on-accent", "#FFFFFF", "Texto sobre botones sólidos"))
     };
 
     private static readonly TypeStep[] TypeScale =

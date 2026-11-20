@@ -1,0 +1,184 @@
+/* Styles of the design-system components (Components/UI). Only tokens.css variables are used:
+   no hard-coded colors, sizes or radii. */
+
+/* ---------- AppButton ---------- */
+.btn-app {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: 500 var(--text-sm)/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.btn-app--md { height: 36px; padding: 0 var(--space-4); }
+.btn-app--sm { height: 30px; padding: 0 var(--space-3); }
+
+/* A button with only an icon is a square. */
+.btn-app--icon.btn-app--md { width: 36px; padding: 0; }
+.btn-app--icon.btn-app--sm { width: 30px; padding: 0; }
+
+.btn-app--primary { background: var(--color-primary-500); color: var(--color-on-accent); }
+.btn-app--primary:hover:not(:disabled) { background: var(--color-primary-600); }
+
+.btn-app--secondary { background: var(--color-primary-50); color: var(--color-primary-700); }
+.btn-app--secondary:hover:not(:disabled) { background: var(--color-primary-100); }
+
+.btn-app--ghost { background: transparent; color: var(--color-text-muted); }
+.btn-app--ghost:hover:not(:disabled) { background: var(--color-bg-hover); color: var(--color-text); }
+
+.btn-app--danger { background: var(--color-spent-strong); color: var(--color-on-accent); }
+.btn-app--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--color-spent-strong) 85%, var(--color-text)); }
+
+.btn-app:disabled { opacity: .55; cursor: not-allowed; }
+
+.btn-app__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: app-spin .7s linear infinite;
+}
+
+@keyframes app-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Badge ---------- */
+.badge-app {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font: 500 var(--text-xs)/1 var(--font-sans);
+  white-space: nowrap;
+}
+
+.badge-app--blue  { background: var(--color-primary-50);      color: var(--color-primary-700); }
+.badge-app--green { background: var(--color-available-bg);    color: var(--color-available-strong); }
+.badge-app--red   { background: var(--color-spent-bg);        color: var(--color-spent-strong); }
+.badge-app--gray  { background: var(--color-committed-bg);    color: var(--color-committed-strong); }
+.badge-app--amber { background: var(--color-warning-bg);      color: var(--color-warning-strong); }
+
+/* ---------- CategoryChip ---------- */
+.chip {
+  --chip-color: var(--color-committed);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.chip__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip-color);
+}
+
+.chip__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Icon without name: the icon sits on a soft disc of the category color. */
+.chip__disc {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--chip-color) 16%, var(--color-bg));
+  color: var(--chip-color);
+}
+
+/* ---------- AppCard ---------- */
+.card-app {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-app__header,
+.card-app__footer {
+  padding: var(--space-4) var(--space-6);
+}
+
+.card-app__header { border-bottom: 1px solid var(--color-border); font-weight: 600; }
+.card-app__footer { border-top: 1px solid var(--color-border); }
+.card-app__body { padding: var(--space-5) var(--space-6); }
+
+/* ---------- StatCard ---------- */
+.stat-card { padding: var(--space-5) var(--space-6); }
+
+.stat-card__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.stat-card__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-subtle);
+}
+
+.stat-card__dot--available { background: var(--color-available); }
+.stat-card__dot--spent     { background: var(--color-spent); }
+.stat-card__dot--committed { background: var(--color-committed); }
+
+.stat-card__amount {
+  margin-top: var(--space-2);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+
+.stat-card--large .stat-card__amount { font-size: var(--text-display); }
+
+.stat-card__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ---------- PageHeader ---------- */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.page-header__title h1 { margin: 0; }
+
+.page-header__subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

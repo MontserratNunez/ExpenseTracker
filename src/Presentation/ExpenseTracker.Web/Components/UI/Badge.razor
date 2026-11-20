@@ -1,0 +1,24 @@
+<span class="badge-app badge-app--@Tone.ToString().ToLower() @Class">
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <AppIcon Name="@Icon" Size="12" />
+    }
+    @ChildContent
+</span>
+
+@code {
+    public enum BadgeTone { Blue, Green, Red, Gray, Amber }
+
+    [Parameter]
+    public BadgeTone Tone { get; set; } = BadgeTone.Blue;
+
+    /// <summary>Optional icon before the text. Color alone must never carry the meaning, so pair status badges with an icon or text.</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

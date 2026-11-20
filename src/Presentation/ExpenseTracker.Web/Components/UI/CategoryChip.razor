@@ -1,0 +1,47 @@
+@using System.Text.RegularExpressions
+
+@* With ShowName the chip is: color dot, optional icon, name. Without it, only the icon (or the dot) is shown
+   and the name stays available to screen readers and as a tooltip. *@
+<span class="chip @Class" style="--chip-color: @SafeColor" title="@(ShowName ? null : Name)">
+    @if (ShowName)
+    {
+        <span class="chip__dot" aria-hidden="true"></span>
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <AppIcon Name="@Icon" Size="14" />
+        }
+        <span class="chip__name">@Name</span>
+    }
+    else if (!string.IsNullOrEmpty(Icon))
+    {
+        <span class="chip__disc"><AppIcon Name="@Icon" Size="16" Label="@Name" /></span>
+    }
+    else
+    {
+        <span class="chip__dot" role="img" aria-label="@Name"></span>
+    }
+</span>
+
+@code {
+    private static readonly Regex HexColor = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
+
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Category color as #RRGGBB. Anything else falls back to the neutral gray.</summary>
+    [Parameter]
+    public string? Color { get; set; }
+
+    /// <summary>Bootstrap Icons name of the category.</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    [Parameter]
+    public bool ShowName { get; set; } = true;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    // The color comes from user data, so it is validated before going into a style attribute.
+    private string SafeColor => Color is not null && HexColor.IsMatch(Color) ? Color : "var(--color-committed)";
+}
