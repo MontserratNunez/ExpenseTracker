@@ -12,6 +12,7 @@ public class GoalDto
     public DateOnly EndDate { get; set; }
     public int? CategoryId { get; set; }
     public string? CategoryName { get; set; }
+    public string? Icon { get; set; }
 }
 
 public enum GoalState

@@ -123,6 +123,13 @@ else
             }
         </div>
 
+        <h3 class="catalog-group">Selector de ícono (IconPicker)</h3>
+        <IconPicker Label="Ícono de la meta" @bind-Value="pickedIcon" />
+        <p class="catalog-note">Elegido: <strong>@(pickedIcon ?? "ninguno")</strong></p>
+
+        <h3 class="catalog-group">Gráfico de barras (BarChart)</h3>
+        <BarChart Description="Ejemplo: gasto e ingreso estimados de seis meses." Bars="chartBars" Line="chartLine" />
+
         <h3 class="catalog-group">Tamaños y color</h3>
         <div class="icon-sizes">
             <AppIcon Name="@Icons.Budget" Size="14" />
@@ -462,6 +469,12 @@ else
     private bool confirmOpen;
     private bool popoverOpen;
     private string? lastAction;
+    private string? pickedIcon = "piggy-bank";
+
+    private readonly List<BarChart.BarPoint> chartBars = new[] { 32000m, 41500m, 28700m, 52000m, 36400m, 30100m }
+        .Select((value, i) => new BarChart.BarPoint { Label = UiLabels.ShortMonthName(i + 1), Value = value }).ToList();
+
+    private readonly List<decimal> chartLine = new() { 50000m, 50000m, 50000m, 55000m, 55000m, 55000m };
     private string? toastResult;
 
     private readonly IReadOnlyList<ProgressSegment> progressSegments = new[]

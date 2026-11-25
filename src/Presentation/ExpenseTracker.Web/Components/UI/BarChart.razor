@@ -1,0 +1,145 @@
+@using System.Globalization
+@using ExpenseTracker.Core.Application.Helpers
+@using ExpenseTracker.Core.Domain.Enums
+
+@* A simple bar chart in SVG: one bar per point and, optionally, a dashed line (for example the income) over the bars.
+   Screen readers get the same numbers from a hidden table. *@
+<figure class="bar-chart">
+    <svg viewBox="0 0 @W @H" role="img" aria-label="@Description" class="bar-chart__svg" preserveAspectRatio="xMidYMid meet">
+        @foreach (var tick in Ticks)
+        {
+            <line class="bar-chart__grid" x1="@Num(Left)" x2="@Num(W - Right)" y1="@Num(Y(tick))" y2="@Num(Y(tick))"></line>
+            @SvgText("bar-chart__tick", Left - 6, Y(tick) + 3, "end", Compact(tick))
+        }
+
+        @for (var i = 0; i < Bars.Count; i++)
+        {
+            var bar = Bars[i];
+            var x = Left + i * Step + (Step - BarWidth) / 2;
+            var height = Math.Max(0m, Y(0) - Y(bar.Value));
+            <g class="bar-chart__bar">
+                <rect x="@Num(x)" y="@Num(Y(bar.Value))" width="@Num(BarWidth)" height="@Num(height)" rx="3"></rect>
+                <title>@Tooltip(i)</title>
+            </g>
+            @SvgText("bar-chart__label", x + BarWidth / 2, H - 8, "middle", bar.Label)
+        }
+
+        @if (HasLine)
+        {
+            <polyline class="bar-chart__line" points="@LinePoints" fill="none"></polyline>
+        }
+    </svg>
+
+    @if (HasLine)
+    {
+        <figcaption class="bar-chart__legend">
+            <span><span class="bar-chart__swatch bar-chart__swatch--bar" aria-hidden="true"></span> @BarsName</span>
+            <span><span class="bar-chart__swatch bar-chart__swatch--line" aria-hidden="true"></span> @LineName</span>
+        </figcaption>
+    }
+
+    <div class="sr-only">
+    <table>
+        <caption>@Description</caption>
+        <thead>
+            <tr><th scope="col">Mes</th><th scope="col">@BarsName</th>@if (HasLine) { <th scope="col">@LineName</th> }</tr>
+        </thead>
+        <tbody>
+            @for (var i = 0; i < Bars.Count; i++)
+            {
+                <tr>
+                    <th scope="row">@Bars[i].Label</th>
+                    <td>@MoneyFormatter.Format(Bars[i].Value, Currency)</td>
+                    @if (HasLine)
+                    {
+                        <td>@MoneyFormatter.Format(Line![i], Currency)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+</figure>
+
+@code {
+    public sealed class BarPoint
+    {
+        public string Label { get; set; } = string.Empty;
+        public decimal Value { get; set; }
+    }
+
+    private const decimal W = 640m, H = 240m, Left = 48m, Right = 8m, Top = 12m, Bottom = 28m;
+
+    [Parameter, EditorRequired]
+    public List<BarPoint> Bars { get; set; } = new();
+
+    /// <summary>Optional dashed line with one value per bar.</summary>
+    [Parameter]
+    public List<decimal>? Line { get; set; }
+
+    [Parameter]
+    public Currency Currency { get; set; } = Currency.DOP;
+
+    [Parameter]
+    public string BarsName { get; set; } = "Gasto estimado";
+
+    [Parameter]
+    public string LineName { get; set; } = "Ingreso estimado";
+
+    /// <summary>Summary for screen readers, which also names the hidden table.</summary>
+    [Parameter, EditorRequired]
+    public string Description { get; set; } = string.Empty;
+
+    private bool HasLine => Line is not null && Line.Count == Bars.Count && Bars.Count > 0;
+
+    private decimal Max
+    {
+        get
+        {
+            var max = Bars.Count == 0 ? 0m : Bars.Max(b => b.Value);
+            if (HasLine)
+                max = Math.Max(max, Line!.Max());
+            return max <= 0 ? 1m : max;
+        }
+    }
+
+    // The scale tops out at a round number so the grid lines read cleanly.
+    private decimal Top100
+    {
+        get
+        {
+            var magnitude = (decimal)Math.Pow(10, Math.Floor(Math.Log10((double)Max)));
+            var steps = new[] { 1m, 2m, 2.5m, 5m, 10m };
+            return steps.Select(s => s * magnitude).First(v => v >= Max);
+        }
+    }
+
+    private IEnumerable<decimal> Ticks => new[] { 0m, Top100 / 2, Top100 };
+
+    private decimal Step => Bars.Count == 0 ? 0 : (W - Left - Right) / Bars.Count;
+
+    private decimal BarWidth => Math.Min(32m, Step * 0.6m);
+
+    private decimal Y(decimal value) => Top + (H - Top - Bottom) * (1 - value / Top100);
+
+    private string LinePoints => string.Join(" ", Line!.Select((v, i) =>
+        $"{Num(Left + i * Step + Step / 2)},{Num(Y(v))}"));
+
+    private string Tooltip(int i)
+        => HasLine
+            ? $"{Bars[i].Label}: {BarsName.ToLower()} {MoneyFormatter.Format(Bars[i].Value, Currency)}, {LineName.ToLower()} {MoneyFormatter.Format(Line![i], Currency)}"
+            : $"{Bars[i].Label}: {MoneyFormatter.Format(Bars[i].Value, Currency)}";
+
+    private static string Compact(decimal value) => value switch
+    {
+        >= 1_000_000m => (value / 1_000_000m).ToString("0.##", CultureInfo.InvariantCulture) + " M",
+        >= 1_000m => (value / 1_000m).ToString("0.##", CultureInfo.InvariantCulture) + " mil",
+        _ => value.ToString("0", CultureInfo.InvariantCulture)
+    };
+
+    // Razor reserves the <text> tag, so the SVG text elements are written as markup strings (the content is encoded).
+    private static MarkupString SvgText(string css, decimal x, decimal y, string anchor, string content)
+        => new($"<text class=\"{css}\" x=\"{Num(x)}\" y=\"{Num(y)}\" text-anchor=\"{anchor}\">{System.Net.WebUtility.HtmlEncode(content)}</text>");
+
+    private static string Num(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+}

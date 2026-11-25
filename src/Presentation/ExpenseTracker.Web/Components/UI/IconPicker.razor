@@ -1,0 +1,33 @@
+@using ExpenseTracker.Web.Services
+
+@* Picks one icon from the curated list (Icons.Picker). It is a group of radio buttons, so the arrow keys move between
+   the icons and the choice is announced by screen readers without any script. *@
+<fieldset class="icon-picker">
+    <legend class="icon-picker__legend">@Label</legend>
+    <div class="icon-picker__grid" role="radiogroup" aria-label="@Label">
+        @foreach (var name in Icons.Picker)
+        {
+            var icon = name;
+            <label class="icon-picker__item" title="@icon">
+                <input type="radio" name="@groupName" value="@icon" checked="@(Value == icon)" class="icon-picker__input"
+                       @onchange="() => SelectAsync(icon)" />
+                <span class="icon-picker__face"><AppIcon Name="@icon" Size="20" Label="@icon" /></span>
+            </label>
+        }
+    </div>
+</fieldset>
+
+@code {
+    private readonly string groupName = $"icon-{Guid.NewGuid():N}";
+
+    [Parameter]
+    public string Label { get; set; } = "Ícono";
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    private Task SelectAsync(string icon) => ValueChanged.InvokeAsync(icon);
+}

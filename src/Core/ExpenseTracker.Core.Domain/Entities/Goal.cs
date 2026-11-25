@@ -12,5 +12,8 @@ public class Goal : UserOwnedEntity
     public DateOnly EndDate { get; set; }
     public int? CategoryId { get; set; }
     public Category? Category { get; set; }
+
+    /// <summary>Bootstrap Icons name chosen by the user from the curated list. Null shows a default icon.</summary>
+    public string? Icon { get; set; }
     public bool IsActive { get; set; } = true;
 }

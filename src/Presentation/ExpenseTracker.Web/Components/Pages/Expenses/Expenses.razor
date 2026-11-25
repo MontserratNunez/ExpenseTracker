@@ -77,47 +77,32 @@ else if (data is not null)
             <Action><AppButton OnClick="StartCreate" Icon="@Icons.Add">Nuevo gasto</AppButton></Action>
         </EmptyState>
     }
-    else if (Groups.Count == 0)
+    else if (VisibleItems.Count == 0)
     {
         <p class="text-muted">Ningún gasto coincide con los filtros.</p>
     }
     else
     {
-        <div class="exp-list">
-            @foreach (var group in Groups)
-            {
-                <section class="exp-day" aria-label="@group.Heading">
-                    <header class="exp-day__head">
-                        <h2>@group.Heading</h2>
-                        <span class="exp-day__total"><MoneyText Amount="group.Total" Currency="baseCurrency" /></span>
-                    </header>
-                    <ul class="exp-rows">
-                        @foreach (var item in group.Items)
-                        {
-                            var i = item;
-                            var pending = i.Status == LedgerStatus.Pending;
-                            <li class="exp-row @(pending ? "exp-row--pending" : null)">
-                                @if (i.IsReadOnly)
-                                {
-                                    <div class="exp-row__main">
-                                        @RowContent(i, pending)
-                                    </div>
-                                }
-                                else
-                                {
-                                    <button type="button" class="exp-row__main" @onclick="() => StartEdit(i)">
-                                        @RowContent(i, pending)
-                                    </button>
-                                    <div class="exp-row__menu">
-                                        <DropdownMenu AriaLabel="Más acciones" Items="RowMenu(i)" />
-                                    </div>
-                                }
-                            </li>
-                        }
-                    </ul>
-                </section>
-            }
-        </div>
+        <DayGroupedList TItem="LedgerItem" Items="VisibleItems" DateOf="i => i.Date" AmountOf="i => i.AmountInBase"
+                        Currency="baseCurrency" RowClass="PendingClass">
+            <ItemTemplate Context="i">
+                @if (i.IsReadOnly)
+                {
+                    <div class="exp-row__main">
+                        @RowContent(i, i.Status == LedgerStatus.Pending)
+                    </div>
+                }
+                else
+                {
+                    <button type="button" class="exp-row__main" @onclick="() => StartEdit(i)">
+                        @RowContent(i, i.Status == LedgerStatus.Pending)
+                    </button>
+                    <div class="exp-row__menu">
+                        <DropdownMenu AriaLabel="Más acciones" Items="RowMenu(i)" />
+                    </div>
+                }
+            </ItemTemplate>
+        </DayGroupedList>
     }
 }
 
@@ -143,13 +128,6 @@ else if (data is not null)
 
 @code {
     private enum TypeFilter { All, OneTime, Recurring }
-
-    private sealed class DayGroup
-    {
-        public string Heading { get; init; } = string.Empty;
-        public decimal Total { get; init; }
-        public List<LedgerItem> Items { get; init; } = new();
-    }
 
     [Parameter]
     public int? Year { get; set; }
@@ -186,34 +164,20 @@ else if (data is not null)
     private bool confirmDelete;
     private bool showRecurringDelete;
 
-    // The list is grouped by day, the latest day first, each day with its total.
-    private List<DayGroup> Groups
-    {
-        get
-        {
-            if (data is null)
-                return new List<DayGroup>();
+    private static string? PendingClass(LedgerItem item) => item.Status == LedgerStatus.Pending ? "exp-row--pending" : null;
 
-            var today = DateProvider.Today;
-            return data.Items
-                .Where(i => categoryFilter == 0 || i.CategoryId == categoryFilter)
-                .Where(i => typeFilter switch
-                {
-                    TypeFilter.OneTime => i.Source == LedgerSource.OneTimeExpense,
-                    TypeFilter.Recurring => i.Source == LedgerSource.RecurringExpense,
-                    _ => true
-                })
-                .GroupBy(i => i.Date)
-                .OrderByDescending(g => g.Key)
-                .Select(g => new DayGroup
-                {
-                    Heading = UiLabels.DayHeading(g.Key, today),
-                    Total = g.Sum(i => i.AmountInBase),
-                    Items = g.ToList()
-                })
-                .ToList();
-        }
-    }
+    // The rows shown after the category and type filters; the list component groups them by day.
+    private List<LedgerItem> VisibleItems => data is null
+        ? new List<LedgerItem>()
+        : data.Items
+            .Where(i => categoryFilter == 0 || i.CategoryId == categoryFilter)
+            .Where(i => typeFilter switch
+            {
+                TypeFilter.OneTime => i.Source == LedgerSource.OneTimeExpense,
+                TypeFilter.Recurring => i.Source == LedgerSource.RecurringExpense,
+                _ => true
+            })
+            .ToList();
 
     protected override async Task OnParametersSetAsync()
     {

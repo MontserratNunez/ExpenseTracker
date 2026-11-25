@@ -260,6 +260,7 @@ public class GoalService
         goal.TargetAmount = input.TargetAmount;
         goal.Period = input.Period;
         goal.CategoryId = input.CategoryId;
+        goal.Icon = string.IsNullOrWhiteSpace(input.Icon) ? null : input.Icon.Trim();
 
         switch (input.Period)
         {
@@ -288,6 +289,7 @@ public class GoalService
         StartDate = goal.StartDate,
         EndDate = goal.EndDate,
         CategoryId = goal.CategoryId,
-        CategoryName = categoryName
+        CategoryName = categoryName,
+        Icon = goal.Icon
     };
 }

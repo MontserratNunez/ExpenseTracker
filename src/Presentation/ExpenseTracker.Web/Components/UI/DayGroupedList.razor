@@ -1,0 +1,76 @@
+@typeparam TItem
+@using ExpenseTracker.Core.Application.Interfaces
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+@inject IDateProvider DateProvider
+
+@* A list grouped by day: "Hoy", "Ayer" or "lunes 16 nov" as the heading, the day total on the right and one row per
+   item. The latest day comes first. Shared by Gastos and Ingresos so both read the same way. *@
+<div class="exp-list">
+    @foreach (var group in Groups)
+    {
+        <section class="exp-day" aria-label="@group.Heading">
+            <header class="exp-day__head">
+                <h2>@group.Heading</h2>
+                <span class="exp-day__total"><MoneyText Amount="group.Total" Currency="Currency" /></span>
+            </header>
+            <ul class="exp-rows">
+                @foreach (var item in group.Items)
+                {
+                    <li class="exp-row @RowClass?.Invoke(item)">
+                        @ItemTemplate(item)
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</div>
+
+@code {
+    private sealed class Group
+    {
+        public string Heading { get; init; } = string.Empty;
+        public decimal Total { get; init; }
+        public List<TItem> Items { get; init; } = new();
+    }
+
+    [Parameter, EditorRequired]
+    public IEnumerable<TItem> Items { get; set; } = Array.Empty<TItem>();
+
+    [Parameter, EditorRequired]
+    public Func<TItem, DateOnly> DateOf { get; set; } = default!;
+
+    /// <summary>The amount of an item in the base currency, added up for the day total.</summary>
+    [Parameter, EditorRequired]
+    public Func<TItem, decimal> AmountOf { get; set; } = default!;
+
+    /// <summary>The base currency, for the day totals.</summary>
+    [Parameter]
+    public Currency Currency { get; set; } = Currency.DOP;
+
+    /// <summary>The content of one row (the whole row except the list item itself).</summary>
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> ItemTemplate { get; set; } = default!;
+
+    /// <summary>Extra CSS class for a row, e.g. to mute pending items.</summary>
+    [Parameter]
+    public Func<TItem, string?>? RowClass { get; set; }
+
+    private List<Group> Groups
+    {
+        get
+        {
+            var today = DateProvider.Today;
+            return Items
+                .GroupBy(DateOf)
+                .OrderByDescending(g => g.Key)
+                .Select(g => new Group
+                {
+                    Heading = UiLabels.DayHeading(g.Key, today),
+                    Total = g.Sum(AmountOf),
+                    Items = g.ToList()
+                })
+                .ToList();
+        }
+    }
+}

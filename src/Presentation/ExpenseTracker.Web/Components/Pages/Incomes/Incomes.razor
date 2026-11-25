@@ -10,30 +10,44 @@
 
 <PageTitle>Ingresos</PageTitle>
 
-<PageHeader Title="Ingresos" />
+<PageHeader Title="Ingresos">
+    <Actions>
+        @if (tab == Tab.Recurring)
+        {
+            <AppButton OnClick="StartCreateSource" Icon="@Icons.Add" Disabled="@loading">Nueva fuente</AppButton>
+        }
+        else
+        {
+            <AppButton OnClick="StartCreateOneTime" Icon="@Icons.Add" Disabled="@loading">Nuevo ingreso</AppButton>
+        }
+    </Actions>
+</PageHeader>
 
-<ul class="nav nav-tabs mb-3">
-    <li class="nav-item">
-        <button type="button" class="nav-link @(tab == Tab.Recurring ? "active" : null)" @onclick="() => tab = Tab.Recurring">Fuentes recurrentes</button>
-    </li>
-    <li class="nav-item">
-        <button type="button" class="nav-link @(tab == Tab.OneTime ? "active" : null)" @onclick="() => tab = Tab.OneTime">Ingresos únicos</button>
-    </li>
-</ul>
+<div class="tabs" role="tablist" aria-label="Tipo de ingreso" @onkeydown="OnTabKeyDown">
+    <button type="button" role="tab" id="tab-recurring" class="tabs__tab @(tab == Tab.Recurring ? "tabs__tab--active" : null)"
+            aria-selected="@(tab == Tab.Recurring ? "true" : "false")" aria-controls="income-panel" tabindex="@(tab == Tab.Recurring ? 0 : -1)"
+            @onclick="() => tab = Tab.Recurring">Fuentes recurrentes</button>
+    <button type="button" role="tab" id="tab-onetime" class="tabs__tab @(tab == Tab.OneTime ? "tabs__tab--active" : null)"
+            aria-selected="@(tab == Tab.OneTime ? "true" : "false")" aria-controls="income-panel" tabindex="@(tab == Tab.OneTime ? 0 : -1)"
+            @onclick="() => tab = Tab.OneTime">Ingresos únicos</button>
+</div>
 
 <ErrorAlert @bind-Message="error" />
 <SuccessToast Message="@message" />
 
+<div id="income-panel" role="tabpanel" aria-labelledby="@(tab == Tab.Recurring ? "tab-recurring" : "tab-onetime")">
 @if (loading)
 {
-    <Skeleton Lines="4" Height="2.5rem" />
+    <Skeleton Lines="4" Height="3rem" />
 }
 else if (tab == Tab.Recurring)
 {
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h5 mb-0">Fuentes recurrentes</h2>
-        <button type="button" class="btn btn-primary" @onclick="StartCreateSource"><AppIcon Name="@Icons.Add" Size="16" /> Nueva fuente</button>
-    </div>
+    @if (recurringTotal is not null)
+    {
+        <div class="income-total">
+            <StatCard Label="Total mensual equivalente" Amount="recurringTotal.Value" Currency="baseCurrency" Large="true" Tone="StatCard.StatTone.Available" />
+        </div>
+    }
 
     @if (sources.Count == 0)
     {
@@ -43,102 +57,75 @@ else if (tab == Tab.Recurring)
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr><th>Nombre</th><th class="text-end">Monto</th><th>Frecuencia</th><th>Estado</th><th></th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var source in sources)
-                    {
-                        var s = source;
-                        <tr class="@(s.IsActive ? null : "text-muted")">
-                            <td>@s.Name</td>
-                            <td class="text-end"><MoneyText Amount="s.Amount" Currency="s.Currency" /></td>
-                            <td>@UiLabels.FrequencyName(s.Frequency)</td>
-                            <td>@SourceStatus(s)</td>
-                            <td class="text-end text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => StartEditSource(s)">Editar</button>
-                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => AskDeleteSource(s)">Eliminar</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-                <tfoot>
-                    <tr class="fw-bold">
-                        <td colspan="2" class="text-end">Total mensual equivalente</td>
-                        <td colspan="3">
-                            @if (recurringTotal is not null)
-                            {
-                                <MoneyText Amount="recurringTotal.Value" Currency="baseCurrency" />
-                            }
-                            else
-                            {
-                                <span class="text-muted">No disponible</span>
-                            }
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+        <div class="income-grid">
+            @foreach (var source in sources)
+            {
+                var s = source;
+                var status = SourceStatus(s);
+                <article class="card-app income-card @(status.Active ? null : "income-card--muted")">
+                    <header class="income-card__head">
+                        <h2>@s.Name</h2>
+                        <DropdownMenu AriaLabel="@($"Acciones de {s.Name}")" Items="SourceMenu(s)" />
+                    </header>
+                    <div class="income-card__amount"><MoneyText Amount="s.Amount" Currency="s.Currency" /></div>
+                    <div class="income-card__meta">
+                        <Badge Tone="Badge.BadgeTone.Blue" Icon="@Icons.Recurring">@UiLabels.FrequencyName(s.Frequency)</Badge>
+                        <Badge Tone="status.Tone" Icon="@status.Icon">@status.Text</Badge>
+                    </div>
+                </article>
+            }
         </div>
     }
 }
 else
 {
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="income-month">
         <MonthNavigator Year="year" Month="month" OnChange="OnMonthChanged" />
-        <button type="button" class="btn btn-primary" @onclick="StartCreateOneTime"><AppIcon Name="@Icons.Add" Size="16" /> Nuevo ingreso</button>
+        @if (monthly is not null)
+        {
+            <p class="income-month__total">
+                Ingresos de @UiLabels.MonthName(month).ToLower() @year:
+                <strong><MoneyText Amount="monthly.Total" Currency="baseCurrency" /></strong>
+                <span class="text-muted">
+                    (recurrentes <MoneyText Amount="monthly.RecurringTotal" Currency="baseCurrency" /> +
+                    únicos <MoneyText Amount="monthly.OneTimeTotal" Currency="baseCurrency" />)
+                </span>
+            </p>
+        }
     </div>
-
-    @if (monthly is not null)
-    {
-        <div class="alert alert-light border">
-            Ingresos de @UiLabels.MonthName(month) @year:
-            <strong><MoneyText Amount="monthly.Total" Currency="baseCurrency" /></strong>
-            <span class="text-muted">
-                (recurrentes <MoneyText Amount="monthly.RecurringTotal" Currency="baseCurrency" /> +
-                únicos <MoneyText Amount="monthly.OneTimeTotal" Currency="baseCurrency" />)
-            </span>
-        </div>
-    }
 
     @if (oneTime.Count == 0)
     {
-        <EmptyState Icon="@Icons.EmptyIncomes" Title="No hay ingresos únicos en este mes" />
+        <EmptyState Icon="@Icons.EmptyIncomes" Title="No hay ingresos únicos en este mes" Description="Un bono o un pago extra cuenta solo en el mes en que lo recibes.">
+            <Action><AppButton OnClick="StartCreateOneTime" Icon="@Icons.Add">Nuevo ingreso</AppButton></Action>
+        </EmptyState>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr><th>#</th><th>Fecha</th><th>Descripción</th><th class="text-end">Monto</th><th></th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var income in oneTime)
-                    {
-                        var i = income;
-                        <tr>
-                            <td class="text-muted">Ingreso #@i.Id</td>
-                            <td>@i.Date.ToString("d")</td>
-                            <td>@i.Description</td>
-                            <td class="text-end">
-                                <MoneyText Amount="i.Amount" Currency="i.Currency" />
-                                @if (i.Currency != baseCurrency)
-                                {
-                                    <small class="text-muted">(<MoneyText Amount="i.AmountInBase" Currency="baseCurrency" />)</small>
-                                }
-                            </td>
-                            <td class="text-end text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => StartEditOneTime(i)">Editar</button>
-                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => AskDeleteOneTime(i)">Eliminar</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+        <DayGroupedList TItem="OneTimeIncomeDto" Items="oneTime" DateOf="i => i.Date" AmountOf="i => i.AmountInBase" Currency="baseCurrency">
+            <ItemTemplate Context="i">
+                <button type="button" class="exp-row__main" @onclick="() => StartEditOneTime(i)">
+                    <span class="income-disc" aria-hidden="true"><AppIcon Name="@Icons.Incomes" Size="16" /></span>
+                    <span class="exp-row__text">
+                        <span class="exp-row__name">@i.Description</span>
+                        <span class="exp-row__category">Ingreso #@i.Id</span>
+                    </span>
+                    <span class="exp-row__amount">
+                        <MoneyText Amount="i.Amount" Currency="i.Currency" />
+                        @if (i.Currency != baseCurrency)
+                        {
+                            <span class="exp-row__converted">(<MoneyText Amount="i.AmountInBase" Currency="baseCurrency" />)</span>
+                        }
+                    </span>
+                </button>
+                <div class="exp-row__menu">
+                    <DropdownMenu AriaLabel="Más acciones" Items="OneTimeMenu(i)" />
+                </div>
+            </ItemTemplate>
+        </DayGroupedList>
     }
 }
+</div>
 
 <IncomeSourceForm Visible="showSourceForm" Title="@(editingSourceId is null ? "Nueva fuente de ingreso" : "Editar fuente de ingreso")"
                   Model="sourceInput" Error="@formError" OnSave="SaveSourceAsync" OnCancel="CloseForms" />
@@ -215,13 +202,32 @@ else
         await RunAsync(LoadAsync);
     }
 
-    private string SourceStatus(IncomeSourceDto s)
+    private (string Text, Badge.BadgeTone Tone, string? Icon, bool Active) SourceStatus(IncomeSourceDto s)
     {
         var today = DateProvider.Today;
-        if (!s.IsActive) return "Inactiva";
-        if (s.EndDate is not null && s.EndDate < today) return "Finalizada";
-        if (s.StartDate > today) return "Pendiente de inicio";
-        return "Activa";
+        if (!s.IsActive) return ("Inactiva", Badge.BadgeTone.Gray, null, false);
+        if (s.EndDate is not null && s.EndDate < today) return ("Finalizada", Badge.BadgeTone.Gray, null, false);
+        if (s.StartDate > today) return ("Pendiente de inicio", Badge.BadgeTone.Amber, Icons.Pending, true);
+        return ("Activa", Badge.BadgeTone.Green, Icons.Paid, true);
+    }
+
+    private IReadOnlyList<DropdownMenuItem> SourceMenu(IncomeSourceDto s) => new[]
+    {
+        new DropdownMenuItem("Editar", Icons.Edit, EventCallback.Factory.Create(this, () => StartEditSource(s))),
+        new DropdownMenuItem("Eliminar", Icons.Delete, EventCallback.Factory.Create(this, () => AskDeleteSource(s)), danger: true)
+    };
+
+    private IReadOnlyList<DropdownMenuItem> OneTimeMenu(OneTimeIncomeDto i) => new[]
+    {
+        new DropdownMenuItem("Editar", Icons.Edit, EventCallback.Factory.Create(this, () => StartEditOneTime(i))),
+        new DropdownMenuItem("Eliminar", Icons.Delete, EventCallback.Factory.Create(this, () => AskDeleteOneTime(i)), danger: true)
+    };
+
+    // Left and right arrows move between the two tabs, as the tab pattern expects.
+    private void OnTabKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "ArrowLeft" or "ArrowRight")
+            tab = tab == Tab.Recurring ? Tab.OneTime : Tab.Recurring;
     }
 
     // ---------- Recurring sources ----------

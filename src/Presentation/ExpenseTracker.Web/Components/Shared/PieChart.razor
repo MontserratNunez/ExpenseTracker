@@ -27,6 +27,7 @@
             {
                 <div class="donut__label">@CenterLabel</div>
             }
+            @CenterContent
         </div>
     </div>
 
@@ -62,6 +63,10 @@
     /// <summary>Main text in the center, e.g. "RD$ 21,300.00".</summary>
     [Parameter]
     public string? CenterValue { get; set; }
+
+    /// <summary>Free content in the center, for example an icon.</summary>
+    [Parameter]
+    public RenderFragment? CenterContent { get; set; }
 
     /// <summary>Diameter in pixels.</summary>
     [Parameter]

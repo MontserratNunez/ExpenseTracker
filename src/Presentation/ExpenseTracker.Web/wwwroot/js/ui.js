@@ -171,3 +171,16 @@ export function focusMain(id) {
   el.scrollIntoView();
   el.focus({ preventScroll: true });
 }
+
+// A celebration (confetti) plays once per key: the first call returns true and remembers it in localStorage.
+// If storage is blocked it returns false, so nothing is ever repeated.
+export function claimCelebration(key) {
+  try {
+    const name = 'celebrated:' + key;
+    if (localStorage.getItem(name)) return false;
+    localStorage.setItem(name, '1');
+    return true;
+  } catch {
+    return false;
+  }
+}

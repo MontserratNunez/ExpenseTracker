@@ -12,6 +12,7 @@ public class GoalConfiguration : IEntityTypeConfiguration<Goal>
         builder.Property(e => e.Name).IsRequired().HasMaxLength(100);
         builder.Property(e => e.TargetAmount).HasPrecision(18, 2);
         builder.Property(e => e.Period).HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.Icon).HasMaxLength(50);
 
         builder.HasOne(e => e.Category)
             .WithMany()

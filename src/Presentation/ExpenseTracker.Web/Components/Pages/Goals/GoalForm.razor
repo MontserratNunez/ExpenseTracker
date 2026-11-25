@@ -35,6 +35,8 @@
                 </div>
             }
 
+            <IconPicker Label="Ícono" @bind-Value="Model.Icon" />
+
             <AppSelect TValue="int" Label="Categoría vinculada" @bind-Value="Model.CategoryId"
                        Hint="El progreso es lo que gastas (aportas) en esta categoría durante el periodo.">
                 <option value="0">Seleccione...</option>

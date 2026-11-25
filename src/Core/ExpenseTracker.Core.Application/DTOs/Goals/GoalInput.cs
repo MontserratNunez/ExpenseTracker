@@ -34,4 +34,9 @@ public class GoalInput
     [Range(1, int.MaxValue, ErrorMessage = "Seleccione la categoría vinculada.")]
     [Display(Name = "Categoría")]
     public int CategoryId { get; set; }
+
+    /// <summary>Bootstrap Icons name, picked from a curated list in the form. Optional.</summary>
+    [StringLength(50, ErrorMessage = "El ícono no es válido.")]
+    [Display(Name = "Ícono")]
+    public string? Icon { get; set; }
 }

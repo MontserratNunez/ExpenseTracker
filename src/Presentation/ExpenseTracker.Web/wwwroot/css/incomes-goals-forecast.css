@@ -1,0 +1,164 @@
+/* Ingresos, Metas y Estimaciones. */
+
+/* ---------- Tabs (Ingresos) ---------- */
+.tabs { display: flex; gap: var(--space-1); margin-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); }
+.tabs__tab {
+  position: relative;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: 500 var(--text-base)/1.4 var(--font-sans);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease);
+}
+.tabs__tab:hover { color: var(--color-text); }
+.tabs__tab--active { color: var(--color-primary-700); }
+.tabs__tab--active::after {
+  content: "";
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-primary-500);
+}
+.tabs__tab:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* ---------- Ingresos ---------- */
+.income-total { max-width: 22rem; margin-bottom: var(--space-6); }
+.income-grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); }
+.income-card { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-5); }
+.income-card--muted .income-card__amount, .income-card--muted h2 { color: var(--color-text-muted); }
+.income-card__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.income-card__head h2 { min-width: 0; margin: 0; overflow: hidden; font-size: var(--text-base); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.income-card__amount { font-size: var(--text-xl); font-weight: 600; letter-spacing: -.01em; }
+.income-card__meta { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.income-month { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-6); margin-bottom: var(--space-4); }
+.income-month__total { margin: 0; font-size: var(--text-sm); }
+.income-disc {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-available-bg);
+  color: var(--color-available);
+}
+
+/* ---------- Metas ---------- */
+.goal-grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); }
+.goal-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: var(--space-5) var(--space-6); }
+.goal-card > * { max-width: 100%; }
+.goal-card__top { display: flex; align-items: center; gap: var(--space-4); width: 100%; }
+.goal-card__ring { position: relative; flex: none; width: 72px; height: 72px; }
+.goal-card__title { flex: 1; min-width: 0; }
+.goal-card__title h2 { margin: 0; font-size: var(--text-lg); overflow-wrap: anywhere; }
+.goal-card__title p { margin: var(--space-1) 0 0; font-size: var(--text-xs); color: var(--color-text-muted); }
+.goal-card__amounts { margin: 0; font-weight: 500; }
+.goal-card__need, .goal-card__projection { margin: 0; font-size: var(--text-sm); }
+.goal-card__projection { color: var(--color-text-muted); }
+
+/* Confetti: small blue pieces fly out of the ring once, for 1.2 s. */
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 10px;
+  margin: -5px 0 0 -3px;
+  border-radius: 1px;
+  opacity: 0;
+  animation: confetti-burst 1.2s var(--ease) var(--delay, 0ms) 1 both;
+}
+@keyframes confetti-burst {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x), calc(var(--y) + 24px)) rotate(var(--spin)); }
+}
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+
+/* ---------- Selector de ícono ---------- */
+.icon-picker { margin: 0 0 var(--space-4); padding: 0; border: 0; min-width: 0; }
+.icon-picker__legend { margin-bottom: var(--space-2); padding: 0; font-size: var(--text-sm); font-weight: 500; }
+.icon-picker__grid { display: grid; gap: var(--space-1); grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); }
+.icon-picker__item { position: relative; display: block; cursor: pointer; }
+.icon-picker__input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.icon-picker__face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  transition: background var(--duration-fast) var(--ease);
+}
+.icon-picker__item:hover .icon-picker__face { background: var(--color-bg-hover); color: var(--color-text); }
+.icon-picker__input:checked + .icon-picker__face { background: var(--color-primary-50); border-color: var(--color-primary-500); color: var(--color-primary-700); }
+.icon-picker__input:focus-visible + .icon-picker__face { box-shadow: var(--focus-ring); }
+
+/* ---------- Estimaciones ---------- */
+.forecast-grid { display: grid; gap: var(--space-4); grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 1024px) { .forecast-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.forecast-card { min-width: 0; }
+.forecast-card__caption { margin: var(--space-1) 0 0; font-size: var(--text-xs); color: var(--color-text-muted); }
+.forecast-card__figures { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
+.forecast-card__figures > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.forecast-card__figures dt { font-size: var(--text-sm); color: var(--color-text-muted); }
+.forecast-card__figures dd { display: inline-flex; align-items: center; gap: var(--space-1); margin: 0; font-weight: 600; }
+.forecast-card__balance--positive { color: var(--color-available); }
+.forecast-card__balance--negative { color: var(--color-spent); }
+
+.forecast-card__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary-700);
+  font: 500 var(--text-sm)/1.4 var(--font-sans);
+  cursor: pointer;
+}
+.forecast-card__toggle:hover { background: var(--color-primary-50); }
+.forecast-card__toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.forecast-card__chevron { transition: transform var(--duration-base) var(--ease); }
+.forecast-card__chevron--open { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .forecast-card__chevron { transition: none; } }
+
+.forecast-card__detail { margin-top: var(--space-3); }
+.forecast-card__detail[hidden] { display: none; }
+.forecast-card__detail h3 { margin: var(--space-5) 0 var(--space-2); font-size: var(--text-sm); font-weight: 600; }
+.forecast-card__detail h3:first-child { margin-top: 0; }
+.forecast-card__detail p { margin: 0 0 var(--space-2); font-size: var(--text-sm); }
+
+.forecast-list { margin: 0 0 var(--space-2); padding: 0; list-style: none; font-size: var(--text-sm); }
+.forecast-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-1) 0; }
+.forecast-list__who { display: inline-flex; align-items: center; gap: var(--space-2); }
+.forecast-note { margin: var(--space-2) 0 0; font-size: var(--text-xs); color: var(--color-text-muted); }
+.forecast-table { max-height: 18rem; }
+
+.forecast-chart { margin-top: var(--space-8); }
+.forecast-chart h2 { margin-top: 0; }
+
+/* ---------- BarChart ---------- */
+.bar-chart { margin: 0; }
+.bar-chart__svg { display: block; width: 100%; height: auto; max-height: 20rem; }
+.bar-chart__grid { stroke: var(--color-border); stroke-width: 1; }
+.bar-chart__tick, .bar-chart__label { fill: var(--color-text-muted); font: 400 11px var(--font-sans); }
+.bar-chart__bar rect { fill: var(--color-primary-500); transition: fill var(--duration-fast) var(--ease); }
+.bar-chart__bar:hover rect { fill: var(--color-primary-600); }
+.bar-chart__line { stroke: var(--color-text-muted); stroke-width: 2; stroke-dasharray: 5 4; stroke-linecap: round; stroke-linejoin: round; }
+.bar-chart__legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); }
+.bar-chart__legend > span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.bar-chart__swatch--bar { width: 12px; height: 12px; border-radius: 3px; background: var(--color-primary-500); }
+.bar-chart__swatch--line { width: 18px; height: 0; border-top: 2px dashed var(--color-text-muted); }

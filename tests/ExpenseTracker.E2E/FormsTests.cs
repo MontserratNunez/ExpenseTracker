@@ -37,8 +37,8 @@ public class FormsTests
             await page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Level = 1 }).WaitForAsync();
 
             if (preClick is not null)
-                await Tab.ClickUntilAsync(page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = preClick }),
-                    page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = button }));
+                await Tab.ClickUntilAsync(page.GetByRole(AriaRole.Tab, new PageGetByRoleOptions { Name = preClick }),
+                    page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = button }).First);
 
             var dialog = Dialog(page, title);
             await Tab.ClickUntilAsync(page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = button, Exact = true }).First, dialog);
@@ -125,7 +125,7 @@ public class FormsTests
     }
 
     [E2EFact]
-    public async Task NewIncomeSource_Saves_AndAppearsInTheTable()
+    public async Task NewIncomeSource_Saves_AndAppearsAsACard()
     {
         await using var tab = await Tab.OpenAsync(_app);
         await tab.RegisterAsync();
@@ -143,7 +143,7 @@ public class FormsTests
 
         await Expect(dialog).ToBeHiddenAsync();
         await Expect(page.GetByText("Fuente de ingreso creada.")).ToBeVisibleAsync();
-        var row = page.GetByRole(AriaRole.Row).Filter(new LocatorFilterOptions { HasText = "Sueldo trabajo" });
+        var row = page.Locator(".income-card").Filter(new LocatorFilterOptions { HasText = "Sueldo trabajo" });
         await Expect(row).ToContainTextAsync("RD$ 50,000.00");
         await Expect(row).ToContainTextAsync("Quincenal");
         await tab.ShotAsync("ingresos-con-una-fuente");

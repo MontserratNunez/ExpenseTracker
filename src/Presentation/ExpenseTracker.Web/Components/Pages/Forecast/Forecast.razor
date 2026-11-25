@@ -1,5 +1,6 @@
 @page "/estimaciones"
 @using ExpenseTracker.Core.Application.DTOs.Forecast
+@using ExpenseTracker.Core.Application.Helpers
 @using ExpenseTracker.Core.Application.Interfaces
 @using ExpenseTracker.Core.Application.Services
 @using ExpenseTracker.Core.Domain.Enums
@@ -16,24 +17,29 @@
 
 @if (loading)
 {
-    <Skeleton Lines="4" Height="2.5rem" />
+    <div class="forecast-grid">
+        <Skeleton Height="12rem" />
+        <Skeleton Height="12rem" />
+        <Skeleton Height="12rem" />
+    </div>
 }
 else if (nextMonth is not null && restOfYear is not null && nextYear is not null)
 {
     var today = DateProvider.Today;
     var next = new DateOnly(today.Year, today.Month, 1).AddMonths(1);
 
-    <div class="row g-3">
-        <div class="col-12 col-xl-4">
-            <ForecastCard Title="@($"Próximo mes · {UiLabels.MonthName(next.Month)} {next.Year}")" Data="nextMonth" BaseCurrency="baseCurrency" />
-        </div>
-        <div class="col-12 col-xl-4">
-            <ForecastCard Title="@($"Resto de {today.Year}")" Data="restOfYear" BaseCurrency="baseCurrency" ShowMonths="true" />
-        </div>
-        <div class="col-12 col-xl-4">
-            <ForecastCard Title="@((today.Year + 1).ToString())" Data="nextYear" BaseCurrency="baseCurrency" ShowMonths="true" />
-        </div>
+    <div class="forecast-grid">
+        <ForecastCard Title="@($"Próximo mes · {UiLabels.MonthName(next.Month)} {next.Year}")" Data="nextMonth" BaseCurrency="baseCurrency" />
+        <ForecastCard Title="@($"Resto de {today.Year}")" Data="restOfYear" BaseCurrency="baseCurrency" ShowMonths="true" />
+        <ForecastCard Title="@((today.Year + 1).ToString())" Data="nextYear" BaseCurrency="baseCurrency" ShowMonths="true" />
     </div>
+
+    <section class="forecast-chart" aria-labelledby="forecast-chart-title">
+        <h2 id="forecast-chart-title">Gasto estimado de @(today.Year + 1), mes a mes</h2>
+        <BarChart Bars="Bars" Line="IncomeLine" Currency="baseCurrency" BarsName="Gasto estimado" LineName="Ingreso estimado"
+                  Description="@ChartDescription" />
+        <p class="forecast-note">Las barras son el gasto estimado de cada mes y la línea punteada, el ingreso estimado.</p>
+    </section>
 }
 
 @code {
@@ -43,6 +49,15 @@ else if (nextMonth is not null && restOfYear is not null && nextYear is not null
     private ForecastDto? nextMonth;
     private ForecastDto? restOfYear;
     private ForecastDto? nextYear;
+
+    private List<BarChart.BarPoint> Bars => nextYear!.Months
+        .Select(m => new BarChart.BarPoint { Label = UiLabels.ShortMonthName(m.Month), Value = m.TotalExpenses })
+        .ToList();
+
+    private List<decimal> IncomeLine => nextYear!.Months.Select(m => m.Income).ToList();
+
+    private string ChartDescription
+        => $"Gasto e ingreso estimados de cada mes de {DateProvider.Today.Year + 1}. Gasto total {MoneyFormatter.Format(nextYear!.TotalExpenses, baseCurrency)}, ingreso total {MoneyFormatter.Format(nextYear.ProjectedIncome, baseCurrency)}.";
 
     protected override async Task OnInitializedAsync()
     {

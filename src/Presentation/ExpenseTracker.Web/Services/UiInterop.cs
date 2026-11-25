@@ -51,6 +51,10 @@ public sealed class UiInterop : IAsyncDisposable
     public async Task SubmitFormAsync(string id)
         => await (await Module).InvokeVoidAsync("submitForm", id);
 
+    /// <summary>True the first time it is called for a key (in this browser): the celebration of a goal plays once.</summary>
+    public async Task<bool> ClaimCelebrationAsync(string key)
+        => await (await Module).InvokeAsync<bool>("claimCelebration", key);
+
     public async ValueTask DisposeAsync()
     {
         if (_module is null)
