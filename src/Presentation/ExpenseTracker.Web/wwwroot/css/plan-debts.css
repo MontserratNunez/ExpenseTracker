@@ -1,0 +1,150 @@
+/* Plan and Deudas. */
+
+/* ---------- Plan ---------- */
+.plan-toolbar { margin-bottom: var(--space-4); }
+
+.plan-summary { display: grid; gap: var(--space-4); grid-template-columns: 1fr; margin-bottom: var(--space-6); }
+@media (min-width: 768px) { .plan-summary { grid-template-columns: repeat(2, 1fr); } }
+
+.plan-note { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+.plan-note--over { color: var(--color-spent); }
+.plan-alert { margin-bottom: var(--space-4); }
+
+.plan-list { margin: 0; padding: 0; list-style: none; }
+
+.plan-row {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) minmax(0, 15rem);
+  align-items: center;
+  gap: var(--space-2) var(--space-6);
+  padding: var(--space-4) var(--space-3);
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease);
+}
+.plan-row:first-child { border-top-color: transparent; }
+.plan-row:hover, .plan-row:focus-within { background: var(--color-bg-hover); }
+
+.plan-row__who { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); min-width: 0; }
+.plan-row__assigned { font-size: var(--text-sm); color: var(--color-text-muted); }
+
+.plan-row__edit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: text;
+}
+.plan-row__edit:hover { background: var(--color-primary-50); color: var(--color-primary-700); }
+.plan-row__pencil { opacity: 0; transition: opacity var(--duration-fast) var(--ease); }
+.plan-row:hover .plan-row__pencil, .plan-row__edit:focus-visible .plan-row__pencil { opacity: 1; }
+@media (hover: none) { .plan-row__pencil { opacity: 1; } }
+.plan-row__kind { font-size: var(--text-xs); }
+
+.plan-edit { display: inline-flex; align-items: center; gap: var(--space-2); }
+.plan-edit__input { width: 9rem; text-align: right; font-variant-numeric: tabular-nums; }
+
+.plan-row__status { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); font-weight: 500; }
+.plan-row__status .app-icon { flex: none; }
+.plan-row__error { grid-column: 1 / -1; margin: 0; }
+
+@media (max-width: 767px) {
+  .plan-row { grid-template-columns: 1fr; gap: var(--space-2); }
+}
+
+.plan-legend { margin: var(--space-4) 0 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+.plan-legend kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-xs);
+}
+
+.plan-outside { margin-top: var(--space-8); color: var(--color-text-muted); }
+.plan-outside h2 { margin-top: 0; color: var(--color-text-muted); }
+.plan-outside__row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+
+/* ---------- Deudas ---------- */
+.debt-total { max-width: 22rem; margin-bottom: var(--space-6); }
+.debt-back { margin: 0 0 var(--space-3); font-size: var(--text-sm); }
+.debt-badges { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: calc(var(--space-3) * -1) 0 var(--space-6); }
+
+.debt-grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
+
+.debt-card, .debt-summary { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); }
+.debt-summary { margin-bottom: var(--space-6); }
+.debt-card--closed { border-color: var(--color-available); }
+
+.debt-card__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.debt-card__head h2 { margin: 0; font-size: var(--text-lg); }
+.debt-card__badges { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.debt-card__percent { display: flex; align-items: baseline; gap: var(--space-2); }
+.debt-card__percent-value { font-size: var(--text-display); font-weight: 600; line-height: 1.1; letter-spacing: -.01em; }
+.debt-card__percent-label { font-size: var(--text-sm); color: var(--color-text-muted); }
+.debt-card__paid { margin: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+
+.debt-facts { display: grid; gap: var(--space-2) var(--space-6); grid-template-columns: repeat(2, minmax(0, 1fr)); margin: var(--space-2) 0 0; }
+.debt-facts > div { display: flex; flex-direction: column; }
+.debt-facts dt { font-size: var(--text-sm); color: var(--color-text-muted); }
+.debt-facts dd { margin: 0; font-weight: 500; }
+@media (min-width: 768px) { .debt-facts--wide { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.debt-card__payoff { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--color-primary-700); font-size: var(--text-sm); font-weight: 500; }
+.debt-card__payoff--warn { color: var(--color-warning); }
+.debt-card__foot { margin-top: auto; }
+
+.debt-amort-toggle { margin: var(--space-6) 0 var(--space-3); }
+.debt-alert { margin-bottom: var(--space-3); }
+
+/* Payment history: a clean list, not a table. */
+.payment-list { margin: 0; padding: 0; list-style: none; }
+.payment-row {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease);
+}
+.payment-row:first-child { border-top-color: transparent; }
+.payment-row:hover, .payment-row:focus-within { background: var(--color-bg-hover); }
+.payment-row__date { color: var(--color-text-muted); font-size: var(--text-sm); }
+.payment-row__split { font-size: var(--text-sm); color: var(--color-text-muted); }
+.payment-row__notes { display: block; font-size: var(--text-xs); }
+.payment-row__amount { font-weight: 500; }
+@media (max-width: 767px) {
+  .payment-row { grid-template-columns: minmax(0, 1fr) auto auto; padding-top: var(--space-2); padding-bottom: var(--space-2); }
+  .payment-row__date { grid-column: 1 / -1; }
+  .payment-row__split { grid-column: 1; }
+}
+
+/* Amortization table: soft zebra rows, the current month highlighted and a header that stays while scrolling. */
+.amort { max-height: 28rem; overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.amort__table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--text-sm); }
+.amort__table th, .amort__table td { padding: var(--space-2) var(--space-4); text-align: left; white-space: nowrap; }
+.amort__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+.amort__table .num { text-align: right; }
+.amort__table tbody tr:nth-child(even) { background: var(--color-bg-subtle); }
+.amort__table tbody tr.amort__current { background: var(--color-primary-50); color: var(--color-primary-700); font-weight: 500; }
+.amort__table tbody tr.amort__current .badge-app { margin-left: var(--space-2); }

@@ -9,6 +9,10 @@
         <div class="progress-app__segment @(segment.Striped ? "progress-app__segment--striped" : null)"
              style="width: @Css(segment.Value)%; background-color: var(@segment.ColorVar);"></div>
     }
+    @if (Limit is { } limit)
+    {
+        <div class="progress-app__marker progress-app__marker--limit" style="left: @Css(Math.Clamp(limit, 0m, 100m))%;" title="@LimitLabel"></div>
+    }
     @if (Marker is { } marker)
     {
         <div class="progress-app__marker" style="left: @Css(Math.Clamp(marker, 0m, 100m))%;" title="@MarkerLabel"></div>
@@ -34,6 +38,13 @@
 
     [Parameter]
     public string? MarkerLabel { get; set; }
+
+    /// <summary>Position of a second, dashed line as a percentage of the bar: the limit the amounts are compared with.</summary>
+    [Parameter]
+    public decimal? Limit { get; set; }
+
+    [Parameter]
+    public string? LimitLabel { get; set; }
 
     /// <summary>Describes the value for screen readers, for example "40% pagado".</summary>
     [Parameter, EditorRequired]

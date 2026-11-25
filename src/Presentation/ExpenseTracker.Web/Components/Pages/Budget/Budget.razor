@@ -1,5 +1,6 @@
 @page "/plan"
 @using ExpenseTracker.Core.Application.DTOs.Budget
+@using ExpenseTracker.Core.Application.Helpers
 @using ExpenseTracker.Core.Application.Interfaces
 @using ExpenseTracker.Core.Application.Services
 @using ExpenseTracker.Core.Domain.Enums
@@ -14,7 +15,7 @@
     <Actions><AppButton OnClick="StartEditAsync" Disabled="@loading">Editar plan</AppButton></Actions>
 </PageHeader>
 
-<div class="mb-3">
+<div class="plan-toolbar">
     <MonthNavigator Year="year" Month="month" OnChange="OnMonthChanged" />
 </div>
 
@@ -23,44 +24,37 @@
 
 @if (loading)
 {
-    <Skeleton Lines="4" Height="2.5rem" />
+    <Skeleton Lines="5" Height="3rem" />
 }
 else if (plan is not null)
 {
-    <div class="row g-3 mb-3">
-        <div class="col-6 col-lg-3">
-            <div class="card h-100"><div class="card-body py-2">
-                <div class="text-muted small">Ingresos del mes</div>
-                <div class="fs-5 fw-semibold"><MoneyText Amount="plan.Income" Currency="baseCurrency" /></div>
-            </div></div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card h-100"><div class="card-body py-2">
-                <div class="text-muted small">Asignado</div>
-                <div class="fs-5 fw-semibold">@plan.AssignedPercentOfIncome.ToString("0.#") % de tus ingresos</div>
-                <div class="small @(plan.IsOverAssigned ? "text-danger" : "text-muted")">
-                    Sin asignar: <MoneyText Amount="plan.Unassigned" Currency="baseCurrency" />
-                </div>
-            </div></div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card h-100"><div class="card-body py-2">
-                <div class="text-muted small">Gastado / pendiente</div>
-                <div class="fs-5 fw-semibold"><MoneyText Amount="plan.TotalSpent" Currency="baseCurrency" /></div>
-                <div class="small text-muted">+ <MoneyText Amount="plan.TotalPending" Currency="baseCurrency" /> pendiente</div>
-            </div></div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card h-100"><div class="card-body py-2">
-                <div class="text-muted small">Estimado a fin de mes</div>
-                <div class="fs-5 fw-semibold"><MoneyText Amount="plan.TotalEstimated" Currency="baseCurrency" /></div>
-            </div></div>
-        </div>
+    <div class="plan-summary">
+        <StatCard Label="Asignado" Amount="plan.TotalAssigned" Currency="baseCurrency" Large="true">
+            <p class="plan-note @(plan.IsOverAssigned ? "plan-note--over" : null)">
+                @plan.AssignedPercentOfIncome.ToString("0.#") % de tus ingresos
+                <span aria-hidden="true"><span aria-hidden="true">·</span>nbsp;·<span aria-hidden="true">·</span>nbsp;</span>
+                @if (plan.Unassigned >= 0)
+                {
+                    <span>sin asignar <MoneyText Amount="plan.Unassigned" Currency="baseCurrency" /></span>
+                }
+                else
+                {
+                    <span>de más <MoneyText Amount="-plan.Unassigned" Currency="baseCurrency" /></span>
+                }
+            </p>
+        </StatCard>
+        <StatCard Label="Estimado a fin de mes" Amount="plan.TotalEstimated" Currency="baseCurrency" Large="true">
+            <p class="plan-note">
+                Gastado <MoneyText Amount="plan.TotalSpent" Currency="baseCurrency" />
+                <span aria-hidden="true"><span aria-hidden="true">·</span>nbsp;·<span aria-hidden="true">·</span>nbsp;</span>
+                pendiente <MoneyText Amount="plan.TotalPending" Currency="baseCurrency" />
+            </p>
+        </StatCard>
     </div>
 
     @if (plan.IsOverAssigned)
     {
-        <InlineAlert Tone="InlineAlert.AlertTone.Warning">
+        <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="plan-alert">
             Asignaste más de lo que ingresas este mes:
             <MoneyText Amount="plan.TotalAssigned" Currency="baseCurrency" /> asignados frente a
             <MoneyText Amount="plan.Income" Currency="baseCurrency" /> de ingresos.
@@ -75,78 +69,103 @@ else if (plan is not null)
     }
     else
     {
-        <div class="list-group mb-4">
+        <ul class="plan-list" aria-label="Categorías del plan">
             @foreach (var category in plan.Categories)
             {
                 var c = category;
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                        <div>
-                            <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .8rem; height: .8rem; background-color: @c.CategoryColor;"></span>
-                            <strong>@c.CategoryName</strong>
-                            <span class="badge @HealthBadge(c.Health) ms-1"><AppIcon Name="@HealthIcon(c.Health)" Size="12" /> @HealthLabel(c.Health)</span>
-                        </div>
-                        <div class="text-end small text-nowrap">
-                            <MoneyText Amount="c.Spent + c.Pending" Currency="baseCurrency" /> de
-                            <MoneyText Amount="c.Assigned" Currency="baseCurrency" />
-                            <span class="text-muted">(@(c.AllocationType == AllocationType.PercentageOfIncome ? $"{c.Value:0.##} % de ingreso" : "monto fijo"))</span>
+                var editing = editingCategoryId == c.CategoryId;
+                <li class="plan-row">
+                    <div class="plan-row__who">
+                        <CategoryChip Name="@c.CategoryName" Color="@c.CategoryColor" Icon="@c.CategoryIcon" />
+                        <div class="plan-row__assigned">
+                            @if (editing)
+                            {
+                                var percent = c.AllocationType == AllocationType.PercentageOfIncome;
+                                <span class="plan-edit">
+                                    <input type="text" inputmode="decimal" class="field field--sm plan-edit__input @(editError is null ? null : "invalid")"
+                                           aria-label="@(percent ? $"Porcentaje asignado a {c.CategoryName}" : $"Monto asignado a {c.CategoryName}")"
+                                           aria-describedby="@(editError is null ? null : "plan-edit-error")"
+                                           @ref="editInput" @bind="editText" @bind:event="oninput"
+                                           @onkeydown="OnEditKeyAsync" @onblur="CancelInline" />
+                                    @if (percent)
+                                    {
+                                        <span aria-hidden="true">%</span>
+                                    }
+                                </span>
+                            }
+                            else
+                            {
+                                <button type="button" class="plan-row__edit" @onclick="() => StartInline(c)"
+                                        aria-label="@($"Editar lo asignado a {c.CategoryName}")" title="Clic para editar">
+                                    de <MoneyText Amount="c.Assigned" Currency="baseCurrency" />
+                                    @if (c.AllocationType == AllocationType.PercentageOfIncome)
+                                    {
+                                        <span class="plan-row__kind">(@c.Value.ToString("0.##") % de ingreso)</span>
+                                    }
+                                    <AppIcon Name="@Icons.Edit" Size="12" Class="plan-row__pencil" />
+                                </button>
+                            }
                         </div>
                     </div>
-                    <PlanBar Assigned="c.Assigned" Spent="c.Spent" Pending="c.Pending" Estimated="c.Estimated" Health="c.Health" />
-                    <div class="d-flex flex-wrap justify-content-between gap-2 small mt-1">
+
+                    <ProgressBar Segments="PlanBars.Segments(c)" Marker="PlanBars.EstimateMarker(c)" MarkerLabel="Estimado a fin de mes"
+                                 Limit="PlanBars.LimitMarker(c)" LimitLabel="Límite asignado" Height="8" Label="@PlanBars.Label(c)" />
+
+                    <div class="plan-row__status @PlanBars.HealthClass(c.Health)">
+                        <AppIcon Name="@PlanBars.HealthIcon(c.Health)" Size="16" />
                         <span>
-                            @if (c.Available >= 0)
+                            @if (c.Available < 0)
                             {
-                                <text>Puedes gastar <strong><MoneyText Amount="c.Available" Currency="baseCurrency" /></strong> más</text>
+                                <text>Ya te pasaste por <MoneyText Amount="-c.Available" Currency="baseCurrency" /></text>
+                            }
+                            else if (c.EstimatedOverrun > 0)
+                            {
+                                <text>Te pasarás por ~<MoneyText Amount="c.EstimatedOverrun" Currency="baseCurrency" /></text>
+                            }
+                            else if (c.Health == PlanHealth.Yellow)
+                            {
+                                <text>Cerca del límite</text>
                             }
                             else
                             {
-                                <span class="text-danger">Ya te pasaste por <strong><MoneyText Amount="-c.Available" Currency="baseCurrency" /></strong></span>
-                            }
-                        </span>
-                        <span class="@(c.EstimatedOverrun > 0 ? "text-danger" : "text-muted")">
-                            @if (c.EstimatedOverrun > 0)
-                            {
-                                <text>Te pasarás por ~<MoneyText Amount="c.EstimatedOverrun" Currency="baseCurrency" /> al ritmo actual</text>
-                            }
-                            else
-                            {
-                                <text>Estimado: <MoneyText Amount="c.Estimated" Currency="baseCurrency" /></text>
+                                <MoneyText Amount="c.Available" Currency="baseCurrency" /> <text>disponibles</text>
                             }
                         </span>
                     </div>
-                </div>
+
+                    @if (editing && editError is not null)
+                    {
+                        <p class="plan-row__error validation-message" id="plan-edit-error" role="alert">@editError</p>
+                    }
+                </li>
             }
-        </div>
-        <p class="small text-muted">
-            Barra: <span class="badge text-bg-success">gastado</span>
-            <span class="badge text-bg-secondary">pendiente</span>
-            y la línea negra marca el estimado a fin de mes.
+        </ul>
+        <p class="plan-legend">
+            Barra: gastado (sólido), pendiente (rayado), línea continua el estimado a fin de mes y línea punteada el límite asignado.
+            Haz clic en lo asignado para editarlo: <kbd>Enter</kbd> guarda y <kbd>Esc</kbd> cancela.
         </p>
     }
 
     @if (plan.OutOfPlan.Count > 0)
     {
-        <div class="card">
-            <div class="card-header">Fuera del plan</div>
-            <ul class="list-group list-group-flush">
+        <section class="plan-outside" aria-labelledby="plan-outside-title">
+            <h2 id="plan-outside-title">Fuera del plan</h2>
+            <ul class="home-list">
                 @foreach (var item in plan.OutOfPlan)
                 {
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>
-                            <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .8rem; height: .8rem; background-color: @item.CategoryColor;"></span>@item.CategoryName
-                        </span>
+                    <li class="plan-outside__row">
+                        <CategoryChip Name="@item.CategoryName" Color="@item.CategoryColor" />
                         <span>
                             <MoneyText Amount="item.Spent" Currency="baseCurrency" />
                             @if (item.Pending > 0)
                             {
-                                <span class="text-muted"> + <MoneyText Amount="item.Pending" Currency="baseCurrency" /> pendiente</span>
+                                <span> + <MoneyText Amount="item.Pending" Currency="baseCurrency" /> pendiente</span>
                             }
                         </span>
                     </li>
                 }
             </ul>
-        </div>
+        </section>
     }
 }
 
@@ -168,6 +187,13 @@ else if (plan is not null)
     private AllocationEditorDto? editor;
     private List<AllocationRowDto> editRows = new();
 
+    // Inline edit of one category's assigned value.
+    private int? editingCategoryId;
+    private string editText = string.Empty;
+    private string? editError;
+    private bool focusEdit;
+    private ElementReference editInput;
+
     protected override async Task OnInitializedAsync()
     {
         var today = DateProvider.Today;
@@ -176,6 +202,15 @@ else if (plan is not null)
 
         await RunAsync(LoadAsync);
         loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusEdit)
+        {
+            focusEdit = false;
+            await editInput.FocusAsync();
+        }
     }
 
     private async Task LoadAsync()
@@ -190,31 +225,64 @@ else if (plan is not null)
         month = value.Month;
         message = null;
         error = null;
+        CancelInline();
         loading = true;
         await RunAsync(LoadAsync);
         loading = false;
     }
 
-    private static string HealthBadge(PlanHealth health) => health switch
-    {
-        PlanHealth.Red => "text-bg-danger",
-        PlanHealth.Yellow => "text-bg-warning",
-        _ => "text-bg-success"
-    };
+    // ---------- Inline edit ----------
 
-    private static string HealthLabel(PlanHealth health) => health switch
+    private void StartInline(CategoryPlanDto category)
     {
-        PlanHealth.Red => "Excedido",
-        PlanHealth.Yellow => "Al límite",
-        _ => "En camino"
-    };
+        error = null;
+        message = null;
+        editError = null;
+        editingCategoryId = category.CategoryId;
+        // A percentage is edited as a percentage, an amount as an amount.
+        editText = category.AllocationType == AllocationType.PercentageOfIncome
+            ? category.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
+            : MoneyParser.Format(category.Value);
+        focusEdit = true;
+    }
 
-    private static string HealthIcon(PlanHealth health) => health switch
+    private void CancelInline()
     {
-        PlanHealth.Red => Icons.Exceeded,
-        PlanHealth.Yellow => Icons.AtRisk,
-        _ => Icons.OnTrack
-    };
+        editingCategoryId = null;
+        editError = null;
+    }
+
+    private async Task OnEditKeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            CancelInline();
+        else if (e.Key == "Enter")
+            await SaveInlineAsync();
+    }
+
+    private async Task SaveInlineAsync()
+    {
+        if (editingCategoryId is not { } categoryId)
+            return;
+
+        if (!MoneyParser.TryParse(editText, out var value, out var parseError))
+        {
+            editError = parseError;
+            return;
+        }
+
+        try
+        {
+            await BudgetService.SetValueAsync(categoryId, value);
+            CancelInline();
+            message = "Plan guardado.";
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            editError = ex.Message;
+        }
+    }
 
     // ---------- Edit plan ----------
 
@@ -223,6 +291,7 @@ else if (plan is not null)
         error = null;
         message = null;
         formError = null;
+        CancelInline();
         await RunAsync(async () =>
         {
             editor = await BudgetService.GetEditorAsync();

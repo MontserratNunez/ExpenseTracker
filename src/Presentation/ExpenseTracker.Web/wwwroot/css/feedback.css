@@ -148,3 +148,10 @@
 .inline-alert--warning .inline-alert__icon { color: var(--color-warning-strong); }
 .inline-alert--danger { background: var(--color-spent-bg); }
 .inline-alert--danger .inline-alert__icon { color: var(--color-spent-strong); }
+
+/* A dashed line for a limit, next to the solid marker of an estimate. */
+.progress-app__marker--limit {
+  width: 0;
+  background: none;
+  border-left: 2px dashed var(--color-text-muted);
+}

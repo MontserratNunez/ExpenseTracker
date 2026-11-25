@@ -137,7 +137,7 @@ else if (data is not null)
                             <li>
                                 <div class="meter__head">
                                     <span class="meter__name">
-                                        <AppIcon Name="@HealthIcon(category.Health)" Size="14" Class="@HealthClass(category.Health)" />
+                                        <AppIcon Name="@PlanBars.HealthIcon(category.Health)" Size="14" Class="@PlanBars.HealthClass(category.Health)" />
                                         @category.CategoryName
                                     </span>
                                     <span class="meter__figures">
@@ -145,9 +145,9 @@ else if (data is not null)
                                         <MoneyText Amount="category.Assigned" Currency="baseCurrency" />
                                     </span>
                                 </div>
-                                <ProgressBar Segments="PlanSegments(category)" Marker="PlanMarker(category)" MarkerLabel="Estimado a fin de mes"
-                                             Height="6" Label="@PlanLabel(category)" />
-                                <span class="sr-only">@HealthText(category.Health)</span>
+                                <ProgressBar Segments="PlanBars.Segments(category)" Marker="PlanBars.EstimateMarker(category)" MarkerLabel="Estimado a fin de mes" Limit="PlanBars.LimitMarker(category)" LimitLabel="Límite asignado"
+                                             Height="6" Label="@PlanBars.Label(category)" />
+                                <span class="sr-only">@PlanBars.HealthText(category.Health)</span>
                             </li>
                         }
                     </ul>
@@ -244,51 +244,6 @@ else if (data is not null)
 
         loading = false;
     }
-
-    // Spent (solid), pending (striped) and the month-end estimate (marker), all on the same scale.
-    private static decimal Scale(CategoryPlanDto c) => Math.Max(Math.Max(c.Assigned, c.Spent + c.Pending), c.Estimated);
-
-    private static decimal Share(CategoryPlanDto c, decimal value)
-        => Scale(c) <= 0 ? 0m : Math.Clamp(value / Scale(c) * 100m, 0m, 100m);
-
-    private static IReadOnlyList<ProgressSegment> PlanSegments(CategoryPlanDto c) => new[]
-    {
-        new ProgressSegment { Value = Share(c, c.Spent), ColorVar = HealthVar(c.Health) },
-        new ProgressSegment { Value = Share(c, c.Pending), ColorVar = "--color-committed", Striped = true }
-    };
-
-    private static decimal? PlanMarker(CategoryPlanDto c) => c.Estimated > 0 ? Share(c, c.Estimated) : null;
-
-    private static string PlanLabel(CategoryPlanDto c)
-        => $"{c.CategoryName}: gastado {c.Spent:N2}, pendiente {c.Pending:N2}, estimado {c.Estimated:N2} de {c.Assigned:N2} asignados";
-
-    private static string HealthVar(PlanHealth health) => health switch
-    {
-        PlanHealth.Red => "--color-spent",
-        PlanHealth.Yellow => "--color-warning",
-        _ => "--color-available"
-    };
-
-    private static string HealthIcon(PlanHealth health) => health switch
-    {
-        PlanHealth.Red => Icons.Exceeded,
-        PlanHealth.Yellow => Icons.AtRisk,
-        _ => Icons.OnTrack
-    };
-
-    private static string HealthClass(PlanHealth health) => health switch
-    {
-        PlanHealth.Red => "meter__state--over",
-        PlanHealth.Yellow => "meter__state--risk",
-        _ => "meter__state--ok"
-    };
-
-    private static string HealthText(PlanHealth health) => health switch
-    {
-        PlanHealth.Red => "Excedido",
-        PlanHealth.Yellow => "Cerca del límite",
-        _ => "En plan"
-    };
 
     private static string GoalBar(GoalState state) => state switch
     {

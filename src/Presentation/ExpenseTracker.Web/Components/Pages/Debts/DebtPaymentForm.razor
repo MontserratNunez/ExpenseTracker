@@ -1,7 +1,7 @@
 @using ExpenseTracker.Core.Application.DTOs.Debts
 @using ExpenseTracker.Core.Domain.Enums
 
-<AppModal IsOpen="Visible" Title="Registrar pago" OnClose="OnCancel">
+<SidePanel IsOpen="Visible" Title="Registrar pago" OnClose="OnCancel">
     <EditForm Model="Model" OnValidSubmit="OnSave" FormName="debt-payment-form">
         <OverlayBody>
             <DataAnnotationsValidator />
@@ -19,7 +19,7 @@
             <AppButton Type="submit">Registrar</AppButton>
         </OverlayFooter>
     </EditForm>
-</AppModal>
+</SidePanel>
 
 @code {
     [Parameter]

@@ -77,6 +77,28 @@ public class BudgetService
         await _allocations.DeleteAsync(entity);
     }
 
+    /// <summary>
+    /// Changes only the amount or percentage of a category already in the plan (the inline edit of the Plan page),
+    /// keeping its type and income source. To remove a category from the plan use the plan editor.
+    /// </summary>
+    public async Task<BudgetAllocation> SetValueAsync(int categoryId, decimal value)
+    {
+        var entity = (await _allocations.ListAsync(a => a.CategoryId == categoryId)).FirstOrDefault()
+            ?? throw new InvalidOperationException("Esa categoría no está en el plan.");
+
+        await ValidateAsync(new AllocationInput
+        {
+            CategoryId = categoryId,
+            AllocationType = entity.AllocationType,
+            Value = value,
+            IncomeSourceId = entity.IncomeSourceId
+        });
+
+        entity.Value = value;
+        await _allocations.UpdateAsync(entity);
+        return entity;
+    }
+
     /// <summary>Data for the "Edit plan" table: every category with its allocation (value 0 = none).</summary>
     public async Task<AllocationEditorDto> GetEditorAsync()
     {
@@ -204,6 +226,7 @@ public class BudgetService
                 CategoryId = category.Id,
                 CategoryName = category.Name,
                 CategoryColor = category.Color,
+                CategoryIcon = category.Icon,
                 AllocationType = allocation.AllocationType,
                 Value = allocation.Value,
                 IncomeSourceId = allocation.IncomeSourceId,

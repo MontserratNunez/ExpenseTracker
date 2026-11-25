@@ -11,14 +11,14 @@
 
 <PageTitle>@(detail?.Debt.Name ?? "Deuda")</PageTitle>
 
-<p class="mb-2"><a href="/deudas"><AppIcon Name="@Icons.Previous" Size="14" /> Volver a deudas</a></p>
+<p class="debt-back"><a href="/deudas"><AppIcon Name="@Icons.Previous" Size="14" /> Volver a deudas</a></p>
 
 <ErrorAlert @bind-Message="error" />
 <SuccessToast Message="@message" />
 
 @if (loading)
 {
-    <Skeleton Lines="4" Height="2.5rem" />
+    <Skeleton Lines="4" Height="3rem" />
 }
 else if (detail is not null)
 {
@@ -31,7 +31,7 @@ else if (detail is not null)
             <AppButton Variant="AppButton.ButtonVariant.Danger" OnClick="() => confirmDeleteDebt = true">Eliminar</AppButton>
         </Actions>
     </PageHeader>
-    <div class="mb-3">
+    <div class="debt-badges">
         <Badge Tone="Badge.BadgeTone.Gray">@UiLabels.DebtTypeName(d.DebtType)</Badge>
         @if (d.IsClosed)
         {
@@ -39,85 +39,83 @@ else if (detail is not null)
         }
     </div>
 
-    <div class="card mb-4">
-        <div class="card-body">
-            <ProgressBar Percent="d.PaidPercent" Label="@($"{d.PaidPercent:0.#}% pagado")" Height="8" />
-            <div class="d-flex justify-content-between small text-muted mt-1 mb-3">
-                <span>@d.PaidPercent.ToString("0.#")% pagado</span>
-                <span><MoneyText Amount="d.PaidAmount" Currency="d.Currency" /> de <MoneyText Amount="d.OriginalAmount" Currency="d.Currency" /></span>
-            </div>
-
-            <dl class="row mb-0">
-                <dt class="col-sm-3 fw-normal text-muted">Saldo pendiente</dt>
-                <dd class="col-sm-3 fw-semibold"><MoneyText Amount="d.RemainingBalance" Currency="d.Currency" /></dd>
-                <dt class="col-sm-3 fw-normal text-muted">Cuota mensual</dt>
-                <dd class="col-sm-3"><MoneyText Amount="d.MonthlyPayment" Currency="d.Currency" /></dd>
-
-                <dt class="col-sm-3 fw-normal text-muted">Tasa anual</dt>
-                <dd class="col-sm-3">@d.AnnualInterestRate.ToString("0.##")%</dd>
-                <dt class="col-sm-3 fw-normal text-muted">Día de pago</dt>
-                <dd class="col-sm-3">@d.PaymentDay</dd>
-
-                <dt class="col-sm-3 fw-normal text-muted">Inicio</dt>
-                <dd class="col-sm-3">@d.StartDate.ToString("d")</dd>
-                <dt class="col-sm-3 fw-normal text-muted">Plazo</dt>
-                <dd class="col-sm-3">@(d.TermMonths is null ? "—" : $"{d.TermMonths} meses")</dd>
-
-                @if (!d.IsClosed)
-                {
-                    <dt class="col-sm-3 fw-normal text-muted">Próximo pago</dt>
-                    <dd class="col-sm-3">@(d.NextPaymentDate is null ? "—" : d.NextPaymentDate.Value.ToString("d"))</dd>
-                    <dt class="col-sm-3 fw-normal text-muted">Saldo estimado</dt>
-                    <dd class="col-sm-3">
-                        @if (d.EstimatedPayoffDate is not null)
-                        {
-                            @UiLabels.MonthYear(d.EstimatedPayoffDate.Value)
-                        }
-                        else
-                        {
-                            <span class="text-warning-emphasis">No se salda con la cuota actual</span>
-                        }
-                    </dd>
-                }
-            </dl>
+    <section class="card-app debt-summary" aria-label="Resumen de la deuda">
+        <div class="debt-card__percent">
+            <span class="debt-card__percent-value money">@d.PaidPercent.ToString("0.#") %</span>
+            <span class="debt-card__percent-label">pagado</span>
         </div>
-    </div>
+        <ProgressBar Percent="d.PaidPercent" Label="@($"{d.PaidPercent:0.#}% pagado")" Height="8" />
+        <p class="debt-card__paid">
+            <MoneyText Amount="d.PaidAmount" Currency="d.Currency" /> de <MoneyText Amount="d.OriginalAmount" Currency="d.Currency" />
+        </p>
 
-    <h2 class="h5">Historial de pagos</h2>
+        <dl class="debt-facts debt-facts--wide">
+            <div><dt>Saldo pendiente</dt><dd><MoneyText Amount="d.RemainingBalance" Currency="d.Currency" /></dd></div>
+            <div><dt>Cuota mensual</dt><dd><MoneyText Amount="d.MonthlyPayment" Currency="d.Currency" /></dd></div>
+            <div><dt>Tasa anual</dt><dd>@d.AnnualInterestRate.ToString("0.##") %</dd></div>
+            <div><dt>Día de pago</dt><dd>@d.PaymentDay</dd></div>
+            <div><dt>Inicio</dt><dd>@d.StartDate.ToString("d")</dd></div>
+            <div><dt>Plazo</dt><dd>@(d.TermMonths is null ? "—" : $"{d.TermMonths} meses")</dd></div>
+            @if (!d.IsClosed)
+            {
+                <div><dt>Próximo pago</dt><dd>@(d.NextPaymentDate is null ? "—" : d.NextPaymentDate.Value.ToString("d"))</dd></div>
+            }
+        </dl>
+
+        <p class="debt-card__payoff @(d.IsClosed || d.EstimatedPayoffDate is not null ? null : "debt-card__payoff--warn")">
+            @if (d.IsClosed)
+            {
+                <AppIcon Name="@Icons.Paid" Size="16" />
+                <span>Deuda saldada</span>
+            }
+            else if (d.EstimatedPayoffDate is not null)
+            {
+                <AppIcon Name="@Icons.CalendarCheck" Size="16" />
+                <span>Libre de deuda en @UiLabels.MonthYear(d.EstimatedPayoffDate.Value)</span>
+            }
+            else
+            {
+                <AppIcon Name="@Icons.AtRisk" Size="16" />
+                <span>No se salda con la cuota actual</span>
+            }
+        </p>
+    </section>
+
+    <h2>Historial de pagos</h2>
     @if (detail.Payments.Count == 0)
     {
         <EmptyState Icon="@Icons.Paid" Title="Aún no hay pagos registrados" />
     }
     else
     {
-        <div class="table-responsive mb-4">
-            <table class="table align-middle">
-                <thead>
-                    <tr><th>Fecha</th><th class="text-end">Monto</th><th class="text-end">Interés</th><th class="text-end">Capital</th><th>Notas</th><th></th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var payment in detail.Payments)
-                    {
-                        var p = payment;
-                        <tr>
-                            <td>@p.Date.ToString("d")</td>
-                            <td class="text-end"><MoneyText Amount="p.Amount" Currency="d.Currency" /></td>
-                            <td class="text-end"><MoneyText Amount="p.InterestPortion" Currency="d.Currency" /></td>
-                            <td class="text-end"><MoneyText Amount="p.PrincipalPortion" Currency="d.Currency" /></td>
-                            <td>@p.Notes</td>
-                            <td class="text-end">
-                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => AskDeletePayment(p)">Eliminar</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+        <ul class="payment-list" aria-label="Historial de pagos">
+            @foreach (var payment in detail.Payments)
+            {
+                var p = payment;
+                <li class="payment-row">
+                    <span class="payment-row__date">@p.Date.ToString("d")</span>
+                    <span class="payment-row__split">
+                        Interés <MoneyText Amount="p.InterestPortion" Currency="d.Currency" />
+                        <span aria-hidden="true"><span aria-hidden="true">·</span>nbsp;·<span aria-hidden="true">·</span>nbsp;</span>
+                        Capital <MoneyText Amount="p.PrincipalPortion" Currency="d.Currency" />
+                        @if (!string.IsNullOrWhiteSpace(p.Notes))
+                        {
+                            <span class="payment-row__notes">@p.Notes</span>
+                        }
+                    </span>
+                    <span class="payment-row__amount"><MoneyText Amount="p.Amount" Currency="d.Currency" /></span>
+                    <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Delete"
+                               AriaLabel="@($"Eliminar el pago del {p.Date:d}")" OnClick="() => AskDeletePayment(p)" />
+                </li>
+            }
+        </ul>
     }
 
-    <button type="button" class="btn btn-outline-secondary mb-3" @onclick="ToggleAmortizationAsync" aria-expanded="@showAmortization">
-        @(showAmortization ? "Ocultar" : "Ver") tabla de amortización
-    </button>
+    <div class="debt-amort-toggle">
+        <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="ToggleAmortizationAsync">
+            @(showAmortization ? "Ocultar" : "Ver") tabla de amortización
+        </AppButton>
+    </div>
     @if (showAmortization)
     {
         @if (amortization is null)
@@ -132,7 +130,7 @@ else if (detail is not null)
         {
             @if (!amortization.PaysOff)
             {
-                <InlineAlert Tone="InlineAlert.AlertTone.Warning">
+                <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="debt-alert">
                     La cuota actual no cubre los intereses, por lo que el saldo no baja.
                     @if (amortization.Truncated)
                     {
@@ -140,20 +138,28 @@ else if (detail is not null)
                     }
                 </InlineAlert>
             }
-            <div class="table-responsive">
-                <table class="table table-sm align-middle">
+            var today = DateProvider.Today;
+            <div class="amort" tabindex="0" role="region" aria-label="Tabla de amortización">
+                <table class="amort__table">
                     <thead>
-                        <tr><th>Fecha</th><th class="text-end">Cuota</th><th class="text-end">Interés</th><th class="text-end">Capital</th><th class="text-end">Saldo</th></tr>
+                        <tr><th scope="col">Fecha</th><th scope="col" class="num">Cuota</th><th scope="col" class="num">Interés</th><th scope="col" class="num">Capital</th><th scope="col" class="num">Saldo</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var row in amortization.Rows)
                         {
-                            <tr>
-                                <td>@row.Date.ToString("d")</td>
-                                <td class="text-end"><MoneyText Amount="row.Payment" Currency="d.Currency" /></td>
-                                <td class="text-end"><MoneyText Amount="row.Interest" Currency="d.Currency" /></td>
-                                <td class="text-end"><MoneyText Amount="row.Principal" Currency="d.Currency" /></td>
-                                <td class="text-end"><MoneyText Amount="row.Balance" Currency="d.Currency" /></td>
+                            var isCurrent = row.Date.Year == today.Year && row.Date.Month == today.Month;
+                            <tr class="@(isCurrent ? "amort__current" : null)" aria-current="@(isCurrent ? "date" : null)">
+                                <td>
+                                    @row.Date.ToString("d")
+                                    @if (isCurrent)
+                                    {
+                                        <Badge Tone="Badge.BadgeTone.Blue">Este mes</Badge>
+                                    }
+                                </td>
+                                <td class="num"><MoneyText Amount="row.Payment" Currency="d.Currency" /></td>
+                                <td class="num"><MoneyText Amount="row.Interest" Currency="d.Currency" /></td>
+                                <td class="num"><MoneyText Amount="row.Principal" Currency="d.Currency" /></td>
+                                <td class="num"><MoneyText Amount="row.Balance" Currency="d.Currency" /></td>
                             </tr>
                         }
                     </tbody>

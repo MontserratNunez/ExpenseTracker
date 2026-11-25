@@ -365,6 +365,34 @@ public class BudgetServiceTests
     }
 
     [Fact]
+    public async Task SetValue_ChangesOnlyTheValue_KeepingTypeAndSource()
+    {
+        await AddSalaryAsync("Sueldo", 50_000m);
+        await _service.CreateAsync(Percent(Savings, 10m, source: 1));
+
+        await _service.SetValueAsync(Savings, 12m);
+
+        var allocation = _allocations.Items.Single();
+        Assert.Equal(12m, allocation.Value);
+        Assert.Equal(AllocationType.PercentageOfIncome, allocation.AllocationType);
+        Assert.Equal(1, allocation.IncomeSourceId);
+        Assert.Equal(6_000m, (await _service.GetAssignedByCategoryAsync())[Savings]);
+    }
+
+    [Fact]
+    public async Task SetValue_Rejects_ZeroAnOverHundredPercentAndACategoryOutsideThePlan()
+    {
+        await AddSalaryAsync("Sueldo", 50_000m);
+        await _service.CreateAsync(Percent(Savings, 10m));
+        await _service.CreateAsync(Fixed(Food, 10_000m));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.SetValueAsync(Food, 0m));
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.SetValueAsync(Savings, 101m));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.SetValueAsync(Pets, 500m));
+        Assert.Equal(10m, _allocations.Items.Single(a => a.CategoryId == Savings).Value);
+    }
+
+    [Fact]
     public async Task IncomeSource_UsedByAnAllocation_CannotBeDeleted()
     {
         await AddSalaryAsync("Sueldo", 50_000m);

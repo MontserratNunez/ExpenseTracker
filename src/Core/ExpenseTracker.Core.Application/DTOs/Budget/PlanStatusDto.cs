@@ -47,6 +47,7 @@ public class CategoryPlanDto
     public int CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public string CategoryColor { get; set; } = string.Empty;
+    public string? CategoryIcon { get; set; }
     public AllocationType AllocationType { get; set; }
     public decimal Value { get; set; }
     public int? IncomeSourceId { get; set; }
