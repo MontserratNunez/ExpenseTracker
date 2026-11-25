@@ -141,6 +141,33 @@ public class ExpenseService
         return result;
     }
 
+    /// <summary>Total of each month of the year (spent plus pending, in base currency): 12 values, January first.</summary>
+    public async Task<decimal[]> GetYearTotalsAsync(int year)
+    {
+        if (year < 1 || year > 9999)
+            throw new ArgumentException("El año no es válido.");
+
+        var totals = new decimal[12];
+        for (var month = 1; month <= 12; month++)
+        {
+            var items = await _ledger.GetMonthAsync(year, month);
+            totals[month - 1] = items.Sum(i => i.AmountInBase);
+        }
+
+        return totals;
+    }
+
+    /// <summary>The category used the last time an expense had this name (any case), or null. Used to prefill the quick-add.</summary>
+    public async Task<int?> GetLastCategoryIdAsync(string name)
+    {
+        var key = (name ?? string.Empty).Trim().ToLower();
+        if (key.Length == 0)
+            return null;
+
+        var matches = await _expenses.ListAsync(e => e.Name.ToLower() == key);
+        return matches.OrderByDescending(e => e.Date).ThenByDescending(e => e.Id).FirstOrDefault()?.CategoryId;
+    }
+
     // ---------- Helpers ----------
 
     private async Task<Expense> GetOrThrowAsync(int id)

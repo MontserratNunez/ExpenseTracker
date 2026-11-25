@@ -3,7 +3,7 @@
 @using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
 
-<AppModal IsOpen="Visible" Title="@Title" OnClose="OnCancel">
+<SidePanel IsOpen="Visible" Title="@Title" OnClose="OnCancel">
     <EditForm Model="Model" OnValidSubmit="OnSave" FormName="expense-form">
         <OverlayBody>
             <DataAnnotationsValidator />
@@ -58,7 +58,7 @@
             </div>
         </OverlayFooter>
     </EditForm>
-</AppModal>
+</SidePanel>
 
 @code {
     [Parameter]

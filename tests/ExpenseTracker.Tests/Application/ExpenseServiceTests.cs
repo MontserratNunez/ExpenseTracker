@@ -292,6 +292,40 @@ public class ExpenseServiceTests
     }
 
     [Fact]
+    public async Task YearTotals_GivesTwelveMonths_WithSpentAndPendingInBaseCurrency()
+    {
+        await SeedEnunciadoAsync();
+
+        var totals = await _service.GetYearTotalsAsync(2026);
+
+        Assert.Equal(12, totals.Length);
+        // November: the month total is spent + pending (Seguro 20,000 is pending, Netflix is in USD).
+        var november = await _service.GetMonthAsync(2026, 11);
+        Assert.Equal(november.TotalSpent + november.TotalPending, totals[10]);
+        // January only has the two monthly recurring expenses (Netflix 605 + luz 1,300).
+        Assert.Equal(1_905m, totals[0]);
+        // A year without anything is all zeros.
+        Assert.All(await _service.GetYearTotalsAsync(2020), t => Assert.Equal(0m, t));
+    }
+
+    [Fact]
+    public async Task YearTotals_WithAnInvalidYear_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.GetYearTotalsAsync(0));
+    }
+
+    [Fact]
+    public async Task LastCategory_IsTheOneOfTheMostRecentExpenseWithThatName_IgnoringCase()
+    {
+        await _service.CreateAsync(OneTime("Supermercado", 500m, new DateOnly(2026, 10, 1), Food));
+        await _service.CreateAsync(OneTime("supermercado", 700m, new DateOnly(2026, 11, 3), Leisure));
+
+        Assert.Equal(Leisure, await _service.GetLastCategoryIdAsync("SUPERMERCADO"));
+        Assert.Null(await _service.GetLastCategoryIdAsync("Nunca usado"));
+        Assert.Null(await _service.GetLastCategoryIdAsync("  "));
+    }
+
+    [Fact]
     public async Task Update_ConvertingOneTimeToRecurring_ChangesItsType()
     {
         var created = await _service.CreateAsync(OneTime("Gym", 500m, new DateOnly(2026, 10, 5)));

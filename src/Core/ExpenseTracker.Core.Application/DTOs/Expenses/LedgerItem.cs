@@ -34,6 +34,9 @@ public class LedgerItem
     public string CategoryName { get; set; } = string.Empty;
     public string CategoryColor { get; set; } = "#6C757D";
 
+    /// <summary>Bootstrap Icons name of the category. Null when the category has none.</summary>
+    public string? CategoryIcon { get; set; }
+
     /// <summary>Original amount and currency.</summary>
     public decimal Amount { get; set; }
 

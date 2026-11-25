@@ -1,0 +1,145 @@
+/* Gastos: month toolbar, calendar popover, day-grouped list and the quick-add row. */
+
+/* ---------- Month navigator ---------- */
+.month-nav { display: inline-flex; align-items: center; gap: var(--space-1); }
+.month-nav__label { min-width: 9.5rem; text-align: center; font-size: var(--text-lg); font-weight: 600; }
+
+.exp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.exp-totals { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 0; }
+.exp-totals > div { display: flex; align-items: baseline; gap: var(--space-2); }
+.exp-totals dt { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); }
+.exp-totals dd { margin: 0; font-weight: 600; }
+
+.exp-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.exp-dot--spent { background: var(--color-spent); }
+.exp-dot--pending { background: var(--color-committed); }
+
+/* ---------- Calendar popover ---------- */
+.ymp-popover { min-width: 288px; padding: var(--space-3); }
+.ymp__year { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); }
+.ymp__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-1); }
+
+.ymp__month {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 52px;
+  padding: 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font: 500 var(--text-sm)/1 var(--font-sans);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease);
+}
+.ymp__month:hover:not(:disabled) { background: var(--color-bg-hover); }
+.ymp__month:disabled { color: var(--color-text-subtle); cursor: not-allowed; }
+.ymp__month--current { box-shadow: inset 0 0 0 2px var(--color-primary-500); }
+.ymp__month--selected, .ymp__month--selected:hover:not(:disabled) { background: var(--color-primary-500); color: #fff; }
+.ymp__month:focus-visible { box-shadow: var(--focus-ring); }
+.ymp__month--current:focus-visible { box-shadow: inset 0 0 0 2px var(--color-primary-500), var(--focus-ring); }
+
+.ymp__bar { display: block; width: 60%; height: 4px; border-radius: var(--radius-pill); background: var(--color-primary-500); }
+.ymp__month--selected .ymp__bar { background: #fff; }
+
+/* ---------- Filters and quick add ---------- */
+.exp-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+
+.quick-add {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+.quick-add:focus-within { border-bottom-color: var(--color-primary-500); color: var(--color-primary-500); }
+.quick-add__input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+.quick-add__input::placeholder { color: var(--color-text-subtle); }
+.quick-add__input:focus, .quick-add__input:focus-visible { outline: none; box-shadow: none; }
+
+/* ---------- Day groups ---------- */
+.exp-day + .exp-day { margin-top: var(--space-6); }
+
+.exp-day__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-1);
+}
+.exp-day__head h2 { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--color-text-muted); }
+.exp-day__total { font-size: var(--text-sm); color: var(--color-text-muted); }
+
+.exp-rows { margin: 0; padding: 0; list-style: none; }
+
+.exp-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease);
+}
+.exp-row:first-child { border-top-color: transparent; }
+.exp-row:hover, .exp-row:focus-within { background: var(--color-bg-hover); }
+.exp-row:hover + .exp-row, .exp-row:focus-within + .exp-row { border-top-color: transparent; }
+
+.exp-row__main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.exp-row__main { cursor: pointer; }
+.exp-row--pending .exp-row__name { color: var(--color-text-muted); }
+
+.exp-row__chip { flex: none; }
+.exp-row__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.exp-row__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-weight: 500; }
+.exp-row__category { font-size: var(--text-xs); color: var(--color-text-muted); }
+.exp-row__amount { flex: none; text-align: right; white-space: nowrap; font-weight: 500; }
+.exp-row__converted { margin-left: var(--space-1); font-size: var(--text-sm); font-weight: 400; color: var(--color-text-muted); }
+
+/* The row menu shows on hover or focus; on a touch screen there is no hover, so it stays visible. */
+.exp-row__menu { flex: none; padding-right: var(--space-2); opacity: 0; transition: opacity var(--duration-fast) var(--ease); }
+.exp-row:hover .exp-row__menu,
+.exp-row:focus-within .exp-row__menu,
+.exp-row__menu:has([aria-expanded="true"]) { opacity: 1; }
+@media (hover: none) { .exp-row__menu { opacity: 1; } }
+
+@media (max-width: 767px) {
+  .month-nav__label { min-width: 0; flex: 1; }
+  .exp-toolbar { align-items: flex-start; }
+}

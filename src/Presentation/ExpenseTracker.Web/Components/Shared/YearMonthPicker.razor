@@ -2,42 +2,46 @@
 @using ExpenseTracker.Web.Services
 @inject IDateProvider DateProvider
 
-<AppModal IsOpen="Visible" Title="Elegir mes" Width="OverlayWidth.Sm" OnClose="OnClose">
-    <ChildContent>
-        <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
-            <AppButton Variant="AppButton.ButtonVariant.Secondary" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Previous"
-                       AriaLabel="Año anterior" OnClick="() => pickerYear--" />
-            <strong class="px-2" aria-live="polite">@pickerYear</strong>
-            <AppButton Variant="AppButton.ButtonVariant.Secondary" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Next"
-                       AriaLabel="Año siguiente" Disabled="@(pickerYear >= MaxYear)" OnClick="() => pickerYear++" />
-        </div>
-        <div class="row g-2">
-            @for (var m = 1; m <= 12; m++)
-            {
-                var monthNumber = m;
-                var isSelected = pickerYear == Year && monthNumber == Month;
-                var isCurrent = pickerYear == DateProvider.Today.Year && monthNumber == DateProvider.Today.Month;
-                <div class="col-3">
-                    <button type="button"
-                            class="btn btn-sm w-100 @(isSelected ? "btn-primary" : isCurrent ? "btn-outline-primary" : "btn-outline-secondary")"
-                            aria-pressed="@isSelected"
-                            disabled="@IsBeyondLimit(pickerYear, monthNumber)"
-                            @onclick="() => Select(monthNumber)">
-                        @UiLabels.ShortMonthName(monthNumber)
-                    </button>
-                </div>
-            }
-        </div>
-    </ChildContent>
-    <Footer>
-        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnClose.InvokeAsync()">Cancelar</AppButton>
-    </Footer>
-</AppModal>
+@* The content of the calendar popover: a year header and a 4x3 grid of months. Put it inside a <Popover>, so it is
+   created each time the popover opens. When a loader is given, each month shows a thin bar whose strength follows
+   how much was spent that month compared with the busiest month of the year.
+   Keyboard: arrows move between months, Enter chooses. *@
+<div class="ymp">
+    <div class="ymp__year">
+        <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Previous"
+                   AriaLabel="Año anterior" OnClick="() => ChangeYearAsync(-1)" />
+        <strong aria-live="polite">@pickerYear</strong>
+        <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Next"
+                   AriaLabel="Año siguiente" Disabled="@(pickerYear >= MaxYear)" OnClick="() => ChangeYearAsync(1)" />
+    </div>
+
+    <div class="ymp__grid" role="group" aria-label="Meses de @pickerYear" @onkeydown="OnKeyDownAsync">
+        @for (var m = 1; m <= 12; m++)
+        {
+            var monthNumber = m;
+            var index = m - 1;
+            var isSelected = pickerYear == Year && monthNumber == Month;
+            var isCurrent = pickerYear == DateProvider.Today.Year && monthNumber == DateProvider.Today.Month;
+            var total = totals is null ? 0m : totals[index];
+            <button type="button" @ref="monthButtons[index]"
+                    class="ymp__month @(isSelected ? "ymp__month--selected" : null) @(isCurrent ? "ymp__month--current" : null)"
+                    tabindex="@(index == focusIndex ? 0 : -1)"
+                    aria-pressed="@(isSelected ? "true" : "false")"
+                    aria-current="@(isCurrent ? "date" : null)"
+                    aria-label="@MonthLabel(monthNumber, total)"
+                    disabled="@IsBeyondLimit(pickerYear, monthNumber)"
+                    @onclick="() => Select(monthNumber)">
+                <span>@UiLabels.ShortMonthName(monthNumber)</span>
+                @if (LoadYearTotals is not null)
+                {
+                    <span class="ymp__bar" aria-hidden="true" style="opacity: @Intensity(total);"></span>
+                }
+            </button>
+        }
+    </div>
+</div>
 
 @code {
-    [Parameter]
-    public bool Visible { get; set; }
-
     [Parameter, EditorRequired]
     public int Year { get; set; }
 
@@ -47,29 +51,105 @@
     [Parameter]
     public int MaxMonthsAhead { get; set; } = 1;
 
+    /// <summary>Gives the 12 monthly totals of a year (January first). Without it the months show no bar.</summary>
+    [Parameter]
+    public Func<int, Task<decimal[]>>? LoadYearTotals { get; set; }
+
     [Parameter]
     public EventCallback<(int Year, int Month)> OnSelect { get; set; }
 
-    [Parameter]
-    public EventCallback OnClose { get; set; }
-
+    private readonly ElementReference[] monthButtons = new ElementReference[12];
+    private readonly Dictionary<int, decimal[]> cache = new();
     private int pickerYear;
-    private bool wasVisible;
+    private int focusIndex;
+    private bool focusPending;
+    private decimal[]? totals;
+    private decimal maxTotal;
 
     private int MaxYear => (DateProvider.Today.Year * 12 + DateProvider.Today.Month - 1 + MaxMonthsAhead) / 12;
 
-    protected override void OnParametersSet()
+    protected override async Task OnInitializedAsync()
     {
-        // Open on the selected year every time the picker is shown.
-        if (Visible && !wasVisible)
-            pickerYear = Year;
-        wasVisible = Visible;
+        pickerYear = Year;
+        focusIndex = Math.Clamp(Month - 1, 0, 11);
+        await LoadTotalsAsync();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusPending)
+        {
+            focusPending = false;
+            await monthButtons[focusIndex].FocusAsync();
+        }
+    }
+
+    private async Task ChangeYearAsync(int delta)
+    {
+        pickerYear = Math.Min(pickerYear + delta, MaxYear);
+        await LoadTotalsAsync();
+    }
+
+    private async Task LoadTotalsAsync()
+    {
+        totals = null;
+        maxTotal = 0;
+        if (LoadYearTotals is null)
+            return;
+
+        if (!cache.TryGetValue(pickerYear, out var loaded))
+        {
+            try
+            {
+                loaded = await LoadYearTotals(pickerYear);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+            {
+                loaded = new decimal[12];   // the bars are decoration: the calendar still works without them
+            }
+
+            cache[pickerYear] = loaded;
+        }
+
+        totals = loaded;
+        maxTotal = loaded.Length == 0 ? 0 : loaded.Max();
+    }
+
+    private string Intensity(decimal total)
+        => (maxTotal <= 0 || total <= 0 ? 0m : 0.2m + 0.8m * (total / maxTotal)).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string MonthLabel(int month, decimal total)
+        => total > 0
+            ? $"{UiLabels.MonthName(month)} {pickerYear}, {total:N2} en total"
+            : $"{UiLabels.MonthName(month)} {pickerYear}";
 
     private bool IsBeyondLimit(int year, int month)
     {
         var today = DateProvider.Today;
         return year * 12 + month > today.Year * 12 + today.Month + MaxMonthsAhead;
+    }
+
+    private void MoveFocus(int delta)
+    {
+        var next = Math.Clamp(focusIndex + delta, 0, 11);
+        if (IsBeyondLimit(pickerYear, next + 1))
+            return;
+
+        focusIndex = next;
+        focusPending = true;
+    }
+
+    private Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowLeft": MoveFocus(-1); break;
+            case "ArrowRight": MoveFocus(1); break;
+            case "ArrowUp": MoveFocus(-3); break;
+            case "ArrowDown": MoveFocus(3); break;
+        }
+
+        return Task.CompletedTask;
     }
 
     private Task Select(int month) => OnSelect.InvokeAsync((pickerYear, month));

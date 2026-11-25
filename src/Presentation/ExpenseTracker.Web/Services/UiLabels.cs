@@ -53,6 +53,19 @@ public static class UiLabels
     /// <summary>Short date such as "15 nov".</summary>
     public static string ShortDate(DateOnly date) => $"{date.Day} {ShortMonthName(date.Month).ToLower(Culture)}";
 
+    /// <summary>Heading of a day group: "Hoy", "Ayer" or "lunes 16 nov".</summary>
+    public static string DayHeading(DateOnly date, DateOnly today)
+    {
+        if (date == today)
+            return "Hoy";
+        if (date == today.AddDays(-1))
+            return "Ayer";
+        if (date == today.AddDays(1))
+            return "Mañana";
+
+        return $"{Culture.DateTimeFormat.GetDayName(date.DayOfWeek).ToLower(Culture)} {ShortDate(date)}";
+    }
+
     private static CultureInfo CreateCulture()
     {
         try

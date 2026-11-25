@@ -15,6 +15,7 @@ public class MonthlyLedgerService
     public const string NoCategoryName = "Sin categoría";
     public const string DebtsCategoryName = "Deudas";
     private const string DebtsCategoryColor = "#6F42C1";
+    private const string DebtsCategoryIcon = "bank";
 
     private readonly IExpenseRepository _expenses;
     private readonly IDebtRepository _debts;
@@ -101,6 +102,7 @@ public class MonthlyLedgerService
                 SourceId = debt.Id,
                 CategoryName = DebtsCategoryName,
                 CategoryColor = DebtsCategoryColor,
+                CategoryIcon = DebtsCategoryIcon,
                 Amount = payment.Amount,
                 Currency = debt.Currency,
                 AmountInBase = converter.ToBase(payment.Amount, debt.Currency),
@@ -125,6 +127,7 @@ public class MonthlyLedgerService
             SourceId = debt.Id,
             CategoryName = DebtsCategoryName,
             CategoryColor = DebtsCategoryColor,
+            CategoryIcon = DebtsCategoryIcon,
             Amount = installment.Payment,
             Currency = debt.Currency,
             AmountInBase = converter.ToBase(installment.Payment, debt.Currency)
@@ -141,6 +144,7 @@ public class MonthlyLedgerService
         CategoryId = expense.CategoryId,
         CategoryName = expense.Category?.Name ?? NoCategoryName,
         CategoryColor = expense.Category?.Color ?? "#6C757D",
+        CategoryIcon = expense.Category?.Icon,
         Amount = expense.Amount,
         Currency = expense.Currency,
         AmountInBase = amountInBase,

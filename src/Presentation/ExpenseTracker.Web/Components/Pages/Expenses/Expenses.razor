@@ -2,6 +2,7 @@
 @page "/gastos/{year:int}/{month:int}"
 @using ExpenseTracker.Core.Application.DTOs.Expenses
 @using ExpenseTracker.Core.Application.DTOs.Settings
+@using ExpenseTracker.Core.Application.Helpers
 @using ExpenseTracker.Core.Application.Interfaces
 @using ExpenseTracker.Core.Application.Services
 @using ExpenseTracker.Core.Domain.Enums
@@ -20,8 +21,21 @@
     <Actions><AppButton OnClick="StartCreate" Icon="@Icons.Add" Disabled="@loading">Nuevo gasto</AppButton></Actions>
 </PageHeader>
 
-<div class="mb-3">
-    <MonthNavigator Year="CurrentYear" Month="CurrentMonth" OnChange="GoToMonth" />
+<div class="exp-toolbar">
+    <MonthNavigator Year="CurrentYear" Month="CurrentMonth" OnChange="GoToMonth" LoadYearTotals="ExpenseService.GetYearTotalsAsync" />
+    @if (data is not null)
+    {
+        <dl class="exp-totals">
+            <div>
+                <dt><span class="exp-dot exp-dot--spent" aria-hidden="true"></span>Gastado</dt>
+                <dd><MoneyText Amount="data.TotalSpent" Currency="baseCurrency" /></dd>
+            </div>
+            <div>
+                <dt><span class="exp-dot exp-dot--pending" aria-hidden="true"></span>Pendiente</dt>
+                <dd><MoneyText Amount="data.TotalPending" Currency="baseCurrency" /></dd>
+            </div>
+        </dl>
+    }
 </div>
 
 <ErrorAlert @bind-Message="error" />
@@ -29,89 +43,79 @@
 
 @if (loading)
 {
-    <Skeleton Lines="4" Height="2.5rem" />
+    <Skeleton Lines="6" Height="2.75rem" />
 }
 else if (data is not null)
 {
-    <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3">
-            <div class="card h-100"><div class="card-body py-2">
-                <div class="text-muted small">Gastado</div>
-                <div class="fs-5 fw-semibold"><MoneyText Amount="data.TotalSpent" Currency="baseCurrency" /></div>
-            </div></div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card h-100"><div class="card-body py-2">
-                <div class="text-muted small">Pendiente</div>
-                <div class="fs-5 fw-semibold text-secondary"><MoneyText Amount="data.TotalPending" Currency="baseCurrency" /></div>
-            </div></div>
-        </div>
+    <div class="exp-filters">
+        <DropdownMenu AriaLabel="Filtrar por categoría" Items="CategoryFilterItems()" Align="DropdownMenu.MenuAlign.Start"
+                      TriggerClass="btn-app btn-app--ghost btn-app--sm">
+            <TriggerContent><AppIcon Name="@Icons.Filter" Size="14" /> <span>@CategoryFilterLabel</span></TriggerContent>
+        </DropdownMenu>
+        <DropdownMenu AriaLabel="Filtrar por tipo" Items="TypeFilterItems()" Align="DropdownMenu.MenuAlign.Start"
+                      TriggerClass="btn-app btn-app--ghost btn-app--sm">
+            <TriggerContent><AppIcon Name="@Icons.Filter" Size="14" /> <span>@TypeFilterLabel</span></TriggerContent>
+        </DropdownMenu>
+        @if (categoryFilter != 0 || typeFilter != TypeFilter.All)
+        {
+            <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Close" OnClick="ClearFilters">Quitar filtros</AppButton>
+        }
     </div>
 
-    @if (data.ByCategory.Count > 0)
-    {
-        <div class="d-flex flex-wrap gap-2 mb-3" aria-label="Totales por categoría">
-            @foreach (var c in data.ByCategory)
-            {
-                <span class="badge text-bg-light border">
-                    <span class="d-inline-block rounded-circle me-1" style="width: .6rem; height: .6rem; background-color: @c.CategoryColor;"></span>
-                    @c.CategoryName: <MoneyText Amount="c.Spent + c.Pending" Currency="baseCurrency" />
-                </span>
-            }
-        </div>
-    }
-
-    <div class="row g-2 mb-3">
-        <div class="col-sm-6 col-md-4">
-            <label class="visually-hidden" for="filter-category">Categoría</label>
-            <select id="filter-category" class="form-select" @bind="categoryFilter">
-                <option value="0">Todas las categorías</option>
-                @foreach (var c in categories)
-                {
-                    <option value="@c.Id">@c.Name</option>
-                }
-            </select>
-        </div>
-        <div class="col-sm-6 col-md-4">
-            <label class="visually-hidden" for="filter-type">Tipo</label>
-            <select id="filter-type" class="form-select" @bind="typeFilter">
-                <option value="@TypeFilter.All">Todos</option>
-                <option value="@TypeFilter.OneTime">Únicos</option>
-                <option value="@TypeFilter.Recurring">Recurrentes</option>
-            </select>
-        </div>
+    <div class="quick-add">
+        <AppIcon Name="@Icons.Add" Size="16" Class="quick-add__icon" />
+        <input type="text" class="quick-add__input" autocomplete="off" maxlength="120"
+               aria-label="Agregar gasto rápido"
+               placeholder="Agregar gasto… ej. Supermercado 700"
+               @bind="quickText" @bind:event="oninput" @onkeydown="OnQuickKeyDownAsync" />
     </div>
 
     @if (data.Items.Count == 0)
     {
-        <EmptyState Icon="@Icons.Expenses" Title="No hay gastos en este mes" Description="Registra el primero para ver cómo avanza tu mes.">
+        <EmptyState Icon="@Icons.Empty" Title="@($"No hay gastos en {UiLabels.MonthName(CurrentMonth).ToLower()}")"
+                    Description="Registra el primero para ver cómo avanza tu mes.">
             <Action><AppButton OnClick="StartCreate" Icon="@Icons.Add">Nuevo gasto</AppButton></Action>
         </EmptyState>
     }
-    else if (VisibleItems.Count == 0)
+    else if (Groups.Count == 0)
     {
         <p class="text-muted">Ningún gasto coincide con los filtros.</p>
     }
     else
     {
-        <div class="list-group">
-            @foreach (var item in VisibleItems)
+        <div class="exp-list">
+            @foreach (var group in Groups)
             {
-                var i = item;
-                var pending = i.Status == LedgerStatus.Pending;
-                var rowClass = "list-group-item d-flex justify-content-between align-items-start gap-3 " + (pending ? "text-muted bg-light" : "");
-                @if (i.IsReadOnly)
-                {
-                    <div class="@rowClass">
-                        @ItemContent(i)
-                    </div>
-                }
-                else
-                {
-                    <button type="button" class="@rowClass list-group-item-action text-start" @onclick="() => StartEdit(i)">
-                        @ItemContent(i)
-                    </button>
-                }
+                <section class="exp-day" aria-label="@group.Heading">
+                    <header class="exp-day__head">
+                        <h2>@group.Heading</h2>
+                        <span class="exp-day__total"><MoneyText Amount="group.Total" Currency="baseCurrency" /></span>
+                    </header>
+                    <ul class="exp-rows">
+                        @foreach (var item in group.Items)
+                        {
+                            var i = item;
+                            var pending = i.Status == LedgerStatus.Pending;
+                            <li class="exp-row @(pending ? "exp-row--pending" : null)">
+                                @if (i.IsReadOnly)
+                                {
+                                    <div class="exp-row__main">
+                                        @RowContent(i, pending)
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button type="button" class="exp-row__main" @onclick="() => StartEdit(i)">
+                                        @RowContent(i, pending)
+                                    </button>
+                                    <div class="exp-row__menu">
+                                        <DropdownMenu AriaLabel="Más acciones" Items="RowMenu(i)" />
+                                    </div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </section>
             }
         </div>
     }
@@ -140,6 +144,13 @@ else if (data is not null)
 @code {
     private enum TypeFilter { All, OneTime, Recurring }
 
+    private sealed class DayGroup
+    {
+        public string Heading { get; init; } = string.Empty;
+        public decimal Total { get; init; }
+        public List<LedgerItem> Items { get; init; } = new();
+    }
+
     [Parameter]
     public int? Year { get; set; }
 
@@ -166,6 +177,7 @@ else if (data is not null)
 
     private int categoryFilter;
     private TypeFilter typeFilter = TypeFilter.All;
+    private string quickText = string.Empty;
 
     private bool showForm;
     private int? editingId;
@@ -174,17 +186,34 @@ else if (data is not null)
     private bool confirmDelete;
     private bool showRecurringDelete;
 
-    private List<LedgerItem> VisibleItems => data is null
-        ? new List<LedgerItem>()
-        : data.Items
-            .Where(i => categoryFilter == 0 || i.CategoryId == categoryFilter)
-            .Where(i => typeFilter switch
-            {
-                TypeFilter.OneTime => i.Source == LedgerSource.OneTimeExpense,
-                TypeFilter.Recurring => i.Source == LedgerSource.RecurringExpense,
-                _ => true
-            })
-            .ToList();
+    // The list is grouped by day, the latest day first, each day with its total.
+    private List<DayGroup> Groups
+    {
+        get
+        {
+            if (data is null)
+                return new List<DayGroup>();
+
+            var today = DateProvider.Today;
+            return data.Items
+                .Where(i => categoryFilter == 0 || i.CategoryId == categoryFilter)
+                .Where(i => typeFilter switch
+                {
+                    TypeFilter.OneTime => i.Source == LedgerSource.OneTimeExpense,
+                    TypeFilter.Recurring => i.Source == LedgerSource.RecurringExpense,
+                    _ => true
+                })
+                .GroupBy(i => i.Date)
+                .OrderByDescending(g => g.Key)
+                .Select(g => new DayGroup
+                {
+                    Heading = UiLabels.DayHeading(g.Key, today),
+                    Total = g.Sum(i => i.AmountInBase),
+                    Items = g.ToList()
+                })
+                .ToList();
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -223,14 +252,56 @@ else if (data is not null)
     private void GoToMonth((int Year, int Month) value)
         => Navigation.NavigateTo($"/gastos/{value.Year}/{value.Month}");
 
-    private RenderFragment ItemContent(LedgerItem i) => __builder =>
+    // ---------- Filters ----------
+
+    private string CategoryFilterLabel
+        => categoryFilter == 0 ? "Categoría" : categories.FirstOrDefault(c => c.Id == categoryFilter)?.Name ?? "Categoría";
+
+    private string TypeFilterLabel => typeFilter switch
     {
-        var pending = i.Status == LedgerStatus.Pending;
-        <div>
-            <div class="fw-semibold">
+        TypeFilter.OneTime => "Únicos",
+        TypeFilter.Recurring => "Recurrentes",
+        _ => "Tipo"
+    };
+
+    private IReadOnlyList<DropdownMenuItem> CategoryFilterItems()
+    {
+        var items = new List<DropdownMenuItem> { FilterItem("Todas las categorías", categoryFilter == 0, () => categoryFilter = 0) };
+        items.AddRange(categories.Select(c =>
+        {
+            var id = c.Id;
+            return FilterItem(c.Name, categoryFilter == id, () => categoryFilter = id);
+        }));
+        return items;
+    }
+
+    private IReadOnlyList<DropdownMenuItem> TypeFilterItems() => new[]
+    {
+        FilterItem("Todos", typeFilter == TypeFilter.All, () => typeFilter = TypeFilter.All),
+        FilterItem("Únicos", typeFilter == TypeFilter.OneTime, () => typeFilter = TypeFilter.OneTime),
+        FilterItem("Recurrentes", typeFilter == TypeFilter.Recurring, () => typeFilter = TypeFilter.Recurring)
+    };
+
+    // The chosen option carries a check mark: the state never depends on color alone.
+    private DropdownMenuItem FilterItem(string label, bool selected, Action choose)
+        => new(label, selected ? Icons.Paid : null, EventCallback.Factory.Create(this, choose));
+
+    private void ClearFilters()
+    {
+        categoryFilter = 0;
+        typeFilter = TypeFilter.All;
+    }
+
+    // ---------- Rows ----------
+
+    private RenderFragment RowContent(LedgerItem i, bool pending) => __builder =>
+    {
+        <CategoryChip Name="@i.CategoryName" Color="@i.CategoryColor" Icon="@i.CategoryIcon" ShowName="false" Class="exp-row__chip" />
+        <span class="exp-row__text">
+            <span class="exp-row__name">
                 @if (i.IsReadOnly)
                 {
-                    <a href="/deudas/@i.SourceId" class="text-decoration-none" title="Se edita desde la deuda"><AppIcon Name="@Icons.Debts" Size="14" /> @i.Name</a>
+                    <a href="/deudas/@i.SourceId" title="Se edita desde la deuda">@i.Name</a>
                 }
                 else
                 {
@@ -238,21 +309,61 @@ else if (data is not null)
                 }
                 @if (i.Frequency is not null)
                 {
-                    <span class="badge text-bg-secondary ms-1">@UiLabels.FrequencyName(i.Frequency.Value)</span>
+                    <Badge Tone="Badge.BadgeTone.Blue" Icon="@Icons.Recurring">@UiLabels.FrequencyName(i.Frequency.Value)</Badge>
                 }
-            </div>
-            <small class="@(pending ? "" : "text-muted")">
-                @i.CategoryName · @UiLabels.ShortDate(i.Date) · @(pending ? "Pendiente" : "Pagado")
-            </small>
-        </div>
-        <div class="text-end text-nowrap">
+                @if (pending)
+                {
+                    <Badge Tone="Badge.BadgeTone.Gray" Icon="@Icons.Pending">Pendiente</Badge>
+                }
+            </span>
+            <span class="exp-row__category">@i.CategoryName</span>
+        </span>
+        <span class="exp-row__amount">
             <MoneyText Amount="i.Amount" Currency="i.Currency" />
             @if (i.Currency != baseCurrency)
             {
-                <span class="ms-1">(<MoneyText Amount="i.AmountInBase" Currency="baseCurrency" />)</span>
+                <span class="exp-row__converted">(<MoneyText Amount="i.AmountInBase" Currency="baseCurrency" />)</span>
             }
-        </div>
+        </span>
     };
+
+    private IReadOnlyList<DropdownMenuItem> RowMenu(LedgerItem item) => new[]
+    {
+        new DropdownMenuItem("Editar", Icons.Edit, EventCallback.Factory.Create(this, () => StartEdit(item))),
+        new DropdownMenuItem("Duplicar", Icons.Duplicate, EventCallback.Factory.Create(this, () => StartDuplicate(item))),
+        new DropdownMenuItem("Eliminar", Icons.Delete, EventCallback.Factory.Create(this, () => StartDelete(item)), danger: true)
+    };
+
+    // ---------- Quick add ----------
+
+    private async Task OnQuickKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter" || string.IsNullOrWhiteSpace(quickText))
+            return;
+
+        var (name, amount) = QuickAddParser.Parse(quickText);
+        ClearMessages();
+        await RunAsync(async () =>
+        {
+            var categoryId = await ExpenseService.GetLastCategoryIdAsync(name);
+            if (categoryId is { } id && !categories.Any(c => c.Id == id && c.IsActive))
+                categoryId = null;   // the last category was deactivated: let the user choose
+
+            editingId = null;
+            editingIsRecurring = false;
+            input = new ExpenseInput
+            {
+                Name = name,
+                Amount = amount ?? 0m,
+                Currency = baseCurrency,
+                CategoryId = categoryId ?? 0,
+                Date = DateProvider.Today,
+                Frequency = Frequency.Monthly
+            };
+            quickText = string.Empty;
+            showForm = true;
+        });
+    }
 
     // ---------- Create / edit ----------
 
@@ -278,26 +389,58 @@ else if (data is not null)
         ClearMessages();
         await RunAsync(async () =>
         {
-            var expense = await ExpenseService.GetByIdAsync(item.SourceId)
-                ?? throw new InvalidOperationException("El gasto ya no existe.");
-
+            var expense = await LoadExpenseAsync(item);
             editingId = expense.Id;
             editingIsRecurring = expense.IsRecurring;
-            input = new ExpenseInput
-            {
-                Name = expense.Name,
-                Amount = expense.Amount,
-                Currency = expense.Currency,
-                CategoryId = expense.CategoryId,
-                Date = expense.Date,
-                IsRecurring = expense.IsRecurring,
-                Frequency = expense.Frequency ?? Frequency.Monthly,
-                EndDate = expense.EndDate,
-                Notes = expense.Notes
-            };
+            input = ToInput(expense);
             showForm = true;
         });
     }
+
+    // A copy is a new expense with the same values (one-time ones start today).
+    private async Task StartDuplicate(LedgerItem item)
+    {
+        ClearMessages();
+        await RunAsync(async () =>
+        {
+            var expense = await LoadExpenseAsync(item);
+            editingId = null;
+            editingIsRecurring = false;
+            input = ToInput(expense);
+            if (!expense.IsRecurring)
+                input.Date = DateProvider.Today;
+            showForm = true;
+        });
+    }
+
+    private async Task StartDelete(LedgerItem item)
+    {
+        ClearMessages();
+        await RunAsync(async () =>
+        {
+            var expense = await LoadExpenseAsync(item);
+            editingId = expense.Id;
+            editingIsRecurring = expense.IsRecurring;
+            AskDelete();
+        });
+    }
+
+    private async Task<ExpenseDto> LoadExpenseAsync(LedgerItem item)
+        => await ExpenseService.GetByIdAsync(item.SourceId)
+            ?? throw new InvalidOperationException("El gasto ya no existe.");
+
+    private static ExpenseInput ToInput(ExpenseDto expense) => new()
+    {
+        Name = expense.Name,
+        Amount = expense.Amount,
+        Currency = expense.Currency,
+        CategoryId = expense.CategoryId,
+        Date = expense.Date,
+        IsRecurring = expense.IsRecurring,
+        Frequency = expense.Frequency ?? Frequency.Monthly,
+        EndDate = expense.EndDate,
+        Notes = expense.Notes
+    };
 
     private async Task SaveAsync()
     {
