@@ -2,86 +2,65 @@
 @using ExpenseTracker.Core.Application.Services
 @inject CategoryService CategoryService
 
-<section class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Categorías</span>
+<section class="settings__section" aria-labelledby="settings-categories">
+    <div class="home-section__head">
+        <h2 id="settings-categories">Categorías</h2>
         @if (!showForm)
         {
-            <button type="button" class="btn btn-sm btn-primary" @onclick="StartCreate"><AppIcon Name="@Icons.Add" Size="16" /> Nueva categoría</button>
+            <AppButton OnClick="StartCreate" Icon="@Icons.Add" Size="AppButton.ButtonSize.Sm">Nueva categoría</AppButton>
         }
     </div>
-    <div class="card-body">
-        <ErrorAlert @bind-Message="error" />
-        <SuccessToast Message="@message" />
 
-        @if (showForm)
-        {
-            <EditForm Model="input" OnValidSubmit="SaveAsync" FormName="category-form" class="border rounded p-3 mb-3">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger" />
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label" for="cat-name">Nombre</label>
-                        <InputText id="cat-name" class="form-control" @bind-Value="input.Name" />
-                    </div>
-                    <div class="col-auto">
-                        <label class="form-label" for="cat-color">Color</label>
-                        <InputText id="cat-color" type="color" class="form-control form-control-color" @bind-Value="input.Color" />
-                    </div>
-                    <div class="col-auto">
-                        <div class="form-check">
-                            <InputCheckbox id="cat-savings" class="form-check-input" @bind-Value="input.IsSavings" />
-                            <label class="form-check-label" for="cat-savings">Es de ahorro</label>
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">@(editingId is null ? "Crear" : "Guardar")</button>
-                        <button type="button" class="btn btn-secondary" @onclick="CancelForm">Cancelar</button>
-                    </div>
-                </div>
-            </EditForm>
-        }
+    <ErrorAlert @bind-Message="error" />
+    <SuccessToast Message="@message" />
 
-        @if (loading)
-        {
-            <Skeleton Lines="4" Height="2.5rem" />
-        }
-        else if (categories.Count == 0)
-        {
-            <EmptyState Icon="@Icons.DefaultCategory" Title="Aún no hay categorías" Description="Crea la primera para clasificar tus gastos." />
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
-                    <thead>
-                        <tr><th>Categoría</th><th>Tipo</th><th>Estado</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var category in categories)
-                        {
-                            var c = category;
-                            <tr class="@(c.IsActive ? null : "text-muted")">
-                                <td>
-                                    <span class="d-inline-block rounded-circle me-2 align-middle"
-                                          style="width: 1rem; height: 1rem; background-color: @c.Color;"></span>@c.Name
-                                </td>
-                                <td>@if (c.IsSavings) { <span class="badge text-bg-success">Ahorro</span> }</td>
-                                <td>@(c.IsActive ? "Activa" : "Inactiva")</td>
-                                <td class="text-end text-nowrap">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => StartEdit(c)">Editar</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => ToggleActive(c)">
-                                        @(c.IsActive ? "Desactivar" : "Activar")
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(c)">Eliminar</button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+    @if (showForm)
+    {
+        <EditForm Model="input" OnValidSubmit="SaveAsync" FormName="category-form" class="settings-editor">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="validation-summary" />
+            <AppInput Label="Nombre" @bind-Value="input.Name" />
+            <ColorSwatches Label="Color" @bind-Value="input.Color" />
+            <IconPicker Label="Ícono" @bind-Value="input.Icon" />
+            <AppToggle Label="Es de ahorro" @bind-Value="input.IsSavings" />
+            <div class="manage-actions">
+                <AppButton Type="submit">@(editingId is null ? "Crear" : "Guardar")</AppButton>
+                <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="CancelForm">Cancelar</AppButton>
             </div>
-        }
-    </div>
+        </EditForm>
+    }
+
+    @if (loading)
+    {
+        <Skeleton Lines="4" Height="2.5rem" />
+    }
+    else if (categories.Count == 0)
+    {
+        <EmptyState Icon="@Icons.DefaultCategory" Title="Aún no hay categorías" Description="Crea la primera para clasificar tus gastos." />
+    }
+    else
+    {
+        <ul class="settings-list" aria-label="Categorías">
+            @foreach (var category in categories)
+            {
+                var c = category;
+                <li class="settings-row @(c.IsActive ? null : "settings-row--inactive")">
+                    <span class="settings-row__main">
+                        <CategoryChip Name="@c.Name" Color="@c.Color" Icon="@(c.Icon ?? Icons.DefaultCategory)" ShowName="true" />
+                        @if (c.IsSavings)
+                        {
+                            <Badge Tone="Badge.BadgeTone.Green" Icon="@Icons.EmptyGoals">Ahorro</Badge>
+                        }
+                        @if (!c.IsActive)
+                        {
+                            <Badge Tone="Badge.BadgeTone.Gray">Inactiva</Badge>
+                        }
+                    </span>
+                    <DropdownMenu AriaLabel="@($"Acciones de {c.Name}")" Items="Menu(c)" />
+                </li>
+            }
+        </ul>
+    }
 </section>
 
 <ConfirmDialog @bind-Visible="confirmDelete"
@@ -109,11 +88,19 @@
 
     private async Task LoadAsync() => categories = await CategoryService.ListAsync();
 
+    private IReadOnlyList<DropdownMenuItem> Menu(CategoryDto c) => new[]
+    {
+        new DropdownMenuItem("Editar", Icons.Edit, EventCallback.Factory.Create(this, () => StartEdit(c))),
+        new DropdownMenuItem(c.IsActive ? "Desactivar" : "Activar", c.IsActive ? Icons.Pending : Icons.Paid,
+            EventCallback.Factory.Create(this, () => ToggleActive(c))),
+        new DropdownMenuItem("Eliminar", Icons.Delete, EventCallback.Factory.Create(this, () => AskDelete(c)), danger: true)
+    };
+
     private void StartCreate()
     {
         ClearMessages();
         editingId = null;
-        input = new CategoryInput();
+        input = new CategoryInput { Color = ColorSwatches.CategoryColors[0] };
         showForm = true;
     }
 

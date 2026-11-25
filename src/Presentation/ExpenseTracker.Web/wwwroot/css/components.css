@@ -485,3 +485,6 @@ textarea.field { height: auto; padding: var(--space-2) var(--space-3); resize: v
 .dropdown-app__item:focus-visible { background: var(--color-bg-hover); }
 .dropdown-app__item:disabled { color: var(--color-text-subtle); cursor: not-allowed; }
 .dropdown-app__item--danger { color: var(--color-spent-strong); }
+
+/* The last paragraph of a dialog body needs no space below it. */
+.overlay__body p:last-child { margin-bottom: 0; }

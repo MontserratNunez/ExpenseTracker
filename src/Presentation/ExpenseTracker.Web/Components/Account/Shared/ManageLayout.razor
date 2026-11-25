@@ -1,17 +1,13 @@
 ﻿@inherits LayoutComponentBase
 @layout ExpenseTracker.Web.Components.Layout.MainLayout
 
-<h1>Manage your account</h1>
+<PageHeader Title="Mi cuenta" Subtitle="Perfil, seguridad y datos personales" />
 
-<div>
-    <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
-        <div class="col-lg-3">
-            <ManageNavMenu />
-        </div>
-        <div class="col-lg-9">
-            @Body
-        </div>
+<div class="manage">
+    <nav aria-label="Secciones de la cuenta">
+        <ManageNavMenu />
+    </nav>
+    <div class="manage__body">
+        @Body
     </div>
 </div>

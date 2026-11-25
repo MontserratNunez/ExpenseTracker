@@ -1,0 +1,27 @@
+@inherits LayoutComponentBase
+
+@* Login, registration and the other pages of the account flow: the form on the left over white and a blue panel with
+   the name of the app on the right. On a phone only the form is shown, with the logo above it. *@
+<div class="account-shell">
+    <main class="account-shell__form" id="main" tabindex="-1">
+        <div class="account-shell__inner">
+            <a class="account-brand" href="/" aria-label="Expense Tracker, ir al inicio">
+                <AppIcon Name="@Icons.Logo" Size="26" />
+                <span>Expense Tracker</span>
+            </a>
+            @Body
+        </div>
+    </main>
+
+    <aside class="account-shell__hero" aria-hidden="true">
+        <AppIcon Name="@Icons.Logo" Size="72" />
+        <p class="account-hero__name">Expense Tracker</p>
+        <p class="account-hero__tagline">Tu dinero, claro y bajo control.</p>
+    </aside>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss" role="button" aria-label="Cerrar"><AppIcon Name="@Icons.Close" Size="14" /></span>
+</div>

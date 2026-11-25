@@ -14,62 +14,29 @@
 <PageTitle>Iniciar sesión</PageTitle>
 
 <h1>Iniciar sesión</h1>
-<div class="row">
-    <div class="col-lg-6">
-        <section>
-            <StatusMessage Message="@errorMessage" />
-            <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <h2>Usa tu cuenta local para iniciar sesión.</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username webauthn" aria-required="true" placeholder="name@example.com" />
-                    <label for="Input.Email" class="form-label">Correo electrónico</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
-                </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="Input.Password" class="form-label">Contraseña</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Recordarme
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Iniciar sesión</button>
-                </div>
-                <hr />
-                <div class="d-flex flex-column">
-                    <span class="text-secondary mx-auto mt-2">O</span>
-                    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="btn btn-link mx-auto">Iniciar sesión con passkey</PasskeySubmit>
-                </div>
-                <hr />
-                <div>
-                    <p>
-                        <a href="Account/ForgotPassword">¿Olvidaste tu contraseña?</a>
-                    </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Crear una cuenta nueva</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Reenviar confirmación de correo</a>
-                    </p>
-                </div>
-            </EditForm>
-        </section>
-    </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Usa otro servicio para iniciar sesión.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
-    </div>
-</div>
+<p class="account-lead">Entra a tu cuenta para ver cómo va tu dinero este mes.</p>
+
+<StatusMessage Message="@errorMessage" />
+<EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login" class="account-form">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="validation-summary" role="alert" />
+    <AppInput Label="Correo electrónico" @bind-Value="Input.Email" Autocomplete="username webauthn" Placeholder="nombre@ejemplo.com" />
+    <AppInput Label="Contraseña" Type="password" @bind-Value="Input.Password" Autocomplete="current-password" />
+    <label class="check-row">
+        <InputCheckbox @bind-Value="Input.RememberMe" />
+        Recordarme
+    </label>
+    <AppButton Type="submit" Class="btn-app--lg btn-app--block">Iniciar sesión</AppButton>
+    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="btn-app btn-app--ghost btn-app--md btn-app--block">Iniciar sesión con passkey</PasskeySubmit>
+</EditForm>
+
+<ExternalLoginPicker />
+
+<p class="account-links">
+    <a href="Account/ForgotPassword">¿Olvidaste tu contraseña?</a>
+    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Crear una cuenta nueva</a>
+    <a href="Account/ResendEmailConfirmation">Reenviar confirmación de correo</a>
+</p>
 
 @code {
     private string? errorMessage;
@@ -150,10 +117,12 @@
     {
         [Required(ErrorMessage = "El campo {0} es obligatorio.")]
         [EmailAddress(ErrorMessage = "El correo electrónico no es válido.")]
+        [Display(Name = "Correo electrónico")]
         public string Email { get; set; } = "";
 
         [Required(ErrorMessage = "El campo {0} es obligatorio.")]
         [DataType(DataType.Password)]
+        [Display(Name = "Contraseña")]
         public string Password { get; set; } = "";
 
         [Display(Name = "Recordarme")]

@@ -12,26 +12,18 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Resend email confirmation</PageTitle>
+<PageTitle>Reenviar confirmación de correo</PageTitle>
 
-<h1>Resend email confirmation</h1>
-<h2>Enter your email.</h2>
-<hr />
+<h1>Reenviar confirmación</h1>
+<p class="account-lead">Escribe tu correo y te enviaremos otro enlace de confirmación.</p>
+
 <StatusMessage Message="@message" />
-<div class="row">
-    <div class="col-md-4">
-        <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email" class="form-label">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Resend</button>
-        </EditForm>
-    </div>
-</div>
+<EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post" class="account-form">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="validation-summary" role="alert" />
+    <AppInput Label="Correo electrónico" @bind-Value="Input.Email" Placeholder="nombre@ejemplo.com" />
+    <AppButton Type="submit" Class="btn-app--lg btn-app--block">Reenviar</AppButton>
+</EditForm>
 
 @code {
     private string? message;
@@ -49,7 +41,7 @@
         var user = await UserManager.FindByEmailAsync(Input.Email!);
         if (user is null)
         {
-            message = "Verification email sent. Please check your email.";
+            message = "Te enviamos un correo de verificación. Revisa tu correo.";
             return;
         }
 
@@ -61,13 +53,14 @@
             new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
         await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        message = "Verification email sent. Please check your email.";
+        message = "Te enviamos un correo de verificación. Revisa tu correo.";
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "El campo {0} es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El correo electrónico no es válido.")]
+        [Display(Name = "Correo electrónico")]
         public string Email { get; set; } = "";
     }
 }

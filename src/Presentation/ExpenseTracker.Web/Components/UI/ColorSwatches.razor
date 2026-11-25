@@ -1,0 +1,57 @@
+@using System.Text.RegularExpressions
+
+@* Picks one color from a short list of swatches. It is a group of radio buttons, so the arrow keys move between the
+   colors and the choice is announced by screen readers. A color that is not in the list (an old one) is kept as an
+   extra first swatch so editing never loses it. *@
+<fieldset class="icon-picker">
+    <legend class="icon-picker__legend">@Label</legend>
+    <div class="color-swatches" role="radiogroup" aria-label="@Label">
+        @foreach (var color in Options)
+        {
+            var hex = color;
+            <label class="color-swatches__item" title="@hex">
+                <input type="radio" name="@groupName" value="@hex" checked="@(string.Equals(Value, hex, StringComparison.OrdinalIgnoreCase))"
+                       class="color-swatches__input" aria-label="Color @hex" @onchange="() => SelectAsync(hex)" />
+                <span class="color-swatches__dot" style="--swatch: @hex;"><AppIcon Name="@Icons.Paid" Size="16" /></span>
+            </label>
+        }
+    </div>
+</fieldset>
+
+@code {
+    private static readonly Regex Hex = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
+
+    /// <summary>The colors offered for categories: eight that read well on white.</summary>
+    public static readonly string[] CategoryColors =
+    {
+        "#E67E22", "#E5484D", "#F1C40F", "#2E9E5B", "#16A085", "#3498DB", "#9B59B6", "#6C757D"
+    };
+
+    private readonly string groupName = $"color-{Guid.NewGuid():N}";
+
+    [Parameter]
+    public string Label { get; set; } = "Color";
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>The swatches. Defaults to <see cref="CategoryColors"/>.</summary>
+    [Parameter]
+    public IReadOnlyList<string>? Colors { get; set; }
+
+    private IEnumerable<string> Options
+    {
+        get
+        {
+            var list = (Colors ?? CategoryColors).ToList();
+            if (Value is not null && Hex.IsMatch(Value) && !list.Contains(Value, StringComparer.OrdinalIgnoreCase))
+                list.Insert(0, Value);
+            return list;
+        }
+    }
+
+    private Task SelectAsync(string color) => ValueChanged.InvokeAsync(color);
+}

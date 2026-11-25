@@ -1,8 +1,10 @@
 ﻿@if (!string.IsNullOrEmpty(DisplayMessage))
 {
-    var statusMessageClass = DisplayMessage.StartsWith("Error") ? "danger" : "success";
-    <div class="alert alert-@statusMessageClass" role="alert">
-        @DisplayMessage
+    var isError = DisplayMessage.StartsWith("Error");
+    var text = DisplayMessage.StartsWith("Error:") ? DisplayMessage["Error:".Length..].Trim() : DisplayMessage;
+    <div class="inline-alert inline-alert--@(isError ? "danger" : "success") account-status" role="alert">
+        <AppIcon Name="@(isError ? Icons.Deficit : Icons.Success)" Size="18" Class="inline-alert__icon" />
+        <div class="inline-alert__text">@text</div>
     </div>
 }
 

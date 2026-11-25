@@ -117,7 +117,7 @@ else if (data is not null)
 <AppModal IsOpen="showRecurringDelete" Title="Gasto recurrente" OnClose="() => { showRecurringDelete = false; return Task.CompletedTask; }">
     <ChildContent>
         <p><strong>Finalizar</strong> detiene el gasto desde hoy y conserva el historial de los meses anteriores.</p>
-        <p class="mb-0"><strong>Eliminar por completo</strong> borra el gasto y todas sus ocurrencias pasadas y futuras.</p>
+        <p><strong>Eliminar por completo</strong> borra el gasto y todas sus ocurrencias pasadas y futuras.</p>
     </ChildContent>
     <Footer>
         <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => showRecurringDelete = false" data-autofocus="true">Cancelar</AppButton>

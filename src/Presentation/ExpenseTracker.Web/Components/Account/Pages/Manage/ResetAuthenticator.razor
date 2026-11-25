@@ -8,26 +8,19 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ResetAuthenticator> Logger
 
-<PageTitle>Reset authenticator key</PageTitle>
+<PageTitle>Restablecer clave de autenticación</PageTitle>
 
+<h2>Restablecer clave de autenticación</h2>
 <StatusMessage />
-<h3>Reset authenticator key</h3>
-<div class="alert alert-warning" role="alert">
-    <p>
-        <span class="glyphicon glyphicon-warning-sign"></span>
-        <strong>If you reset your authenticator key your authenticator app will not work until you reconfigure it.</strong>
-    </p>
-    <p>
-        This process disables 2FA until you verify your authenticator app.
-        If you do not complete your authenticator app configuration you may lose access to your account.
-    </p>
-</div>
-<div>
-    <form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
-        <AntiforgeryToken />
-        <button class="btn btn-danger" type="submit">Reset authenticator key</button>
-    </form>
-</div>
+<InlineAlert Tone="InlineAlert.AlertTone.Warning">
+    <strong>Si restableces la clave, tu app de autenticación dejará de funcionar hasta que la configures de nuevo.</strong>
+    Este proceso desactiva la verificación en dos pasos hasta que verifiques la app. Si no terminas la configuración
+    podrías perder el acceso a tu cuenta.
+</InlineAlert>
+<form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post" class="manage-actions">
+    <AntiforgeryToken />
+    <AppButton Type="submit" Variant="AppButton.ButtonVariant.Danger">Restablecer clave</AppButton>
+</form>
 
 @code {
     [CascadingParameter]

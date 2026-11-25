@@ -13,9 +13,23 @@
 }
 else
 {
-    <BaseCurrencySection BaseCurrency="baseCurrency" OnChanged="ReloadBaseCurrency" />
-    <ExchangeRatesSection BaseCurrency="baseCurrency" />
-    <CategoriesSection />
+    <div class="settings">
+        <BaseCurrencySection BaseCurrency="baseCurrency" OnChanged="ReloadBaseCurrency" />
+        <ExchangeRatesSection BaseCurrency="baseCurrency" />
+        <CategoriesSection />
+
+        <section class="settings__section" aria-labelledby="settings-theme">
+            <h2 id="settings-theme">Apariencia</h2>
+            <p class="settings__lead">El tema claro u oscuro se podrá elegir aquí más adelante.</p>
+            <div class="settings__row">
+                <FormField Label="Tema" InputId="theme-select">
+                    <select id="theme-select" class="field" disabled>
+                        <option>Claro</option>
+                    </select>
+                </FormField>
+            </div>
+        </section>
+    </div>
 }
 
 @code {

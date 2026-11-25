@@ -59,7 +59,7 @@
 }
 
 .plan-legend { margin: var(--space-4) 0 0; font-size: var(--text-sm); color: var(--color-text-muted); }
-.plan-legend kbd {
+.plan-legend kbd, .settings__lead kbd {
   padding: 1px 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);

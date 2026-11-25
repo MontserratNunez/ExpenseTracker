@@ -346,7 +346,7 @@ else
             <kbd>Inicio</kbd> y <kbd>Fin</kbd> saltan; <kbd>Esc</kbd> cierra y vuelve al botón; <kbd>Tab</kbd> cierra.
         </p>
         <div class="demo-frame">
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="row-flex">
                 <span>Suscripción Netflix</span>
                 <DropdownMenu AriaLabel="Acciones de Suscripción Netflix" Items="menuItems" />
             </div>
@@ -359,7 +359,7 @@ else
                 <AppButton Variant="AppButton.ButtonVariant.Secondary" Icon="@Icons.Calendar" OnClick="() => popoverOpen = !popoverOpen"
                            aria-haspopup="dialog" aria-expanded="@(popoverOpen ? "true" : "false")">Elegir mes</AppButton>
                 <Popover IsOpen="popoverOpen" OnClose="() => popoverOpen = false" AriaLabel="Elegir mes">
-                    <p class="mb-2"><strong>Contenido del popover</strong></p>
+                    <p><strong>Contenido del popover</strong></p>
                     <div class="demo-row">
                         <AppButton Size="AppButton.ButtonSize.Sm" OnClick="PickFromPopover">Noviembre 2026</AppButton>
                         <AppButton Size="AppButton.ButtonSize.Sm" Variant="AppButton.ButtonVariant.Ghost" OnClick="() => popoverOpen = false">Cerrar</AppButton>
@@ -372,8 +372,8 @@ else
     <section class="catalog-section" aria-labelledby="catalog-feedback">
         <h2 id="catalog-feedback">Estados y avisos</h2>
 
-        <h3 class="h6">Toasts</h3>
-        <div class="d-flex flex-wrap gap-2 mb-3">
+        <h3 class="catalog-group">Toasts</h3>
+        <div class="demo-row">
             <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => ShowToast(ToastKind.Success)">Éxito</AppButton>
             <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => ShowToast(ToastKind.Error)">Error</AppButton>
             <AppButton Variant="AppButton.ButtonVariant.Secondary" OnClick="() => ShowToast(ToastKind.Info)">Información</AppButton>
@@ -381,26 +381,26 @@ else
         </div>
         <p class="text-muted" data-testid="toast-result">@toastResult</p>
 
-        <h3 class="h6">InlineAlert</h3>
+        <h3 class="catalog-group">InlineAlert</h3>
         <InlineAlert Tone="InlineAlert.AlertTone.Info">Información: tu plan se recalcula al cambiar un ingreso.</InlineAlert>
         <InlineAlert Tone="InlineAlert.AlertTone.Success">Todo al día: no tienes pagos pendientes.</InlineAlert>
         <InlineAlert Tone="InlineAlert.AlertTone.Warning">Asignaste más de lo que ingresas este mes.</InlineAlert>
         <InlineAlert Tone="InlineAlert.AlertTone.Danger" OnDismiss="() => { }">Déficit de RD$ 1,200.00 este mes.</InlineAlert>
 
-        <h3 class="h6">ProgressBar</h3>
-        <div class="d-grid gap-3 mb-3" style="max-width: 420px;">
+        <h3 class="catalog-group">ProgressBar</h3>
+        <div class="stack" style="max-width: 420px;">
             <ProgressBar Percent="45" Label="45% de la meta" />
             <ProgressBar Percent="45" ColorVar="--color-warning" Height="6" Label="Compacta, 45%" />
             <ProgressBar Segments="progressSegments" Marker="80" MarkerLabel="Estimado a fin de mes" Label="Gastado, pendiente y estimado" />
         </div>
 
-        <h3 class="h6">Skeleton</h3>
-        <div class="d-flex gap-3 align-items-center mb-3">
+        <h3 class="catalog-group">Skeleton</h3>
+        <div class="demo-row">
             <Skeleton Circle="true" Width="40px" Height="40px" Class="flex-none" />
             <Skeleton Lines="3" Height="1rem" Class="flex-grow-1" />
         </div>
 
-        <h3 class="h6">EmptyState</h3>
+        <h3 class="catalog-group">EmptyState</h3>
         <EmptyState Icon="@Icons.EmptyGoals" Title="Aún no tienes metas" Description="Crea una, por ejemplo Ahorro de 200,000 anualmente, y sigue tu avance mes a mes.">
             <Action><AppButton Icon="@Icons.Add">Nueva meta</AppButton></Action>
         </EmptyState>

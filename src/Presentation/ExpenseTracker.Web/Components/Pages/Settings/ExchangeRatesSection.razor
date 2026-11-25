@@ -1,57 +1,74 @@
+@using System.Globalization
 @using ExpenseTracker.Core.Application.DTOs.Settings
 @using ExpenseTracker.Core.Application.Services
 @using ExpenseTracker.Core.Domain.Enums
 @inject CurrencyService CurrencyService
 
-<section class="card mb-4">
-    <div class="card-header">Tasas de cambio</div>
-    <div class="card-body">
-        <ErrorAlert @bind-Message="error" />
-        <SuccessToast Message="@message" />
+<section class="settings__section" aria-labelledby="settings-rates">
+    <h2 id="settings-rates">Tasas de cambio</h2>
+    <p class="settings__lead">
+        Cuántas unidades de <strong>@BaseCurrency</strong> vale una unidad de cada moneda. Se usan para convertir los montos al registrarlos.
+        Haz clic en una tasa para editarla: <kbd>Enter</kbd> guarda y <kbd>Esc</kbd> cancela.
+    </p>
 
-        <p class="form-text">Cuántas unidades de <strong>@BaseCurrency</strong> vale una unidad de cada moneda. Se usan para convertir los montos al registrarlos.</p>
+    <ErrorAlert @bind-Message="error" />
+    <SuccessToast Message="@message" />
 
-        @if (loading)
-        {
-            <Skeleton Lines="4" Height="2.5rem" />
-        }
-        else
-        {
-        <div class="table-responsive">
-            <table class="table align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Moneda</th>
-                        <th>Tasa (1 unidad = ? @BaseCurrency)</th>
-                        <th>Actualizada</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var currency in OtherCurrencies)
-                    {
-                        var c = currency;
-                        <tr>
-                            <td>@c</td>
-                            <td style="max-width: 14rem;">
-                                <input type="number" step="any" min="0" class="form-control" aria-label="Tasa de @c"
-                                       @bind="edits[c]" @bind:event="oninput" />
-                            </td>
-                            <td>@(rates.TryGetValue(c, out var r) ? r.UpdatedOn.ToString("d") : "Sin configurar")</td>
-                            <td class="text-end text-nowrap">
-                                <button type="button" class="btn btn-sm btn-primary" @onclick="() => Save(c)">Guardar</button>
-                                @if (rates.ContainsKey(c))
+    @if (loading)
+    {
+        <Skeleton Lines="2" Height="2.5rem" />
+    }
+    else
+    {
+        <ul class="settings-list" aria-label="Tasas de cambio">
+            @foreach (var currency in OtherCurrencies)
+            {
+                var c = currency;
+                var configured = rates.TryGetValue(c, out var rate);
+                <li class="settings-row">
+                    <span class="settings-row__main">
+                        <span class="settings-row__name">@c</span>
+                        @if (editing == c)
+                        {
+                            <span class="plan-edit">
+                                <span>1 @c =</span>
+                                <input type="text" inputmode="decimal" class="field field--sm plan-edit__input @(editError is null ? null : "invalid")"
+                                       aria-label="@($"Tasa de {c}")" aria-describedby="@(editError is null ? null : "rate-error")"
+                                       @ref="editInput" @bind="editText" @bind:event="oninput"
+                                       @onkeydown="OnEditKeyAsync" @onblur="CancelEdit" />
+                                <span>@BaseCurrency</span>
+                            </span>
+                        }
+                        else
+                        {
+                            <button type="button" class="plan-row__edit" @onclick="() => StartEdit(c)"
+                                    aria-label="@($"Editar la tasa de {c}")" title="Clic para editar">
+                                @if (configured)
                                 {
-                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => Remove(c)">Quitar</button>
+                                    <span class="settings-row__value">1 @c = @rate!.RateToBase.ToString("#,##0.######", CultureInfo.CurrentCulture) @BaseCurrency</span>
                                 }
-                            </td>
-                        </tr>
+                                else
+                                {
+                                    <span class="text-muted">Sin configurar</span>
+                                }
+                                <AppIcon Name="@Icons.Edit" Size="12" Class="plan-row__pencil" />
+                            </button>
+                        }
+                    </span>
+                    @if (configured)
+                    {
+                        <span class="text-muted">Actualizada el @rate!.UpdatedOn.ToString("d")</span>
+                        <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Delete"
+                                   AriaLabel="@($"Quitar la tasa de {c}")" OnClick="() => Remove(c)" />
                     }
-                </tbody>
-            </table>
-        </div>
-        }
-    </div>
+                </li>
+                @if (editing == c && editError is not null)
+                {
+                    <li class="validation-message" id="rate-error" role="alert">@editError</li>
+                }
+            }
+        </ul>
+    }
 </section>
 
 @code {
@@ -59,11 +76,16 @@
     public Currency BaseCurrency { get; set; }
 
     private readonly Dictionary<Currency, ExchangeRateDto> rates = new();
-    private readonly Dictionary<Currency, decimal> edits = new();
     private Currency loadedFor = (Currency)0;
     private string? error;
     private string? message;
     private bool loading = true;
+
+    private Currency? editing;
+    private string editText = string.Empty;
+    private string? editError;
+    private bool focusEdit;
+    private ElementReference editInput;
 
     private IEnumerable<Currency> OtherCurrencies => Enum.GetValues<Currency>().Where(c => c != BaseCurrency);
 
@@ -73,34 +95,75 @@
         {
             loadedFor = BaseCurrency;
             loading = true;
+            editing = null;
             await LoadAsync();
             loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusEdit)
+        {
+            focusEdit = false;
+            await editInput.FocusAsync();
         }
     }
 
     private async Task LoadAsync()
     {
         rates.Clear();
-        edits.Clear();
         foreach (var rate in await CurrencyService.ListRatesAsync())
             rates[rate.Currency] = rate;
-        foreach (var currency in OtherCurrencies)
-            edits[currency] = rates.TryGetValue(currency, out var r) ? r.RateToBase : 0m;
     }
 
-    private async Task Save(Currency currency)
+    private void StartEdit(Currency currency)
     {
         error = null;
         message = null;
+        editError = null;
+        editing = currency;
+        editText = rates.TryGetValue(currency, out var rate) ? rate.RateToBase.ToString("0.######", CultureInfo.InvariantCulture) : string.Empty;
+        focusEdit = true;
+    }
+
+    private void CancelEdit()
+    {
+        editing = null;
+        editError = null;
+    }
+
+    private async Task OnEditKeyAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            CancelEdit();
+        else if (e.Key == "Enter")
+            await SaveEditAsync();
+    }
+
+    // Rates may have up to 6 decimals, so they are not read with the 2-decimal money parser.
+    private async Task SaveEditAsync()
+    {
+        if (editing is not { } currency)
+            return;
+
+        var text = editText.Replace(",", string.Empty).Trim();
+        if (!decimal.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
+        {
+            editError = "Escriba una tasa válida, por ejemplo 60.50.";
+            return;
+        }
+
         try
         {
-            await CurrencyService.SetRateAsync(new ExchangeRateInput { Currency = currency, RateToBase = edits[currency] });
+            await CurrencyService.SetRateAsync(new ExchangeRateInput { Currency = currency, RateToBase = value });
+            CancelEdit();
             await LoadAsync();
             message = $"Tasa de {currency} guardada.";
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
-            error = ex.Message;
+            editError = ex.Message;
         }
     }
 
