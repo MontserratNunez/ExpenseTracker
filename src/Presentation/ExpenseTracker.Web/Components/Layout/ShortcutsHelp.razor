@@ -1,0 +1,66 @@
+@* The list of keyboard shortcuts, opened with "?". *@
+<AppModal IsOpen="IsOpen" Title="Atajos de teclado" OnClose="OnClose">
+    <ChildContent>
+        <table class="data-table shortcuts-table">
+            <caption class="sr-only">Atajos de teclado</caption>
+            <thead>
+                <tr><th scope="col">Tecla</th><th scope="col">Qué hace</th><th scope="col">Dónde</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Rows)
+                {
+                    <tr>
+                        <td class="nowrap">
+                            @for (var i = 0; i < row.Keys.Length; i++)
+                            {
+                                if (i > 0)
+                                {
+                                    <span class="text-muted"> / </span>
+                                }
+                                <kbd class="kbd">@row.Keys[i]</kbd>
+                            }
+                        </td>
+                        <td>@row.Action</td>
+                        <td class="text-muted">@row.Where</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <p class="manage-note shortcuts-note">Las teclas sencillas no funcionan mientras escribes en un campo.</p>
+    </ChildContent>
+    <Footer>
+        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnClose.InvokeAsync()">Cerrar</AppButton>
+    </Footer>
+</AppModal>
+
+@code {
+    private sealed class Row
+    {
+        public Row(string[] keys, string action, string where)
+        {
+            Keys = keys;
+            Action = action;
+            Where = where;
+        }
+
+        public string[] Keys { get; }
+        public string Action { get; }
+        public string Where { get; }
+    }
+
+    private static readonly Row[] Rows =
+    {
+        new(new[] { "N" }, "Nuevo gasto", "En cualquier página"),
+        new(new[] { "←", "→" }, "Mes anterior / siguiente", "Gastos, Plan e Ingresos únicos"),
+        new(new[] { "/" }, "Ir a los filtros de la lista", "Gastos"),
+        new(new[] { "Ctrl + K", "⌘ + K" }, "Abrir la paleta de comandos", "En cualquier página"),
+        new(new[] { "Esc" }, "Cerrar un diálogo, panel, calendario o la paleta", "En cualquier página"),
+        new(new[] { "?" }, "Mostrar esta lista", "En cualquier página"),
+    };
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+}

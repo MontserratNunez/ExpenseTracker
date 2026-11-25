@@ -8,6 +8,8 @@
 @inject BudgetService BudgetService
 @inject CurrencyService CurrencyService
 @inject IDateProvider DateProvider
+@inject ShortcutService Shortcuts
+@implements IDisposable
 
 <PageTitle>Plan</PageTitle>
 
@@ -194,9 +196,30 @@ else if (plan is not null)
     private bool focusEdit;
     private ElementReference editInput;
 
+    private IDisposable? shortcutSubscription;
+
+    public void Dispose() => shortcutSubscription?.Dispose();
+
+    // The left and right arrows change the month, up to one month after the current one.
+    private async Task OnShortcutAsync(ShortcutEventArgs e)
+    {
+        if (loading || showEditor || e.Key is not ("ArrowLeft" or "ArrowRight"))
+            return;
+
+        var index = year * 12 + (month - 1) + (e.Key == "ArrowLeft" ? -1 : 1);
+        var today = DateProvider.Today;
+        if (index > today.Year * 12 + today.Month)
+            return;
+
+        e.Handled = true;
+        await OnMonthChanged((index / 12, index % 12 + 1));
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var today = DateProvider.Today;
+        shortcutSubscription = Shortcuts.Subscribe(OnShortcutAsync);
         year = today.Year;
         month = today.Month;
 

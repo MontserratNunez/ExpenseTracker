@@ -7,13 +7,20 @@
    the page behind does not scroll, and the focus returns to what had it when it closes. *@
 @if (IsOpen)
 {
-    <div class="overlay overlay--@Kind.ToString().ToLower() overlay--w-@Width.ToString().ToLower()" @onclick="RequestCloseAsync">
+    <div class="overlay overlay--@Kind.ToString().ToLower() overlay--w-@Width.ToString().ToLower() @Class" @onclick="RequestCloseAsync">
         <div class="overlay__panel" role="dialog" aria-modal="true" aria-labelledby="@titleId" tabindex="-1"
              @ref="panel" @onclick:stopPropagation="true" @onkeydown="OnKeyDownAsync">
-            <header class="overlay__header">
-                <h2 class="overlay__title" id="@titleId">@Title</h2>
-                <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="RequestCloseAsync" />
-            </header>
+            @if (ShowHeader)
+            {
+                <header class="overlay__header">
+                    <h2 class="overlay__title" id="@titleId">@Title</h2>
+                    <AppButton Variant="AppButton.ButtonVariant.Ghost" Icon="@Icons.Close" AriaLabel="Cerrar" OnClick="RequestCloseAsync" />
+                </header>
+            }
+            else
+            {
+                <h2 class="sr-only" id="@titleId">@Title</h2>
+            }
 
             @if (Footer is null)
             {
@@ -37,6 +44,14 @@
 
     [Parameter]
     public bool IsOpen { get; set; }
+
+    /// <summary>False hides the visible title bar; the title is then only for screen readers (the command palette).</summary>
+    [Parameter]
+    public bool ShowHeader { get; set; } = true;
+
+    /// <summary>Extra CSS class for the dimmed backdrop element.</summary>
+    [Parameter]
+    public string? Class { get; set; }
 
     [Parameter]
     public string Title { get; set; } = string.Empty;

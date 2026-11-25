@@ -1,0 +1,80 @@
+@implements IAsyncDisposable
+@using ExpenseTracker.Web.Services
+@inject ShortcutService Shortcuts
+@inject NavigationManager Navigation
+
+@* Listens to the keyboard for the whole app (once, in the layout) and owns the command palette and the help dialog.
+   Pages handle the shortcuts that belong to them (the month arrows, the filter); what is left comes here. *@
+<CommandPalette IsOpen="paletteOpen" OnClose="ClosePalette" />
+<ShortcutsHelp IsOpen="helpOpen" OnClose="CloseHelp" />
+
+@code {
+    private bool paletteOpen;
+    private bool helpOpen;
+    private DotNetObjectReference<ShortcutCallbacks>? callbacks;
+    private IJSObjectReference? registration;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            callbacks = DotNetObjectReference.Create(new ShortcutCallbacks(key => InvokeAsync(() => OnShortcutAsync(key))));
+            registration = await Shortcuts.RegisterAsync(callbacks);
+        }
+        catch (JSException)
+        {
+            // the script is not available: the app works without shortcuts
+        }
+        catch (InvalidOperationException)
+        {
+            // static rendering: there is no browser to listen to
+        }
+    }
+
+    private async Task OnShortcutAsync(string key)
+    {
+        if (await Shortcuts.RaiseAsync(key))
+            return;
+
+        switch (key)
+        {
+            case "mod+k":
+                helpOpen = false;
+                paletteOpen = !paletteOpen;
+                break;
+            case "?":
+                helpOpen = true;
+                break;
+            case "n":
+                Navigation.NavigateTo("gastos?nuevo=1");
+                break;
+        }
+
+        StateHasChanged();
+    }
+
+    private void ClosePalette() => paletteOpen = false;
+
+    private void CloseHelp() => helpOpen = false;
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (registration is not null)
+            {
+                await registration.InvokeVoidAsync("dispose");
+                await registration.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // the circuit is gone
+        }
+
+        callbacks?.Dispose();
+    }
+}

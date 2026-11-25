@@ -1,4 +1,4 @@
-<OverlayShell Kind="OverlayKind.Modal" Width="Width" IsOpen="IsOpen" Title="@Title" OnClose="OnClose" Footer="Footer">
+<OverlayShell Kind="OverlayKind.Modal" Width="Width" IsOpen="IsOpen" Title="@Title" OnClose="OnClose" Footer="Footer" ShowHeader="ShowHeader" Class="@Class">
     @ChildContent
 </OverlayShell>
 
@@ -12,6 +12,13 @@
     /// <summary>Raised on Esc, on a click outside the dialog and on the close button. The parent decides to close it.</summary>
     [Parameter]
     public EventCallback OnClose { get; set; }
+
+    /// <summary>False hides the title bar (the title stays for screen readers).</summary>
+    [Parameter]
+    public bool ShowHeader { get; set; } = true;
+
+    [Parameter]
+    public string? Class { get; set; }
 
     [Parameter]
     public OverlayWidth Width { get; set; } = OverlayWidth.Md;

@@ -7,6 +7,9 @@
 @inject IncomeService IncomeService
 @inject CurrencyService CurrencyService
 @inject IDateProvider DateProvider
+@inject ShortcutService Shortcuts
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Ingresos</PageTitle>
 
@@ -136,6 +139,10 @@ else
 <ConfirmDialog @bind-Visible="confirmDelete" Title="Eliminar" Message="@deleteMessage" ConfirmText="Eliminar" OnConfirm="DeleteAsync" />
 
 @code {
+    /// <summary>"?nuevo=1" opens the new one-time income form on arrival (used by the command palette).</summary>
+    [Parameter, SupplyParameterFromQuery(Name = "nuevo")]
+    public string? OpenNew { get; set; }
+
     private enum Tab { Recurring, OneTime }
 
     private Tab tab = Tab.Recurring;
@@ -164,14 +171,59 @@ else
     private string deleteMessage = string.Empty;
     private Func<Task>? pendingDelete;
 
+    private IDisposable? shortcutSubscription;
+    private bool openedFromLink;
+
+    public void Dispose() => shortcutSubscription?.Dispose();
+
+    // The arrows change the month of the one-time incomes, up to one month after the current one.
+    private async Task OnShortcutAsync(ShortcutEventArgs e)
+    {
+        if (loading || tab != Tab.OneTime || showSourceForm || showOneTimeForm || e.Key is not ("ArrowLeft" or "ArrowRight"))
+            return;
+
+        var index = year * 12 + (month - 1) + (e.Key == "ArrowLeft" ? -1 : 1);
+        var today = DateProvider.Today;
+        if (index > today.Year * 12 + today.Month)
+            return;
+
+        e.Handled = true;
+        await OnMonthChanged((index / 12, index % 12 + 1));
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        shortcutSubscription = Shortcuts.Subscribe(OnShortcutAsync);
+
         var today = DateProvider.Today;
         year = today.Year;
         month = today.Month;
 
         await RunAsync(LoadAsync);
         loading = false;
+        OpenFromLink();
+    }
+
+    protected override void OnParametersSet() => OpenFromLink();
+
+    // The link has to wait for the first load, because the form needs the base currency.
+    private void OpenFromLink()
+    {
+        if (OpenNew != "1")
+        {
+            openedFromLink = false;
+            return;
+        }
+
+        // While prerendering there is no circuit yet: the interactive pass finds the same link and does it.
+        if (loading || openedFromLink || !RendererInfo.IsInteractive)
+            return;
+
+        openedFromLink = true;
+        tab = Tab.OneTime;
+        StartCreateOneTime();
+        Navigation.NavigateTo("/ingresos", replace: true);   // drop the query so a reload does not reopen it
     }
 
     private async Task LoadAsync()

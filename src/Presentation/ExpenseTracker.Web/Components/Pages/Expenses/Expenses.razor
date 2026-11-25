@@ -13,6 +13,7 @@
 @inject IDateProvider DateProvider
 @inject NavigationManager Navigation
 @inject ToastService Toasts
+@inject ShortcutService Shortcuts
 @implements IDisposable
 
 <PageTitle>Gastos</PageTitle>
@@ -47,7 +48,7 @@
 }
 else if (data is not null)
 {
-    <div class="exp-filters">
+    <div class="exp-filters" data-shortcut-focus="filter">
         <DropdownMenu AriaLabel="Filtrar por categoría" Items="CategoryFilterItems()" Align="DropdownMenu.MenuAlign.Start"
                       TriggerClass="btn-app btn-app--ghost btn-app--sm">
             <TriggerContent><AppIcon Name="@Icons.Filter" Size="14" /> <span>@CategoryFilterLabel</span></TriggerContent>
@@ -139,6 +140,10 @@ else if (data is not null)
     [Parameter, SupplyParameterFromQuery(Name = "nuevo")]
     public string? OpenNew { get; set; }
 
+    /// <summary>"?editar=ID" opens that expense for editing on arrival (used by the command palette).</summary>
+    [Parameter, SupplyParameterFromQuery(Name = "editar")]
+    public int? EditId { get; set; }
+
     private int CurrentYear => Year ?? DateProvider.Today.Year;
     private int CurrentMonth => Month ?? DateProvider.Today.Month;
 
@@ -198,11 +203,18 @@ else if (data is not null)
             loading = false;
         }
 
-        if (OpenNew == "1" && !loading)
+        if (OpenNew == "1" && !loading && RendererInfo.IsInteractive)
         {
             OpenNew = null;
             StartCreate();
             Navigation.NavigateTo($"/gastos/{CurrentYear}/{CurrentMonth}", replace: true);   // drop the query so a reload does not reopen it
+        }
+
+        if (EditId is { } editId && !loading && RendererInfo.IsInteractive)
+        {
+            EditId = null;
+            Navigation.NavigateTo($"/gastos/{CurrentYear}/{CurrentMonth}", replace: true);   // drop the query so a reload does not reopen it
+            await StartEditByIdAsync(editId);
         }
     }
 
@@ -348,12 +360,15 @@ else if (data is not null)
         showForm = true;
     }
 
-    private async Task StartEdit(LedgerItem item)
+    private Task StartEdit(LedgerItem item) => StartEditByIdAsync(item.SourceId);
+
+    private async Task StartEditByIdAsync(int id)
     {
         ClearMessages();
         await RunAsync(async () =>
         {
-            var expense = await LoadExpenseAsync(item);
+            var expense = await ExpenseService.GetByIdAsync(id)
+                ?? throw new InvalidOperationException("El gasto ya no existe.");
             editingId = expense.Id;
             editingIsRecurring = expense.IsRecurring;
             input = ToInput(expense);
@@ -506,8 +521,51 @@ else if (data is not null)
     }
 
     private bool disposed;
+    private IDisposable? shortcutSubscription;
 
-    public void Dispose() => disposed = true;
+    protected override void OnInitialized() => shortcutSubscription = Shortcuts.Subscribe(OnShortcutAsync);
+
+    public void Dispose()
+    {
+        disposed = true;
+        shortcutSubscription?.Dispose();
+    }
+
+    // N opens the new expense panel of the month on screen, the arrows change the month and / goes to the filters.
+    private async Task OnShortcutAsync(ShortcutEventArgs e)
+    {
+        if (loading || showForm)
+            return;
+
+        switch (e.Key)
+        {
+            case "n":
+                e.Handled = true;
+                StartCreate();
+                break;
+            case "ArrowLeft":
+            case "ArrowRight":
+                e.Handled = true;
+                ShiftMonth(e.Key == "ArrowLeft" ? -1 : 1);
+                break;
+            case "/":
+                e.Handled = await Shortcuts.FocusTargetAsync("filter");
+                break;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // The same limit as the month navigator: one month after the current one.
+    private void ShiftMonth(int delta)
+    {
+        var index = CurrentYear * 12 + (CurrentMonth - 1) + delta;
+        var today = DateProvider.Today;
+        if (index > today.Year * 12 + today.Month)
+            return;
+
+        GoToMonth((index / 12, index % 12 + 1));
+    }
 
     private async Task FinishDeleteAsync(Func<Task> action, string successMessage)
     {

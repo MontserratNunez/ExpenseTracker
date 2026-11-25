@@ -326,6 +326,41 @@ public class ExpenseServiceTests
     }
 
     [Fact]
+    public async Task Search_FindsByPartOfTheName_IgnoringCase_NewestFirst_AndCapped()
+    {
+        await _service.CreateAsync(OneTime("Supermercado Nacional", 500m, new DateOnly(2026, 9, 3)));
+        await _service.CreateAsync(OneTime("Mi SUPERMERCADO", 700m, new DateOnly(2026, 11, 10)));
+        await _service.CreateAsync(OneTime("Supermercado Bravo", 900m, new DateOnly(2026, 10, 1)));
+        await _service.CreateAsync(OneTime("Cine", 300m, new DateOnly(2026, 11, 12), Leisure));
+
+        var found = await _service.SearchAsync("super");
+
+        // The names that start with the text come first, then the newest.
+        Assert.Equal(new[] { "Supermercado Bravo", "Supermercado Nacional", "Mi SUPERMERCADO" }, found.Select(r => r.Name));
+        Assert.Equal("Comida", found[0].CategoryName);
+        Assert.Equal(new DateOnly(2026, 10, 1), found[0].MonthToShow);
+
+        Assert.Equal(2, (await _service.SearchAsync("super", max: 2)).Count);
+        Assert.Empty(await _service.SearchAsync("   "));
+        Assert.Empty(await _service.SearchAsync("nada parecido"));
+    }
+
+    [Fact]
+    public async Task Search_OnlyLooksAtTheLast12Months_ButAlwaysFindsActiveRecurringExpenses()
+    {
+        await _service.CreateAsync(OneTime("Gym viejo", 400m, new DateOnly(2025, 6, 1)));
+        await _service.CreateAsync(Recurring("Gym mensual", 600m, new DateOnly(2024, 1, 5), Frequency.Monthly, Leisure));
+        await _service.CreateAsync(Recurring("Gym terminado", 600m, new DateOnly(2024, 1, 5), Frequency.Monthly, Leisure, end: new DateOnly(2025, 1, 1)));
+
+        var found = await _service.SearchAsync("gym");
+
+        var only = Assert.Single(found);
+        Assert.Equal("Gym mensual", only.Name);
+        Assert.True(only.IsRecurring);
+        Assert.Equal(new DateOnly(2026, 11, 18), only.MonthToShow);   // a recurring expense opens in the current month
+    }
+
+    [Fact]
     public async Task Update_ConvertingOneTimeToRecurring_ChangesItsType()
     {
         var created = await _service.CreateAsync(OneTime("Gym", 500m, new DateOnly(2026, 10, 5)));

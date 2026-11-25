@@ -1,0 +1,281 @@
+@implements IDisposable
+@using System.Globalization
+@using System.Text
+@using ExpenseTracker.Core.Application.DTOs.Expenses
+@using ExpenseTracker.Core.Application.Helpers
+@using ExpenseTracker.Core.Application.Services
+@using ExpenseTracker.Web.Services
+@inject NavigationManager Navigation
+@inject ExpenseService ExpenseService
+
+@* Ctrl/Cmd + K: a search box that goes to any section, runs a common action or finds an expense by name.
+   It is a combobox: the focus stays in the box while the arrows move the highlighted option. *@
+<AppModal IsOpen="IsOpen" Title="Buscar o ir a..." ShowHeader="false" Class="overlay--palette" OnClose="OnClose">
+    <ChildContent>
+        <div class="palette">
+            <div class="palette__search">
+                <AppIcon Name="@Icons.Search" Size="18" />
+                <input type="text" class="palette__input" autocomplete="off" spellcheck="false" maxlength="80"
+                       placeholder="Buscar una sección, una acción o un gasto..."
+                       role="combobox" aria-label="Buscar o ir a" aria-autocomplete="list" aria-expanded="true"
+                       aria-controls="palette-list" aria-activedescendant="@(Flat.Count == 0 ? null : OptionId(active))"
+                       data-autofocus="true"
+                       value="@query" @oninput="OnInputAsync" @onkeydown="OnKeyDownAsync" />
+            </div>
+
+            <div id="palette-list" class="palette__list" role="listbox" aria-label="Resultados">
+                @{ var index = 0; }
+                @foreach (var group in Groups)
+                {
+                    <div class="palette__group" role="group" aria-label="@group.Title">
+                        <div class="palette__group-title" aria-hidden="true">@group.Title</div>
+                        @foreach (var item in group.Items)
+                        {
+                            var i = index++;
+                            var chosen = item;
+                            <div id="@OptionId(i)" role="option" aria-selected="@(i == active ? "true" : "false")"
+                                 class="palette__option @(i == active ? "palette__option--active" : null)"
+                                 @onclick="() => RunAsync(chosen)" @onmouseover="() => Highlight(i)">
+                                <AppIcon Name="@item.Icon" Size="16" />
+                                <span class="palette__text">@item.Text</span>
+                                @if (item.Hint is not null)
+                                {
+                                    <span class="palette__hint">@item.Hint</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                @if (Flat.Count == 0)
+                {
+                    <p class="palette__empty" role="status">@(searching ? "Buscando..." : "No se encontró nada.")</p>
+                }
+            </div>
+        </div>
+    </ChildContent>
+</AppModal>
+
+@code {
+    private sealed class PaletteItem
+    {
+        public PaletteItem(string text, string icon, string? hint, Func<Task> run)
+        {
+            Text = text;
+            Icon = icon;
+            Hint = hint;
+            Run = run;
+        }
+
+        public string Text { get; }
+        public string Icon { get; }
+        public string? Hint { get; }
+        public Func<Task> Run { get; }
+    }
+
+    private sealed class PaletteGroup
+    {
+        public PaletteGroup(string title, List<PaletteItem> items)
+        {
+            Title = title;
+            Items = items;
+        }
+
+        public string Title { get; }
+        public List<PaletteItem> Items { get; }
+    }
+
+    private const int DebounceMilliseconds = 200;
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private string query = string.Empty;
+    private int active;
+    private bool wasOpen;
+    private bool searching;
+    private List<ExpenseSearchResult> expenses = new();
+    private CancellationTokenSource? searchCts;
+    private List<PaletteGroup> groupsCache = new();
+
+    private List<PaletteGroup> Groups => groupsCache;
+
+    private List<PaletteItem> Flat => groupsCache.SelectMany(g => g.Items).ToList();
+
+    private static string OptionId(int i) => $"palette-option-{i}";
+
+    protected override void OnParametersSet()
+    {
+        // Every time it opens it starts empty.
+        if (IsOpen && !wasOpen)
+        {
+            query = string.Empty;
+            active = 0;
+            expenses = new List<ExpenseSearchResult>();
+            searching = false;
+        }
+
+        wasOpen = IsOpen;
+        Rebuild();
+    }
+
+    // ---------- Typing ----------
+
+    private async Task OnInputAsync(ChangeEventArgs e)
+    {
+        query = e.Value?.ToString() ?? string.Empty;
+        active = 0;
+        Rebuild();
+
+        searchCts?.Cancel();
+        searchCts?.Dispose();
+        if (Normalize(query).Length < 2)
+        {
+            expenses = new List<ExpenseSearchResult>();
+            searching = false;
+            Rebuild();
+            return;
+        }
+
+        searchCts = new CancellationTokenSource();
+        var token = searchCts.Token;
+        searching = true;
+        try
+        {
+            await Task.Delay(DebounceMilliseconds, token);
+            var found = await ExpenseService.SearchAsync(query);
+            if (token.IsCancellationRequested)
+                return;
+
+            expenses = found;
+            searching = false;
+            active = Math.Min(active, Math.Max(0, Flat.Count - 1));
+            Rebuild();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (TaskCanceledException)
+        {
+            // the user kept typing: a newer search replaces this one
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            expenses = new List<ExpenseSearchResult>();
+            searching = false;
+            Rebuild();
+        }
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        var count = Flat.Count;
+        switch (e.Key)
+        {
+            case "ArrowDown" when count > 0:
+                active = (active + 1) % count;
+                break;
+            case "ArrowUp" when count > 0:
+                active = (active - 1 + count) % count;
+                break;
+            case "Home" when count > 0:
+                active = 0;
+                break;
+            case "End" when count > 0:
+                active = count - 1;
+                break;
+            case "Enter" when count > 0:
+                await RunAsync(Flat[Math.Min(active, count - 1)]);
+                break;
+        }
+    }
+
+    private void Highlight(int i) => active = i;
+
+    private async Task RunAsync(PaletteItem item)
+    {
+        await OnClose.InvokeAsync();
+        await item.Run();
+    }
+
+    // ---------- Content ----------
+
+    private void Rebuild()
+    {
+        var text = Normalize(query);
+        var groups = new List<PaletteGroup>();
+
+        var goTo = Destinations
+            .Where(d => text.Length == 0 || Normalize(d.Text).Contains(text))
+            .Select(d => new PaletteItem(d.Text, d.Icon, null, () => GoAsync(d.Href)))
+            .ToList();
+        if (goTo.Count > 0)
+            groups.Add(new PaletteGroup("Ir a", goTo));
+
+        var actions = ActionItems
+            .Where(a => text.Length == 0 || Normalize(a.Text).Contains(text))
+            .Select(a => new PaletteItem(a.Text, a.Icon, null, () => GoAsync(a.Href)))
+            .ToList();
+        if (actions.Count > 0)
+            groups.Add(new PaletteGroup("Acciones", actions));
+
+        if (expenses.Count > 0)
+        {
+            var found = expenses.Select(x => new PaletteItem(
+                x.Name,
+                x.IsRecurring ? Icons.Recurring : Icons.Expenses,
+                $"{x.CategoryName} · {MoneyFormatter.Format(x.Amount, x.Currency)} · {UiLabels.ShortDate(x.Date)}",
+                () => GoAsync($"gastos/{x.MonthToShow.Year}/{x.MonthToShow.Month}?editar={x.Id}"))).ToList();
+            groups.Add(new PaletteGroup("Gastos", found));
+        }
+
+        groupsCache = groups;
+        active = Math.Min(active, Math.Max(0, groups.Sum(g => g.Items.Count) - 1));
+    }
+
+    private Task GoAsync(string href)
+    {
+        Navigation.NavigateTo(href);
+        return Task.CompletedTask;
+    }
+
+    private static readonly (string Text, string Icon, string Href)[] Destinations =
+    {
+        ("Inicio", Icons.Home, ""),
+        ("Ingresos", Icons.Incomes, "ingresos"),
+        ("Gastos", Icons.Expenses, "gastos"),
+        ("Deudas", Icons.Debts, "deudas"),
+        ("Plan", Icons.Budget, "plan"),
+        ("Metas", Icons.Goals, "metas"),
+        ("Estimaciones", Icons.Forecast, "estimaciones"),
+        ("Configuración", Icons.Settings, "configuracion"),
+        ("Mi cuenta", Icons.User, "Account/Manage"),
+    };
+
+    private static readonly (string Text, string Icon, string Href)[] ActionItems =
+    {
+        ("Nuevo gasto", Icons.Add, "gastos?nuevo=1"),
+        ("Nuevo ingreso", Icons.Add, "ingresos?nuevo=1"),
+        ("Registrar pago", Icons.Debts, "deudas"),
+    };
+
+    // Lowercase without accents, so "configuracion" finds "Configuración".
+    private static string Normalize(string text)
+    {
+        var decomposed = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (var c in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                builder.Append(c);
+        }
+
+        return builder.ToString();
+    }
+
+    public void Dispose()
+    {
+        searchCts?.Cancel();
+        searchCts?.Dispose();
+    }
+}

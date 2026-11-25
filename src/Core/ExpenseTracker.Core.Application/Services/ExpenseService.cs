@@ -157,6 +157,41 @@ public class ExpenseService
         return totals;
     }
 
+    /// <summary>
+    /// Finds expenses by name (any case, any part of it) among the last 12 months, plus the active recurring ones.
+    /// Newest first, at most <paramref name="max"/>. Used by the command palette.
+    /// </summary>
+    public async Task<List<ExpenseSearchResult>> SearchAsync(string text, int max = 8)
+    {
+        var key = (text ?? string.Empty).Trim().ToLower();
+        if (key.Length == 0 || max <= 0)
+            return new List<ExpenseSearchResult>();
+
+        var today = _dateProvider.Today;
+        var from = today.AddMonths(-12);
+        var matches = await _expenses.ListAsync(e => e.Name.ToLower().Contains(key)
+            && (e.Date >= from || (e.Type == ExpenseType.Recurring && e.IsActive && (e.EndDate == null || e.EndDate >= today))));
+
+        var categories = (await _categories.ListAsync()).ToDictionary(c => c.Id, c => c.Name);
+        return matches
+            .OrderBy(e => e.Name.ToLower().StartsWith(key) ? 0 : 1)
+            .ThenByDescending(e => e.Date)
+            .ThenByDescending(e => e.Id)
+            .Take(max)
+            .Select(e => new ExpenseSearchResult
+            {
+                Id = e.Id,
+                Name = e.Name,
+                CategoryName = categories.TryGetValue(e.CategoryId, out var name) ? name : string.Empty,
+                Amount = e.Amount,
+                Currency = e.Currency,
+                Date = e.Date,
+                IsRecurring = e.Type == ExpenseType.Recurring,
+                MonthToShow = e.Type == ExpenseType.Recurring && e.Date < new DateOnly(today.Year, today.Month, 1) ? today : e.Date
+            })
+            .ToList();
+    }
+
     /// <summary>The category used the last time an expense had this name (any case), or null. Used to prefill the quick-add.</summary>
     public async Task<int?> GetLastCategoryIdAsync(string name)
     {
