@@ -18,7 +18,7 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ExternalLogin> Logger
 
-<PageTitle>Registro</PageTitle>
+<PageTitle>Registro · Expense Tracker</PageTitle>
 
 <h1>Registro</h1>
 <StatusMessage Message="@message" />
@@ -28,7 +28,7 @@
 
 <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" FormName="confirmation" method="post" class="account-form">
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <AppInput Label="Correo electrónico" @bind-Value="Input.Email" Autocomplete="email" Placeholder="nombre@ejemplo.com" />
     <AppButton Type="submit" Class="btn-app--lg btn-app--block">Registrarse</AppButton>
 </EditForm>

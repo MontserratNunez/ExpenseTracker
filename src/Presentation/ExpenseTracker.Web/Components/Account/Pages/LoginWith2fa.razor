@@ -9,7 +9,7 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<LoginWith2fa> Logger
 
-<PageTitle>Verificación en dos pasos</PageTitle>
+<PageTitle>Verificación en dos pasos · Expense Tracker</PageTitle>
 
 <h1>Verificación en dos pasos</h1>
 <p class="account-lead">Tu cuenta está protegida con una app de autenticación. Escribe el código que muestra.</p>
@@ -19,7 +19,7 @@
     <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
     <input type="hidden" name="RememberMe" value="@RememberMe" />
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <AppInput Label="Código de autenticación" @bind-Value="Input.TwoFactorCode" Autocomplete="off" />
     <label class="check-row" for="remember-machine">
         <InputCheckbox @bind-Value="Input.RememberMachine" id="remember-machine" />

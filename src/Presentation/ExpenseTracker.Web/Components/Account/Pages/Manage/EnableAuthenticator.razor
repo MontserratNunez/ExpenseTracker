@@ -12,7 +12,7 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<EnableAuthenticator> Logger
 
-<PageTitle>Configurar app de autenticación</PageTitle>
+<PageTitle>Configurar app de autenticación · Expense Tracker</PageTitle>
 
 @if (recoveryCodes is not null)
 {
@@ -42,7 +42,7 @@ else
     <EditForm Model="Input" FormName="send-code" OnValidSubmit="OnValidSubmitAsync" method="post" class="account-form">
         <DataAnnotationsValidator />
         <AppInput Label="Código de verificación" @bind-Value="Input.Code" Autocomplete="off" />
-        <ValidationSummary class="validation-summary" role="alert" />
+        <div role="alert"><ValidationSummary class="validation-summary" /></div>
         <div><AppButton Type="submit">Verificar</AppButton></div>
     </EditForm>
 }

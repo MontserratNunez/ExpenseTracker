@@ -12,7 +12,7 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Reenviar confirmación de correo</PageTitle>
+<PageTitle>Reenviar confirmación de correo · Expense Tracker</PageTitle>
 
 <h1>Reenviar confirmación</h1>
 <p class="account-lead">Escribe tu correo y te enviaremos otro enlace de confirmación.</p>
@@ -20,7 +20,7 @@
 <StatusMessage Message="@message" />
 <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post" class="account-form">
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <AppInput Label="Correo electrónico" @bind-Value="Input.Email" Placeholder="nombre@ejemplo.com" />
     <AppButton Type="submit" Class="btn-app--lg btn-app--block">Reenviar</AppButton>
 </EditForm>

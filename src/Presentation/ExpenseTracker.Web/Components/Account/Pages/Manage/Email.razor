@@ -12,7 +12,7 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Correo electrónico</PageTitle>
+<PageTitle>Correo electrónico · Expense Tracker</PageTitle>
 
 <h2>Correo electrónico</h2>
 <StatusMessage Message="@message" />
@@ -21,7 +21,7 @@
 </form>
 <EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post" class="account-form">
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <FormField Label="Correo actual" InputId="email">
         <input type="text" value="@email" id="email" class="field" disabled />
     </FormField>

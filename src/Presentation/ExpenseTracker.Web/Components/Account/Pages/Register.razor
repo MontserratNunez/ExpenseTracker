@@ -17,7 +17,7 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Registro</PageTitle>
+<PageTitle>Registro · Expense Tracker</PageTitle>
 
 <h1>Registro</h1>
 <p class="account-lead">Crea tu cuenta para llevar tus ingresos, gastos y metas en un solo lugar.</p>
@@ -25,7 +25,7 @@
 <StatusMessage Message="@Message" />
 <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register" class="account-form">
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <AppInput Label="Correo electrónico" @bind-Value="Input.Email" Autocomplete="username" Placeholder="nombre@ejemplo.com" />
     <AppInput Label="Contraseña" Type="password" @bind-Value="Input.Password" Autocomplete="new-password" />
     <AppInput Label="Confirmar contraseña" Type="password" @bind-Value="Input.ConfirmPassword" Autocomplete="new-password" />

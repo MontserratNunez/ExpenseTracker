@@ -9,7 +9,7 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<DeletePersonalData> Logger
 
-<PageTitle>Eliminar datos personales</PageTitle>
+<PageTitle>Eliminar datos personales · Expense Tracker</PageTitle>
 
 <h2>Eliminar datos personales</h2>
 <StatusMessage Message="@message" />
@@ -18,7 +18,7 @@
 </InlineAlert>
 <EditForm Model="Input" FormName="delete-user" OnValidSubmit="OnValidSubmitAsync" method="post" class="account-form">
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     @if (requirePassword)
     {
         <AppInput Label="Contraseña" Type="password" @bind-Value="Input.Password" Autocomplete="current-password" />

@@ -26,7 +26,7 @@ public class ShortcutsTests
             await page.Locator("body").PressAsync(key);
             try
             {
-                await expected.WaitForAsync(new LocatorWaitForOptions { Timeout = 1200 });
+                await expected.WaitForAsync(new LocatorWaitForOptions { Timeout = 3500 });
                 return;
             }
             catch (TimeoutException) when (attempt < attempts)
@@ -223,12 +223,14 @@ public class ShortcutsTests
         await page.Keyboard.PressAsync("Control+K");
         await Expect(palette).ToBeHiddenAsync();
         await page.Keyboard.PressAsync("Control+K");
+        await Expect(input).ToBeFocusedAsync();   // the focus arrives a moment after the palette opens
         await Expect(palette).ToBeVisibleAsync();
         await page.Keyboard.PressAsync("Escape");
         await Expect(palette).ToBeHiddenAsync();
 
         // Sections: filtered without caring about accents; the arrows move, Enter goes.
         await page.Keyboard.PressAsync("Control+K");
+        await Expect(input).ToBeFocusedAsync();   // the focus arrives a moment after the palette opens
         await input.FillAsync("configuracion");
         await Expect(palette.GetByRole(AriaRole.Option)).ToHaveCountAsync(1);
         await Expect(palette.GetByRole(AriaRole.Option, new LocatorGetByRoleOptions { Name = "Configuración" })).ToHaveAttributeAsync("aria-selected", "true");
@@ -238,6 +240,7 @@ public class ShortcutsTests
 
         // Arrows: the highlighted option follows them and wraps around.
         await page.Keyboard.PressAsync("Control+K");
+        await Expect(input).ToBeFocusedAsync();   // the focus arrives a moment after the palette opens
         await Expect(palette.GetByRole(AriaRole.Option).First).ToHaveAttributeAsync("aria-selected", "true");
         await page.Keyboard.PressAsync("ArrowDown");
         await Expect(palette.GetByRole(AriaRole.Option).Nth(1)).ToHaveAttributeAsync("aria-selected", "true");
@@ -248,6 +251,7 @@ public class ShortcutsTests
 
         // Actions: "Nuevo ingreso" opens the form of the one-time income.
         await page.Keyboard.PressAsync("Control+K");
+        await Expect(input).ToBeFocusedAsync();   // the focus arrives a moment after the palette opens
         await input.FillAsync("nuevo ing");
         await page.Keyboard.PressAsync("Enter");
         await Expect(page).ToHaveURLAsync(new Regex(@"/ingresos$"));
@@ -256,6 +260,7 @@ public class ShortcutsTests
 
         // The search for an expense: Ctrl+K, type, wait for the results, Enter opens it.
         await page.Keyboard.PressAsync("Control+K");
+        await Expect(input).ToBeFocusedAsync();   // the focus arrives a moment after the palette opens
         await input.FillAsync("super");
         var found = palette.GetByRole(AriaRole.Option, new LocatorGetByRoleOptions { Name = "Supermercado" });
         await Expect(found).ToBeVisibleAsync();
@@ -291,6 +296,7 @@ public class ShortcutsTests
         await OpenAppAsync(tab, "/metas");
         var palette = Dialog(page, "Buscar o ir a...");
         await PressUntilAsync(page, "Control+K", palette);
+        await Expect(palette.GetByRole(AriaRole.Combobox)).ToBeFocusedAsync();   // typing before the focus arrives would lose letters
         await page.Keyboard.TypeAsync("super");
 
         // Wait for the result to appear, move down to it (the sections that match come first) and press Enter.

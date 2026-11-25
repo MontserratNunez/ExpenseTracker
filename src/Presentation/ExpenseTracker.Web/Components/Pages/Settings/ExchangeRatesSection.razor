@@ -42,7 +42,8 @@
                         else
                         {
                             <button type="button" class="plan-row__edit" @onclick="() => StartEdit(c)"
-                                    aria-label="@($"Editar la tasa de {c}")" title="Clic para editar">
+                                    title="Clic para editar">
+                                <span class="sr-only">@($"Editar la tasa de {c}: ")</span>
                                 @if (configured)
                                 {
                                     <span class="settings-row__value">1 @c = @rate!.RateToBase.ToString("#,##0.######", CultureInfo.CurrentCulture) @BaseCurrency</span>

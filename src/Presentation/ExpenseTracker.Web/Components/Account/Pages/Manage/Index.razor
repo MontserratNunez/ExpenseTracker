@@ -8,13 +8,13 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Perfil</PageTitle>
+<PageTitle>Perfil · Expense Tracker</PageTitle>
 
 <h2>Perfil</h2>
 <StatusMessage />
 <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post" class="account-form">
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <FormField Label="Usuario" InputId="username">
         <input type="text" value="@username" id="username" class="field" disabled />
     </FormField>

@@ -9,7 +9,7 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<LoginWithRecoveryCode> Logger
 
-<PageTitle>Código de recuperación</PageTitle>
+<PageTitle>Código de recuperación · Expense Tracker</PageTitle>
 
 <h1>Código de recuperación</h1>
 <p class="account-lead">
@@ -20,7 +20,7 @@
 <StatusMessage Message="@message" />
 <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post" class="account-form">
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <AppInput Label="Código de recuperación" @bind-Value="Input.RecoveryCode" Autocomplete="off" />
     <AppButton Type="submit" Class="btn-app--lg btn-app--block">Iniciar sesión</AppButton>
 </EditForm>

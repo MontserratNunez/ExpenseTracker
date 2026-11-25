@@ -20,7 +20,7 @@
                        role="combobox" aria-label="Buscar o ir a" aria-autocomplete="list" aria-expanded="true"
                        aria-controls="palette-list" aria-activedescendant="@(Flat.Count == 0 ? null : OptionId(active))"
                        data-autofocus="true"
-                       value="@query" @oninput="OnInputAsync" @onkeydown="OnKeyDownAsync" />
+                       @oninput="OnInputAsync" @onkeydown="OnKeyDownAsync" />
             </div>
 
             <div id="palette-list" class="palette__list" role="listbox" aria-label="Resultados">
@@ -108,7 +108,7 @@
 
     protected override void OnParametersSet()
     {
-        // Every time it opens it starts empty.
+        // Every time it opens it starts empty (the input is not bound to the text: re-rendering it while the user types fast would overwrite letters).
         if (IsOpen && !wasOpen)
         {
             query = string.Empty;

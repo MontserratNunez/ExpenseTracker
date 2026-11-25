@@ -11,7 +11,7 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Iniciar sesión</PageTitle>
+<PageTitle>Iniciar sesión · Expense Tracker</PageTitle>
 
 <h1>Iniciar sesión</h1>
 <p class="account-lead">Entra a tu cuenta para ver cómo va tu dinero este mes.</p>
@@ -19,7 +19,7 @@
 <StatusMessage Message="@errorMessage" />
 <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login" class="account-form">
     <DataAnnotationsValidator />
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <AppInput Label="Correo electrónico" @bind-Value="Input.Email" Autocomplete="username webauthn" Placeholder="nombre@ejemplo.com" />
     <AppInput Label="Contraseña" Type="password" @bind-Value="Input.Password" Autocomplete="current-password" />
     <label class="check-row">

@@ -21,7 +21,7 @@ p  { margin: 0 0 var(--space-3); }
 /* A heading that opens its container (a card, a section) needs no extra space above it. */
 h2:first-child, h3:first-child { margin-top: 0; }
 
-a { color: var(--color-primary-500); text-decoration: none; }
+a { color: var(--color-primary-600); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 :focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
@@ -77,3 +77,18 @@ small { font-size: var(--text-sm); }
 .data-table th { color: var(--color-text-muted); font-weight: 500; }
 .data-table .num { text-align: right; white-space: nowrap; }
 .data-table tfoot td { font-weight: 600; border-bottom: 0; }
+
+/* Reduced motion: whoever asks for it gets no animations or transitions anywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* A link inside a sentence must not rely on color alone to be told apart from the text around it. */
+p a, li a, .inline-alert__text a, .empty-state a { text-decoration: underline; text-underline-offset: 2px; }
+.account-links a, .home-section__link, .sidebar a, .subnav a, .bottom-nav a { text-decoration: none; }
+.account-links a:hover, .home-section__link:hover { text-decoration: underline; }

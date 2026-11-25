@@ -28,10 +28,10 @@
                     tabindex="@(index == focusIndex ? 0 : -1)"
                     aria-pressed="@(isSelected ? "true" : "false")"
                     aria-current="@(isCurrent ? "date" : null)"
-                    aria-label="@MonthLabel(monthNumber, total)"
                     disabled="@IsBeyondLimit(pickerYear, monthNumber)"
                     @onclick="() => Select(monthNumber)">
                 <span>@UiLabels.ShortMonthName(monthNumber)</span>
+                <span class="sr-only"> (@MonthLabel(monthNumber, total))</span>
                 @if (LoadYearTotals is not null)
                 {
                     <span class="ymp__bar" aria-hidden="true" style="opacity: @Intensity(total);"></span>

@@ -47,7 +47,7 @@
   height: 28px;
   border-radius: 50%;
   background: var(--color-available-bg);
-  color: var(--color-available);
+  color: var(--color-available-strong);
 }
 
 /* ---------- Metas ---------- */
@@ -113,8 +113,8 @@
 .forecast-card__figures > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
 .forecast-card__figures dt { font-size: var(--text-sm); color: var(--color-text-muted); }
 .forecast-card__figures dd { display: inline-flex; align-items: center; gap: var(--space-1); margin: 0; font-weight: 600; }
-.forecast-card__balance--positive { color: var(--color-available); }
-.forecast-card__balance--negative { color: var(--color-spent); }
+.forecast-card__balance--positive { color: var(--color-available-strong); }
+.forecast-card__balance--negative { color: var(--color-spent-strong); }
 
 .forecast-card__toggle {
   display: inline-flex;

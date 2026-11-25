@@ -16,7 +16,7 @@
 @inject ShortcutService Shortcuts
 @implements IDisposable
 
-<PageTitle>Gastos</PageTitle>
+<PageTitle>Gastos · @UiLabels.MonthName(CurrentMonth).ToLower() @CurrentYear · Expense Tracker</PageTitle>
 
 <PageHeader Title="Gastos">
     <Actions><AppButton OnClick="StartCreate" Icon="@Icons.Add" Disabled="@loading">Nuevo gasto</AppButton></Actions>
@@ -534,12 +534,12 @@ else if (data is not null)
     // N opens the new expense panel of the month on screen, the arrows change the month and / goes to the filters.
     private async Task OnShortcutAsync(ShortcutEventArgs e)
     {
-        if (loading || showForm)
+        if (showForm)
             return;
 
         switch (e.Key)
         {
-            case "n":
+            case "n" when !loading:
                 e.Handled = true;
                 StartCreate();
                 break;

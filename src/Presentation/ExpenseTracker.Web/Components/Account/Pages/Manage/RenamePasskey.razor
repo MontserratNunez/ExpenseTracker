@@ -8,7 +8,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Nombre de la passkey</PageTitle>
+<PageTitle>Nombre de la passkey · Expense Tracker</PageTitle>
 
 <EditForm Model="Input" OnValidSubmit="Rename" FormName="rename-passkey" method="post" class="account-form">
     <DataAnnotationsValidator />
@@ -20,7 +20,7 @@
     {
         <h2>Escribe un nombre para tu passkey</h2>
     }
-    <ValidationSummary class="validation-summary" role="alert" />
+    <div role="alert"><ValidationSummary class="validation-summary" /></div>
     <AppInput Label="Nombre de la passkey" @bind-Value="Input.Name" Placeholder="Mi passkey" />
     <div><AppButton Type="submit">Continuar</AppButton></div>
 </EditForm>

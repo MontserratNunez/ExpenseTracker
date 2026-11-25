@@ -11,7 +11,7 @@
 @inject ShortcutService Shortcuts
 @implements IDisposable
 
-<PageTitle>Plan</PageTitle>
+<PageTitle>Plan · @UiLabels.MonthName(month).ToLower() @year · Expense Tracker</PageTitle>
 
 <PageHeader Title="Plan">
     <Actions><AppButton OnClick="StartEditAsync" Disabled="@loading">Editar plan</AppButton></Actions>
@@ -98,8 +98,8 @@ else if (plan is not null)
                             else
                             {
                                 <button type="button" class="plan-row__edit" @onclick="() => StartInline(c)"
-                                        aria-label="@($"Editar lo asignado a {c.CategoryName}")" title="Clic para editar">
-                                    de <MoneyText Amount="c.Assigned" Currency="baseCurrency" />
+                                        title="Clic para editar">
+                                    <span class="sr-only">@($"Editar lo asignado a {c.CategoryName}: ")</span>de <MoneyText Amount="c.Assigned" Currency="baseCurrency" />
                                     @if (c.AllocationType == AllocationType.PercentageOfIncome)
                                     {
                                         <span class="plan-row__kind">(@c.Value.ToString("0.##") % de ingreso)</span>
