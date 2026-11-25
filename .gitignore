@@ -128,6 +128,8 @@ ipch/
 
 # Visual Studio Trace Files
 *.e2e
+# ...but not the E2E test project, whose folder name matches the pattern (case-insensitively)
+!/tests/ExpenseTracker.E2E/
 
 # TFS 2012 Local Workspace
 $tf/

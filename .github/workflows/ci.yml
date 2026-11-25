@@ -25,7 +25,9 @@ jobs:
           export LC_ALL=C.UTF-8
           ! grep -rnP "[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]" src/Presentation --include=*.razor --include=*.cs --include=*.css
 
-      - run: dotnet test --no-build -c Release --logger trx --results-directory TestResults
+      # Only the unit tests run here. The browser tests (tests/ExpenseTracker.E2E) need Chrome and SQL Server LocalDB,
+      # so they are built with the solution but run only on a developer machine (E2E=1).
+      - run: dotnet test tests/ExpenseTracker.Tests --no-build -c Release --logger trx --results-directory TestResults
 
       - uses: actions/upload-artifact@v4
         if: always()

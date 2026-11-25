@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.65.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Builds the web app before the tests, but is not loaded: the app runs as its own process. -->
+    <ProjectReference Include="..\..\src\Presentation\ExpenseTracker.Web\ExpenseTracker.Web.csproj" ReferenceOutputAssembly="false" />
+    <!-- Brings Microsoft.Data.SqlClient (with the patched transitive packages) to reset the test database. -->
+    <ProjectReference Include="..\..\src\Infrastructure\ExpenseTracker.Infrastructure.Persistence\ExpenseTracker.Infrastructure.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>
