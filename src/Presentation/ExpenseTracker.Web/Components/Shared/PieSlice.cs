@@ -6,6 +6,6 @@ public class PieSlice
     public string Label { get; set; } = string.Empty;
     public decimal Value { get; set; }
 
-    /// <summary>CSS color, e.g. "#2E9E5B".</summary>
-    public string Color { get; set; } = "#9AA0A6";
+    /// <summary>CSS color. Use a design token, e.g. "var(--color-available)".</summary>
+    public string Color { get; set; } = "var(--color-committed)";
 }

@@ -1,28 +1,40 @@
 ﻿@page "/"
+@using ExpenseTracker.Core.Application.DTOs.Budget
 @using ExpenseTracker.Core.Application.DTOs.Dashboard
 @using ExpenseTracker.Core.Application.DTOs.Goals
 @using ExpenseTracker.Core.Application.Helpers
 @using ExpenseTracker.Core.Application.Services
 @using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject DashboardService DashboardService
 @inject CurrencyService CurrencyService
+@inject AuthenticationStateProvider AuthState
+@inject ChartAnimationState ChartAnimation
 
 <PageTitle>Inicio</PageTitle>
 
-<PageHeader Title="Inicio" Subtitle="@(data is null ? null : $"{UiLabels.MonthName(data.Month)} {data.Year}")" />
+<PageHeader Title="@Greeting" Subtitle="@(data is null ? null : $"{UiLabels.MonthName(data.Month).ToLower()} {data.Year}")" />
 
 <ErrorAlert @bind-Message="error" />
 
 @if (loading)
 {
-    <Skeleton Lines="4" Height="2.5rem" />
+    <div class="home-skeleton">
+        <div class="home-skeleton__chart"><Skeleton Circle="true" Width="220px" Height="220px" /></div>
+        <div class="home-skeleton__cards">
+            <Skeleton Height="5.5rem" />
+            <Skeleton Height="5.5rem" />
+            <Skeleton Height="5.5rem" />
+        </div>
+    </div>
+    <Skeleton Lines="4" Height="2rem" />
 }
 else if (data is not null)
 {
     @if (data.IsDeficit)
     {
-        <InlineAlert Tone="InlineAlert.AlertTone.Danger">
+        <InlineAlert Tone="InlineAlert.AlertTone.Danger" Class="mb-4">
             <strong>Déficit de <MoneyText Amount="data.DeficitAmount" Currency="baseCurrency" /> este mes.</strong>
             Lo gastado y lo comprometido supera tus ingresos.
         </InlineAlert>
@@ -30,199 +42,183 @@ else if (data is not null)
 
     @if (!data.HasIncome)
     {
-        <div class="card mb-4">
-            <div class="card-body">
-                <h2 class="h5">Empecemos</h2>
-                <p class="text-muted">Todavía no hay ingresos este mes, así que no hay nada que repartir. Sigue estos pasos:</p>
-                <ol class="mb-3">
-                    <li class="mb-1"><a href="/ingresos">Configura tus ingresos</a></li>
-                    <li class="mb-1"><a href="/gastos">Registra tus gastos</a></li>
-                    <li><a href="/plan">Arma tu plan</a></li>
-                </ol>
-                <a href="/ingresos" class="btn btn-primary">Configurar ingresos</a>
-            </div>
-        </div>
+        <EmptyState Icon="@Icons.EmptyIncomes" Title="Empecemos"
+                    Description="Todavía no hay ingresos este mes, así que no hay nada que repartir. Sigue estos pasos:">
+            <Action>
+                <div class="stack">
+                    <ol class="start-steps">
+                        <li><a href="/ingresos">Configura tus ingresos</a></li>
+                        <li><a href="/gastos">Registra tus gastos</a></li>
+                        <li><a href="/plan">Arma tu plan</a></li>
+                    </ol>
+                    <div><a href="/ingresos" class="btn-app btn-app--primary btn-app--md">Configurar ingresos</a></div>
+                </div>
+            </Action>
+        </EmptyState>
     }
     else
     {
-        <div class="row g-4 mb-4">
-            <div class="col-12 col-md-6 col-xl-5">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <PieChart Slices="Slices" Currency="baseCurrency"
-                                  CenterLabel="@(data.IsDeficit ? "Déficit" : "Disponible")"
-                                  CenterValue="@MoneyFormatter.Format(data.IsDeficit ? data.DeficitAmount : data.Available, baseCurrency)" />
-                    </div>
-                </div>
+        <div class="home-summary">
+            <div class="home-summary__chart">
+                <PieChart Slices="Slices" Currency="baseCurrency" ShowLegend="false" Animate="animateChart"
+                          CenterLabel="@(data.IsDeficit ? "Déficit" : "Disponible")"
+                          CenterValue="@MoneyFormatter.Format(data.IsDeficit ? data.DeficitAmount : data.Available, baseCurrency)" />
             </div>
-            <div class="col-12 col-md-6 col-xl-7">
-                <div class="row g-3">
-                    <div class="col-12 col-sm-4 col-md-12 col-xl-4">
-                        <div class="card h-100 border-success"><div class="card-body py-3">
-                            <div class="text-muted small">Disponible</div>
-                            <div class="fs-5 fw-semibold text-success"><MoneyText Amount="data.Available" Currency="baseCurrency" /></div>
-                        </div></div>
-                    </div>
-                    <div class="col-12 col-sm-4 col-md-12 col-xl-4">
-                        <div class="card h-100 border-danger"><div class="card-body py-3">
-                            <div class="text-muted small">Gastado</div>
-                            <div class="fs-5 fw-semibold text-danger"><MoneyText Amount="data.Spent" Currency="baseCurrency" /></div>
-                        </div></div>
-                    </div>
-                    <div class="col-12 col-sm-4 col-md-12 col-xl-4">
-                        <div class="card h-100"><div class="card-body py-3">
-                            <div class="text-muted small">Comprometido</div>
-                            <div class="fs-5 fw-semibold text-secondary"><MoneyText Amount="data.Committed" Currency="baseCurrency" /></div>
-                        </div></div>
-                    </div>
-                    <div class="col-12">
-                        <div class="text-muted small">
-                            Ingresos del mes: <MoneyText Amount="data.Income" Currency="baseCurrency" />.
-                            Comprometido son los gastos y cuotas de este mes que aún no llegan a su fecha.
-                        </div>
-                    </div>
-                </div>
+            <div class="home-summary__cards">
+                <StatCard Label="Disponible" Amount="data.Available" Currency="baseCurrency" Tone="StatCard.StatTone.Available" />
+                <StatCard Label="Gastado" Amount="data.Spent" Currency="baseCurrency" Tone="StatCard.StatTone.Spent" />
+                <StatCard Label="Comprometido" Amount="data.Committed" Currency="baseCurrency" Tone="StatCard.StatTone.Committed" />
+                <p class="home-summary__note">
+                    Ingresos del mes: <MoneyText Amount="data.Income" Currency="baseCurrency" />.
+                    Comprometido son los gastos y cuotas de este mes que aún no llegan a su fecha.
+                </p>
             </div>
         </div>
     }
 
     @if (ShowSections)
     {
-        <div class="row g-4">
-            <div class="col-12 col-lg-4">
-                <section class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Próximos pagos</span>
-                        <a href="/gastos" class="small">Ver gastos</a>
-                    </div>
-                    @if (data.UpcomingPayments.Count == 0)
-                    {
-                        <div class="card-body text-muted">No tienes pagos en los próximos 7 días.</div>
-                    }
-                    else
-                    {
-                        <ul class="list-group list-group-flush">
-                            @foreach (var payment in data.UpcomingPayments)
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-start gap-2">
-                                    <div>
-                                        @if (payment.DebtId is not null)
-                                        {
-                                            <a href="/deudas/@payment.DebtId" class="text-decoration-none">@payment.Name</a>
-                                        }
-                                        else
-                                        {
-                                            @payment.Name
-                                        }
-                                        <div class="small text-muted">
-                                            @UiLabels.ShortDate(payment.Date)
-                                            @if (payment.IsOverdue)
-                                            {
-                                                <span class="badge text-bg-danger">Vencida</span>
-                                            }
-                                        </div>
-                                    </div>
-                                    <div class="text-end text-nowrap">
-                                        <MoneyText Amount="payment.OriginalAmount" Currency="payment.Currency" />
-                                    </div>
-                                </li>
-                            }
-                        </ul>
-                    }
-                </section>
-            </div>
+        <div class="home-sections">
+            <section aria-labelledby="home-upcoming">
+                <div class="home-section__head">
+                    <h2 id="home-upcoming">Próximos pagos</h2>
+                    <a href="/gastos" class="home-section__link">Ver todo <AppIcon Name="@Icons.Next" Size="14" /></a>
+                </div>
+                @if (data.UpcomingPayments.Count == 0)
+                {
+                    <p class="home-section__empty">No tienes pagos en los próximos 7 días.</p>
+                }
+                else
+                {
+                    <ul class="home-list">
+                        @foreach (var payment in data.UpcomingPayments)
+                        {
+                            <li class="upcoming">
+                                <span class="upcoming__date">@UiLabels.ShortDate(payment.Date)</span>
+                                <span class="upcoming__name">
+                                    <AppIcon Name="@(payment.DebtId is not null || payment.IsDebt ? Icons.Debts : Icons.Recurring)" Size="14"
+                                             Label="@(payment.DebtId is not null || payment.IsDebt ? "Cuota de deuda" : "Gasto recurrente")" Class="upcoming__icon" />
+                                    @if (payment.DebtId is not null)
+                                    {
+                                        <a href="/deudas/@payment.DebtId" class="upcoming__text">@payment.Name</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="upcoming__text">@payment.Name</span>
+                                    }
+                                    @if (payment.IsOverdue)
+                                    {
+                                        <Badge Tone="Badge.BadgeTone.Red">Vencida</Badge>
+                                    }
+                                </span>
+                                <MoneyText Amount="payment.OriginalAmount" Currency="payment.Currency" />
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
 
-            <div class="col-12 col-lg-4">
-                <section class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Plan</span>
-                        <a href="/plan" class="small">Ver plan</a>
-                    </div>
-                    @if (!data.HasPlan)
-                    {
-                        <div class="card-body text-muted">
-                            Aún no tienes un plan. <a href="/plan">Reparte tus ingresos por categoría</a>.
-                        </div>
-                    }
-                    else
-                    {
-                        <ul class="list-group list-group-flush">
-                            @foreach (var category in data.PlanHighlights)
-                            {
-                                <li class="list-group-item">
-                                    <div class="d-flex justify-content-between small mb-1">
-                                        <strong>@category.CategoryName</strong>
-                                        <span>
-                                            <MoneyText Amount="category.Spent + category.Pending" Currency="baseCurrency" /> de
-                                            <MoneyText Amount="category.Assigned" Currency="baseCurrency" />
-                                        </span>
-                                    </div>
-                                    <PlanBar Assigned="category.Assigned" Spent="category.Spent" Pending="category.Pending"
-                                             Estimated="category.Estimated" Health="category.Health" />
-                                </li>
-                            }
-                        </ul>
-                    }
-                </section>
-            </div>
+            <section aria-labelledby="home-plan">
+                <div class="home-section__head">
+                    <h2 id="home-plan">Plan</h2>
+                    <a href="/plan" class="home-section__link">Ver todo <AppIcon Name="@Icons.Next" Size="14" /></a>
+                </div>
+                @if (!data.HasPlan)
+                {
+                    <p class="home-section__empty">
+                        Aún no tienes un plan. <a href="/plan">Reparte tus ingresos por categoría</a>.
+                    </p>
+                }
+                else
+                {
+                    <ul class="home-list">
+                        @foreach (var category in data.PlanHighlights)
+                        {
+                            <li>
+                                <div class="meter__head">
+                                    <span class="meter__name">
+                                        <AppIcon Name="@HealthIcon(category.Health)" Size="14" Class="@HealthClass(category.Health)" />
+                                        @category.CategoryName
+                                    </span>
+                                    <span class="meter__figures">
+                                        <MoneyText Amount="category.Spent + category.Pending" Currency="baseCurrency" /> de
+                                        <MoneyText Amount="category.Assigned" Currency="baseCurrency" />
+                                    </span>
+                                </div>
+                                <ProgressBar Segments="PlanSegments(category)" Marker="PlanMarker(category)" MarkerLabel="Estimado a fin de mes"
+                                             Height="6" Label="@PlanLabel(category)" />
+                                <span class="sr-only">@HealthText(category.Health)</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
 
-            <div class="col-12 col-lg-4">
-                <section class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Metas</span>
-                        <a href="/metas" class="small">Ver metas</a>
-                    </div>
-                    @if (data.Goals.Count == 0)
-                    {
-                        <div class="card-body text-muted">
-                            Aún no tienes metas. <a href="/metas">Crea la primera</a>.
-                        </div>
-                    }
-                    else
-                    {
-                        <ul class="list-group list-group-flush">
-                            @foreach (var goal in data.Goals)
-                            {
-                                <li class="list-group-item">
-                                    <div class="d-flex justify-content-between small mb-1">
-                                        <strong>@goal.Name</strong>
-                                        <span>@goal.ProgressPercent.ToString("0.#") %</span>
-                                    </div>
-                                    <ProgressBar Percent="goal.ProgressPercent" ColorVar="@GoalBar(goal.State)" Height="6"
-                                                 Label="@($"{goal.ProgressPercent:0.#}% de {goal.Name}")" />
-                                </li>
-                            }
-                        </ul>
-                    }
-                </section>
-            </div>
+            <section aria-labelledby="home-goals">
+                <div class="home-section__head">
+                    <h2 id="home-goals">Metas</h2>
+                    <a href="/metas" class="home-section__link">Ver todo <AppIcon Name="@Icons.Next" Size="14" /></a>
+                </div>
+                @if (data.Goals.Count == 0)
+                {
+                    <p class="home-section__empty">
+                        Aún no tienes metas. <a href="/metas">Crea la primera</a>.
+                    </p>
+                }
+                else
+                {
+                    <ul class="home-list">
+                        @foreach (var goal in data.Goals)
+                        {
+                            <li>
+                                <div class="meter__head">
+                                    <span class="meter__name">@goal.Name</span>
+                                    <span class="meter__figures">@goal.ProgressPercent.ToString("0.#") %</span>
+                                </div>
+                                <ProgressBar Percent="goal.ProgressPercent" ColorVar="@GoalBar(goal.State)" Height="6"
+                                             Label="@($"{goal.ProgressPercent:0.#}% de {goal.Name}")" />
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
         </div>
 
-        <div class="card mt-4">
-            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <span>
-                    Gasto estimado del próximo mes:
-                    <strong><MoneyText Amount="data.NextMonthEstimate" Currency="baseCurrency" /></strong>
-                </span>
-                <a href="/estimaciones">Ver estimaciones</a>
-            </div>
+        <div class="home-forecast">
+            <span>
+                Gasto estimado del próximo mes:
+                <strong><MoneyText Amount="data.NextMonthEstimate" Currency="baseCurrency" /></strong>
+            </span>
+            <a href="/estimaciones" class="home-section__link">Ver estimaciones <AppIcon Name="@Icons.Next" Size="14" /></a>
         </div>
     }
 }
 
 @code {
     private bool loading = true;
+    private bool animateChart;
     private string? error;
+    private string? userName;
     private Currency baseCurrency = Currency.DOP;
     private DashboardDto? data;
+
+    private string Greeting
+    {
+        get
+        {
+            var hour = DateTime.Now.Hour;
+            var salutation = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+            return string.IsNullOrEmpty(userName) ? salutation : $"{salutation}, {userName}";
+        }
+    }
 
     private List<PieSlice> Slices => data is null
         ? new List<PieSlice>()
         : new List<PieSlice>
         {
-            new() { Label = "Gastado", Value = data.Spent, Color = "#D64545" },
-            new() { Label = "Comprometido", Value = data.Committed, Color = "#9AA0A6" },
-            new() { Label = "Disponible", Value = data.Available, Color = "#2E9E5B" }
+            new() { Label = "Gastado", Value = data.Spent, Color = "var(--color-spent)" },
+            new() { Label = "Comprometido", Value = data.Committed, Color = "var(--color-committed)" },
+            new() { Label = "Disponible", Value = data.Available, Color = "var(--color-available)" }
         };
 
     // A brand-new user only sees the empty state until there is something to show.
@@ -233,8 +229,13 @@ else if (data is not null)
     {
         try
         {
+            var state = await AuthState.GetAuthenticationStateAsync();
+            var identity = state.User.Identity?.Name;
+            userName = identity is null ? null : identity.Split('@')[0];
+
             baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
             data = await DashboardService.GetAsync();
+            animateChart = ChartAnimation.ShouldAnimate("home-donut");
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
@@ -243,6 +244,51 @@ else if (data is not null)
 
         loading = false;
     }
+
+    // Spent (solid), pending (striped) and the month-end estimate (marker), all on the same scale.
+    private static decimal Scale(CategoryPlanDto c) => Math.Max(Math.Max(c.Assigned, c.Spent + c.Pending), c.Estimated);
+
+    private static decimal Share(CategoryPlanDto c, decimal value)
+        => Scale(c) <= 0 ? 0m : Math.Clamp(value / Scale(c) * 100m, 0m, 100m);
+
+    private static IReadOnlyList<ProgressSegment> PlanSegments(CategoryPlanDto c) => new[]
+    {
+        new ProgressSegment { Value = Share(c, c.Spent), ColorVar = HealthVar(c.Health) },
+        new ProgressSegment { Value = Share(c, c.Pending), ColorVar = "--color-committed", Striped = true }
+    };
+
+    private static decimal? PlanMarker(CategoryPlanDto c) => c.Estimated > 0 ? Share(c, c.Estimated) : null;
+
+    private static string PlanLabel(CategoryPlanDto c)
+        => $"{c.CategoryName}: gastado {c.Spent:N2}, pendiente {c.Pending:N2}, estimado {c.Estimated:N2} de {c.Assigned:N2} asignados";
+
+    private static string HealthVar(PlanHealth health) => health switch
+    {
+        PlanHealth.Red => "--color-spent",
+        PlanHealth.Yellow => "--color-warning",
+        _ => "--color-available"
+    };
+
+    private static string HealthIcon(PlanHealth health) => health switch
+    {
+        PlanHealth.Red => Icons.Exceeded,
+        PlanHealth.Yellow => Icons.AtRisk,
+        _ => Icons.OnTrack
+    };
+
+    private static string HealthClass(PlanHealth health) => health switch
+    {
+        PlanHealth.Red => "meter__state--over",
+        PlanHealth.Yellow => "meter__state--risk",
+        _ => "meter__state--ok"
+    };
+
+    private static string HealthText(PlanHealth health) => health switch
+    {
+        PlanHealth.Red => "Excedido",
+        PlanHealth.Yellow => "Cerca del límite",
+        _ => "En plan"
+    };
 
     private static string GoalBar(GoalState state) => state switch
     {

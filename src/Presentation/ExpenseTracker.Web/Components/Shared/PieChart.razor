@@ -4,45 +4,48 @@
 
 @* Donut chart drawn with stroke-dasharray on circles: with r = 100 / (2 * pi) the circumference is exactly 100,
    so each slice's length is its percentage and no path trigonometry is needed. *@
-<div class="d-flex flex-column align-items-center">
-    <div class="position-relative w-100" style="max-width: 280px;">
-        <svg viewBox="0 0 42 42" role="img" aria-label="@AriaLabel" class="d-block w-100">
-            <circle cx="21" cy="21" r="15.91549431" fill="transparent" stroke="#E9ECEF" stroke-width="5"></circle>
+<div class="donut">
+    <div class="donut__chart" style="width: @(Size)px; height: @(Size)px;">
+        <svg viewBox="0 0 42 42" role="img" aria-label="@AriaLabel" class="donut__svg">
+            <circle class="donut__track" cx="21" cy="21" r="15.91549431" fill="none" stroke-width="@Num(StrokeWidth)"></circle>
             @foreach (var (slice, percent, offset) in Segments)
             {
-                <circle cx="21" cy="21" r="15.91549431" fill="transparent" stroke="@slice.Color" stroke-width="5"
-                        stroke-dasharray="@Num(percent) @Num(100m - percent)" stroke-dashoffset="@Num(offset)">
+                <circle class="donut__slice @(Animate ? "donut__slice--animate" : null)" cx="21" cy="21" r="15.91549431" fill="none"
+                        stroke-width="@Num(StrokeWidth)"
+                        style="stroke: @slice.Color; stroke-dasharray: @Num(percent) @Num(100m - percent); stroke-dashoffset: @Num(offset);">
                     <title>@slice.Label: @MoneyFormatter.Format(slice.Value, Currency) (@Num(percent, "0.#") %)</title>
                 </circle>
             }
         </svg>
         @* Center text is HTML laid over the SVG: Razor reserves the <text> tag. *@
-        <div class="position-absolute top-50 start-50 translate-middle text-center" style="width: 62%;">
-            @if (!string.IsNullOrEmpty(CenterLabel))
-            {
-                <div class="small text-muted">@CenterLabel</div>
-            }
+        <div class="donut__center" aria-hidden="true">
             @if (!string.IsNullOrEmpty(CenterValue))
             {
-                <div class="fw-bold lh-sm" style="font-size: clamp(.85rem, 4.2vw, 1.15rem);">@CenterValue</div>
+                <div class="donut__value @ValueSizeClass money">@CenterValue</div>
+            }
+            @if (!string.IsNullOrEmpty(CenterLabel))
+            {
+                <div class="donut__label">@CenterLabel</div>
             }
         </div>
     </div>
 
-    <ul class="list-unstyled w-100 mt-3 mb-0">
-        @foreach (var (slice, percent, _) in Segments)
-        {
-            <li class="d-flex justify-content-between align-items-center py-1">
-                <span>
-                    <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .8rem; height: .8rem; background-color: @slice.Color;"></span>@slice.Label
-                </span>
-                <span class="text-nowrap">
-                    <MoneyText Amount="slice.Value" Currency="Currency" />
-                    <span class="text-muted small ms-1">@Num(percent, "0.#") %</span>
-                </span>
-            </li>
-        }
-    </ul>
+    @if (ShowLegend)
+    {
+        <ul class="donut__legend">
+            @foreach (var (slice, percent, _) in Segments)
+            {
+                <li>
+                    <span class="donut__dot" style="background: @slice.Color;" aria-hidden="true"></span>
+                    <span>@slice.Label</span>
+                    <span class="donut__legend-value">
+                        <MoneyText Amount="slice.Value" Currency="Currency" />
+                        <span class="text-muted">@Num(percent, "0.#") %</span>
+                    </span>
+                </li>
+            }
+        </ul>
+    }
 </div>
 
 @code {
@@ -52,7 +55,7 @@
     [Parameter]
     public Currency Currency { get; set; } = Currency.DOP;
 
-    /// <summary>Small text in the center of the donut, e.g. "Disponible".</summary>
+    /// <summary>Small text under the amount in the center, e.g. "Disponible".</summary>
     [Parameter]
     public string? CenterLabel { get; set; }
 
@@ -60,10 +63,34 @@
     [Parameter]
     public string? CenterValue { get; set; }
 
+    /// <summary>Diameter in pixels.</summary>
+    [Parameter]
+    public int Size { get; set; } = 220;
+
+    /// <summary>Ring thickness in viewBox units (the viewBox is 42 wide).</summary>
+    [Parameter]
+    public decimal StrokeWidth { get; set; } = 3.5m;
+
+    /// <summary>Slices grow from zero in 400 ms when drawn. Disabled by prefers-reduced-motion.</summary>
+    [Parameter]
+    public bool Animate { get; set; }
+
+    /// <summary>The list with amount and percentage under the donut. Hide it when the page shows the figures elsewhere.</summary>
+    [Parameter]
+    public bool ShowLegend { get; set; } = true;
+
     // Only slices with a positive value are drawn.
     private List<PieSlice> Visible => Slices.Where(s => s.Value > 0).ToList();
 
     private decimal Total => Visible.Sum(s => s.Value);
+
+    // Long amounts do not fit inside the ring at the display size, so they step down.
+    private string ValueSizeClass => (CenterValue?.Length ?? 0) switch
+    {
+        <= 8 => "donut__value--display",
+        <= 12 => "donut__value--xl",
+        _ => "donut__value--lg"
+    };
 
     // Each slice with its percentage and the dash offset that places it after the previous ones.
     // The donut starts at 12 o'clock, hence the initial 25.

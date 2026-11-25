@@ -39,6 +39,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddSingleton<IDateProvider, SystemDateProvider>();
 builder.Services.AddScoped<ToastService>();
+builder.Services.AddScoped<ChartAnimationState>();
 builder.Services.AddScoped<UiInterop>();
 
 builder.Services.AddApplication();

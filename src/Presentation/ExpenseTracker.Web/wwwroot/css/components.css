@@ -168,7 +168,8 @@
   margin-bottom: var(--space-6);
 }
 
-.page-header__title h1 { margin: 0; }
+.page-header__title { min-width: 0; max-width: 100%; }
+.page-header__title h1 { margin: 0; overflow-wrap: anywhere; }
 
 .page-header__subtitle {
   margin: var(--space-1) 0 0;
