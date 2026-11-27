@@ -39,12 +39,12 @@ public class BudgetServiceTests
         {
             new Category { Id = Food, Name = "Comida", Color = "#E67E22" },
             new Category { Id = Outings, Name = "Compras/Salidas", Color = "#9B59B6" },
-            new Category { Id = Savings, Name = "Ahorro", Color = "#2E9E5B", IsSavings = true },
+            new Category { Id = Savings, Name = "Ahorro", Color = "#2E9E5B" },
             new Category { Id = Pets, Name = "Mascotas", Color = "#795548" },
         });
 
         var currency = new CurrencyService(_settings, _rates, _dates);
-        _income = new IncomeService(_sources, _oneTime, _allocations, currency, _dates);
+        _income = new IncomeService(_sources, _oneTime, _plans, currency, _dates);
         var ledger = new MonthlyLedgerService(_expenses, _debts, currency, _dates);
         _expenseService = new ExpenseService(_expenses, _categories, currency, ledger, _dates);
         _debtService = new DebtService(_debts, currency, _dates);
@@ -273,11 +273,11 @@ public class BudgetServiceTests
     public async Task IncomeSource_UsedByAnAllocation_CannotBeDeleted()
     {
         await AddSalaryAsync("Sueldo", 50_000m);
-        await _allocations.AddAsync(new BudgetAllocation { CategoryId = Savings, IncomeSourceId = 1 });
+        _plans.Allocate(Savings, 10m, AllocationType.PercentageOfIncome, 1);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _income.DeleteSourceAsync(1));
 
-        await _allocations.DeleteAsync(_allocations.Items.Single());
+        _plans.Items.Clear();
         _sources.Items.Single().StartDate = _dates.Today; // never counted in a past month
         await _income.DeleteSourceAsync(1);
         Assert.Empty(_sources.Items);

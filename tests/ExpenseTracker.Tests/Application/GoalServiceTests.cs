@@ -35,11 +35,11 @@ public class GoalServiceTests
     {
         _expenses = new FakeExpenseRepository(_categories);
         _settings.Items.Add(new UserSettings { Id = 1, BaseCurrency = Currency.DOP });
-        _categories.Items.Add(new Category { Id = Savings, Name = "Ahorro", Color = "#2E9E5B", IsSavings = true });
+        _categories.Items.Add(new Category { Id = Savings, Name = "Ahorro", Color = "#2E9E5B" });
         _categories.Items.Add(new Category { Id = Food, Name = "Comida", Color = "#E67E22" });
 
         _currency = new CurrencyService(_settings, _rates, _dates);
-        var income = new IncomeService(_sources, _oneTime, _allocations, _currency, _dates);
+        var income = new IncomeService(_sources, _oneTime, _plans, _currency, _dates);
         var ledger = new MonthlyLedgerService(_expenses, _debts, _currency, _dates);
         _expenseService = new ExpenseService(_expenses, _categories, _currency, ledger, _dates);
         _budget = new BudgetService(_plans, _categories, _expenses, ledger, income, _dates);

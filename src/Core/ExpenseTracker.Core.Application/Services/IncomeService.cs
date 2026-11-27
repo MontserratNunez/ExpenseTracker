@@ -13,20 +13,20 @@ public class IncomeService : IIncomeResolver
 
     private readonly IIncomeSourceRepository _sources;
     private readonly IRepository<OneTimeIncome> _oneTime;
-    private readonly IRepository<BudgetAllocation> _allocations;
+    private readonly IBudgetPlanRepository _plans;
     private readonly CurrencyService _currency;
     private readonly IDateProvider _dateProvider;
 
     public IncomeService(
         IIncomeSourceRepository sources,
         IRepository<OneTimeIncome> oneTime,
-        IRepository<BudgetAllocation> allocations,
+        IBudgetPlanRepository plans,
         CurrencyService currency,
         IDateProvider dateProvider)
     {
         _sources = sources;
         _oneTime = oneTime;
-        _allocations = allocations;
+        _plans = plans;
         _currency = currency;
         _dateProvider = dateProvider;
     }
@@ -110,8 +110,9 @@ public class IncomeService : IIncomeResolver
     {
         var entity = await FindAsync(id);
 
-        // Plan allocations can be a percentage of this source; the database would reject the delete.
-        if ((await _allocations.ListAsync(a => a.IncomeSourceId == id)).Count > 0)
+        // Allocations and reserves can be a percentage of this source; the database would reject the delete.
+        var plans = await _plans.GetAllWithAllocationsAsync();
+        if (plans.Any(p => p.SavingsIncomeSourceId == id || p.Allocations.Any(a => a.IncomeSourceId == id)))
             throw new InvalidOperationException("La fuente se usa en un plan y no se puede eliminar. Para que deje de contar, póngale fecha de fin.");
         if (entity.IsActive && FirstDay(entity.StartDate) < CurrentMonth)
             throw new InvalidOperationException("La fuente ya cuenta en meses pasados y no se puede eliminar. Para que deje de contar, póngale fecha de fin.");

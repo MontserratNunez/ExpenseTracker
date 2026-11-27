@@ -23,6 +23,7 @@ public static class Icons
     public const string BudgetActive = "pie-chart-fill";
     public const string Plans = "calendar-range";
     public const string History = "clock-history";
+    public const string Projection = "graph-down-arrow";
     public const string SettingsActive = "gear-fill";
     public const string Login = "box-arrow-in-right";
     public const string Register = "person-plus";

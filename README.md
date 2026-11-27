@@ -12,7 +12,7 @@ Aplicación para llevar el historial de ingresos, gastos y deudas, comparar el g
 | Ingresos | Fuentes recurrentes (con cambios de monto o frecuencia a partir de un mes e historial corregible) e ingresos únicos. |
 | Gastos | Gastos únicos y recurrentes por mes, con navegación por mes y año. |
 | Deudas | Saldo, pagos divididos en interés y capital, y tabla de amortización. |
-| Plan | Planes con vigencia por meses: asignación por categoría (monto fijo o % del ingreso), estimado a fin de mes y línea de tiempo. Un mes sin plan vigente se muestra "Sin plan". |
+| Plan | Planes con vigencia por meses: asignación por categoría (monto fijo o % del ingreso), estimado a fin de mes y línea de tiempo. El ahorro es una reserva del plan (lo mínimo a no gastar), no un gasto: se avisa al acercarse a ella. Un mes sin plan vigente se muestra "Sin plan". |
 | Metas | Progreso, aporte mensual necesario y proyección. |
 | Estimaciones | Próximo mes, resto del año y próximo año. |
 | Configuración | Moneda base, tasas de cambio con historial (cada una rige desde su fecha) y categorías. |

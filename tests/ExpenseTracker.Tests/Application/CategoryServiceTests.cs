@@ -18,7 +18,7 @@ public class CategoryServiceTests
         _service = new CategoryService(_categories, _expenses, _allocations, _goals);
     }
 
-    private static CategoryInput Input(string name, bool savings = false) => new() { Name = name, Color = "#112233", IsSavings = savings };
+    private static CategoryInput Input(string name) => new() { Name = name, Color = "#112233" };
 
     [Fact]
     public async Task Create_TrimsNameAndActivates()
@@ -50,11 +50,10 @@ public class CategoryServiceTests
     {
         var created = await _service.CreateAsync(Input("Comida"));
 
-        var input = new CategoryInput { Name = "Comida", Color = "#AABBCC", IsSavings = true };
+        var input = new CategoryInput { Name = "Comida", Color = "#AABBCC" };
         var updated = await _service.UpdateAsync(created.Id, input);
 
         Assert.Equal("#AABBCC", updated.Color);
-        Assert.True(updated.IsSavings);
 
         await _service.UpdateAsync(created.Id, Input("Supermercado"));
         Assert.Equal("Supermercado", _categories.Items.Single().Name);
@@ -95,7 +94,7 @@ public class CategoryServiceTests
     [Fact]
     public async Task Delete_WithGoalOrAllocation_DeactivatesInstead()
     {
-        var a = await _service.CreateAsync(Input("Ahorro", savings: true));
+        var a = await _service.CreateAsync(Input("Ahorro"));
         var b = await _service.CreateAsync(Input("Ocio"));
         await _goals.AddAsync(new Goal { Name = "Meta", CategoryId = a.Id });
         await _allocations.AddAsync(new BudgetAllocation { CategoryId = b.Id });

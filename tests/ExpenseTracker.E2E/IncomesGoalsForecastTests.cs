@@ -107,7 +107,7 @@ public class IncomesGoalsForecastTests
         var page = tab.Page;
 
         // 2,000 already saved against a goal of 1,000: it is reached from the start.
-        await AddExpenseAsync(tab, "Depósito", "2000", "Ahorro");
+        await AddExpenseAsync(tab, "Depósito", "2000", "Otros");
 
         await tab.GotoAsync("/metas");
         var form = Dialog(page, "Nueva meta");
@@ -115,6 +115,7 @@ public class IncomesGoalsForecastTests
         await Field(form, "Nombre").FillAsync("Vacaciones");
         await Field(form, "Monto objetivo").FillAsync("1000");
         await Field(form, "Monto objetivo").PressAsync("Tab");
+        await Field(form, "Categoría vinculada").SelectOptionAsync(new SelectOptionValue { Label = "Otros" });
 
         // The icon picker is a keyboard-friendly radio group: arrows move and select.
         var picker = form.GetByRole(AriaRole.Radiogroup);
@@ -164,6 +165,7 @@ public class IncomesGoalsForecastTests
         await Field(form, "Nombre").FillAsync("Ahorro de 200,000 anualmente");
         await Field(form, "Monto objetivo").FillAsync("200000");
         await Field(form, "Monto objetivo").PressAsync("Tab");
+        await Field(form, "Categoría vinculada").SelectOptionAsync(new SelectOptionValue { Label = "Otros" });
         await form.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Guardar" }).ClickAsync();
 
         var card = page.Locator("article.goal-card");

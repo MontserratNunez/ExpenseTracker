@@ -17,7 +17,4 @@ public class CategoryInput
     [StringLength(50, ErrorMessage = "El ícono no puede superar {1} caracteres.")]
     [Display(Name = "Ícono")]
     public string? Icon { get; set; }
-
-    [Display(Name = "Es de ahorro")]
-    public bool IsSavings { get; set; }
 }

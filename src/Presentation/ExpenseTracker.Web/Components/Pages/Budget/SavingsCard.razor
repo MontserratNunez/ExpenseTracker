@@ -1,0 +1,117 @@
+@using ExpenseTracker.Core.Application.DTOs.Budget
+@using ExpenseTracker.Core.Application.Helpers
+@using ExpenseTracker.Core.Domain.Enums
+@using ExpenseTracker.Web.Services
+
+@* "Ahorro del mes": how the month is doing against the reserve, with a bar whose dashed line is the point not to pass. *@
+<section class="card-app savings-card" aria-labelledby="savings-title">
+    <h2 id="savings-title">Ahorro del mes</h2>
+
+    @if (Savings.IsClosed && Savings.Reserve > 0 && Savings.State != SavingsState.NoData)
+    {
+        <p class="savings-card__state @(Savings.IsMet ? "meter__state--ok" : "meter__state--over")">
+            <AppIcon Name="@(Savings.IsMet ? Icons.OnTrack : Icons.Exceeded)" Size="16" />
+            @if (Savings.IsMet)
+            {
+                <span><strong>Cumplido:</strong> ahorraste @Money(Savings.RealSavings).</span>
+            }
+            else
+            {
+                <span><strong>No cumplido</strong> (faltaron @Money(Savings.Shortfall)).</span>
+            }
+        </p>
+    }
+    else
+    {
+        <p class="savings-card__state @StateClass">
+            <AppIcon Name="@StateIcon" Size="16" />
+            <span>@SavingsReserveCalculator.Message(Savings, Currency)</span>
+        </p>
+    }
+
+    @if (Savings.ProjectedSavingsUse is { } use)
+    {
+        <p class="savings-card__state meter__state--risk">
+            <AppIcon Name="@Icons.Projection" Size="16" />
+            <span>Al ritmo actual usarás ~@Money(use) de tu ahorro.</span>
+        </p>
+    }
+
+    @if (Savings.State != SavingsState.NoData)
+    {
+        <ProgressBar Segments="Segments" Limit="LimitPosition" LimitLabel="No pasar de aquí" Height="14" Label="@BarLabel" />
+        <ul class="savings-card__legend">
+            <li><span class="savings-dot" style="background: var(--color-spent);"></span>Usado @Money(Savings.Used)</li>
+            <li><span class="savings-dot" style="background: var(--color-committed);"></span>Pendiente @Money(Savings.Pending)</li>
+            <li><span class="savings-dot" style="background: var(--color-available);"></span>Margen @Money(Math.Max(0m, Savings.Margin))</li>
+            @if (Savings.Reserve > 0)
+            {
+                <li><span class="savings-dot" style="background: var(--color-savings);"></span>Reserva de ahorro @Money(ReserveLeft)</li>
+            }
+        </ul>
+    }
+
+    <p class="savings-card__summary">
+        @if (Savings.Reserve > 0)
+        {
+            <text>Meta de ahorro @Money(Savings.Reserve) · </text>
+        }
+        else
+        {
+            <text>Sin meta de ahorro: defínela en «Editar plan». · </text>
+        }
+        @(Savings.IsClosed ? "Ahorro" : "Ahorro proyectado") @Money(Savings.Projection)
+        @if (Savings.Reserve > 0 && Savings.Projection > Savings.Reserve)
+        {
+            <text> · Extra @Money(Savings.Projection - Savings.Reserve)</text>
+        }
+    </p>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public SavingsStatusDto Savings { get; set; } = new();
+
+    [Parameter]
+    public Currency Currency { get; set; } = Currency.DOP;
+
+    private string Money(decimal amount) => MoneyFormatter.Format(amount, Currency);
+
+    private decimal ReserveLeft => Math.Max(0m, Savings.Reserve - Savings.UsedSavings);
+
+    // The bar is the month's income, or the spending when it goes past it.
+    private decimal Scale => Math.Max(Math.Max(Savings.Income, Savings.Used + Savings.Pending), 0m);
+
+    private decimal Share(decimal value) => Scale <= 0 ? 0m : Math.Clamp(value / Scale * 100m, 0m, 100m);
+
+    private IReadOnlyList<ProgressSegment> Segments => new[]
+    {
+        new ProgressSegment { Value = Share(Savings.Used), ColorVar = "--color-spent" },
+        new ProgressSegment { Value = Share(Savings.Pending), ColorVar = "--color-committed", Striped = true },
+        new ProgressSegment { Value = Share(Math.Max(0m, Savings.Margin)), ColorVar = "--color-available" },
+        new ProgressSegment { Value = Share(ReserveLeft), ColorVar = "--color-savings", Striped = true }
+    };
+
+    private decimal? LimitPosition => Savings.Reserve > 0 ? Share(Math.Max(0m, Savings.Spendable)) : null;
+
+    private string BarLabel
+        => $"Usado {Money(Savings.Used)}, pendiente {Money(Savings.Pending)}, margen {Money(Math.Max(0m, Savings.Margin))}, " +
+           $"reserva de ahorro {Money(ReserveLeft)} de {Money(Savings.Income)} de ingresos";
+
+    private string StateIcon => Savings.State switch
+    {
+        SavingsState.OnPlan => Icons.OnTrack,
+        SavingsState.NearSavings => Icons.AtRisk,
+        SavingsState.UsingSavings => Icons.Exceeded,
+        SavingsState.Deficit => Icons.Deficit,
+        _ => Icons.Info
+    };
+
+    private string? StateClass => Savings.State switch
+    {
+        SavingsState.OnPlan => "meter__state--ok",
+        SavingsState.NearSavings => "meter__state--risk",
+        SavingsState.UsingSavings or SavingsState.Deficit => "meter__state--over",
+        _ => null
+    };
+}

@@ -161,10 +161,9 @@ public class UserIsolationTests : IDisposable
         var categories = await context.Categories.ToListAsync();
         var settings = await context.UserSettings.SingleAsync();
 
-        Assert.Equal(10, categories.Count);
-        Assert.Single(categories, c => c.IsSavings);
+        Assert.Equal(9, categories.Count);
+        Assert.DoesNotContain(categories, c => c.Name == "Ahorro"); // savings is not an expense
         Assert.All(categories, c => Assert.False(string.IsNullOrWhiteSpace(c.Icon)));
-        Assert.Equal("piggy-bank", categories.Single(c => c.IsSavings).Icon);
         Assert.Equal(Currency.DOP, settings.BaseCurrency);
         Assert.Equal("es-DO", settings.CultureName);
     }

@@ -31,7 +31,7 @@ public class BudgetPlanServiceTests
         var settings = new FakeRepository<UserSettings>();
         settings.Items.Add(new UserSettings { Id = 1, BaseCurrency = Currency.DOP });
         var currency = new CurrencyService(settings, new FakeRepository<ExchangeRate>(), _dates);
-        var income = new IncomeService(_sources, new FakeRepository<OneTimeIncome>(), new FakeRepository<BudgetAllocation>(), currency, _dates);
+        var income = new IncomeService(_sources, new FakeRepository<OneTimeIncome>(), _plans, currency, _dates);
         var expenses = new FakeExpenseRepository(_categories);
         var ledger = new MonthlyLedgerService(expenses, new FakeDebtRepository(), currency, _dates);
         _service = new BudgetPlanService(_plans, _categories, _sources, income, _dates);

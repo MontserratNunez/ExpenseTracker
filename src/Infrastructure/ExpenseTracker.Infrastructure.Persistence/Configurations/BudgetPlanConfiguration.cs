@@ -10,6 +10,14 @@ public class BudgetPlanConfiguration : IEntityTypeConfiguration<BudgetPlan>
     {
         builder.ConfigureOwned();
         builder.Property(e => e.Name).IsRequired().HasMaxLength(100);
+        builder.Property(e => e.SavingsType).HasConversion<string>().HasMaxLength(30);
+        builder.Property(e => e.SavingsValue).HasPrecision(18, 2);
+        builder.Property(e => e.AlertThresholdPercent).HasPrecision(5, 2);
+
+        builder.HasOne<IncomeSource>()
+            .WithMany()
+            .HasForeignKey(e => e.SavingsIncomeSourceId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(e => e.Allocations)
             .WithOne()

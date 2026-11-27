@@ -79,6 +79,10 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("AlertThresholdPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -93,6 +97,18 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("SavingsIncomeSourceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SavingsType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("SavingsValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -102,6 +118,8 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SavingsIncomeSourceId");
 
                     b.HasIndex("UserId", "EffectiveFrom");
 
@@ -129,9 +147,6 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsSavings")
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
@@ -638,6 +653,14 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("IncomeSource");
+                });
+
+            modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.BudgetPlan", b =>
+                {
+                    b.HasOne("ExpenseTracker.Core.Domain.Entities.IncomeSource", null)
+                        .WithMany()
+                        .HasForeignKey("SavingsIncomeSourceId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.DebtPayment", b =>

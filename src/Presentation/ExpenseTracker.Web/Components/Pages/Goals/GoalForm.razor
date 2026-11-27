@@ -42,7 +42,7 @@
                 <option value="0">Seleccione...</option>
                 @foreach (var category in Categories)
                 {
-                    <option value="@category.Id">@category.Name@(category.IsSavings ? " (ahorro)" : "")</option>
+                    <option value="@category.Id">@category.Name</option>
                 }
             </AppSelect>
         </OverlayBody>

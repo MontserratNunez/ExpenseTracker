@@ -20,4 +20,7 @@ public class BudgetPlanInput
 
     /// <summary>The allocations of the plan (value 0 = none). Null keeps the current or copied ones.</summary>
     public List<AllocationInput>? Allocations { get; set; }
+
+    /// <summary>The savings reserve. Null keeps the current or copied one.</summary>
+    public SavingsInput? Savings { get; set; }
 }

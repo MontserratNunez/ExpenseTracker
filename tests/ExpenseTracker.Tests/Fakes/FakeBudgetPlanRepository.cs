@@ -42,6 +42,10 @@ public class FakeBudgetPlanRepository : FakeRepository<BudgetPlan>, IBudgetPlanR
         Name = plan.Name,
         EffectiveFrom = plan.EffectiveFrom,
         EffectiveTo = plan.EffectiveTo,
+        SavingsType = plan.SavingsType,
+        SavingsValue = plan.SavingsValue,
+        SavingsIncomeSourceId = plan.SavingsIncomeSourceId,
+        AlertThresholdPercent = plan.AlertThresholdPercent,
         Allocations = plan.Allocations.Select(a => new BudgetAllocation
         {
             CategoryId = a.CategoryId, Value = a.Value, AllocationType = a.AllocationType, IncomeSourceId = a.IncomeSourceId

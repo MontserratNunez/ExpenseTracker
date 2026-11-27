@@ -1,6 +1,7 @@
 using System.Globalization;
 using ExpenseTracker.Core.Application.DTOs.Budget;
 using ExpenseTracker.Core.Application.DTOs.Expenses;
+using ExpenseTracker.Core.Application.Helpers;
 using ExpenseTracker.Core.Application.Interfaces;
 using ExpenseTracker.Core.Domain.Entities;
 using ExpenseTracker.Core.Domain.Enums;
@@ -84,7 +85,8 @@ public class BudgetService
         var plan = (await _plans.GetAllWithAllocationsAsync()).FirstOrDefault(p => p.AppliesTo(year, month));
         var allocations = plan?.Allocations ?? new List<BudgetAllocation>();
         var categories = (await _categories.ListAsync()).ToDictionary(c => c.Id);
-        var incomes = allocations.Any(a => a.AllocationType == AllocationType.PercentageOfIncome)
+        var percentSavings = plan is { SavingsType: AllocationType.PercentageOfIncome, SavingsValue: > 0 };
+        var incomes = percentSavings || allocations.Any(a => a.AllocationType == AllocationType.PercentageOfIncome)
             ? await _income.LoadSnapshotAsync()
             : null;
         var income = (await _income.GetMonthlyIncomeAsync(year, month)).Total;
@@ -172,12 +174,41 @@ public class BudgetService
         status.OutOfPlanPending = status.OutOfPlan.Sum(c => c.Pending);
 
         status.TotalAssigned = status.Categories.Sum(c => c.Assigned);
-        status.Unassigned = income - status.TotalAssigned;
-        status.IsOverAssigned = plan is not null && status.TotalAssigned > income;
+        var reserve = 0m;
+        if (plan is not null)
+        {
+            reserve = plan.SavingsValue;
+            if (percentSavings)
+            {
+                var source = incomes!.Sources.FirstOrDefault(s => s.Id == plan.SavingsIncomeSourceId);
+                if (source is not null && !source.HasIncomeIn(year, month))
+                    AddNoIncomeWarning(status, source.Name, year, month, today);
+
+                reserve = Math.Round(
+                    incomes.MonthlyBase(plan.SavingsIncomeSourceId, year, month) * plan.SavingsValue / 100m,
+                    2, MidpointRounding.AwayFromZero);
+            }
+        }
+
+        status.Unassigned = income - status.TotalAssigned - reserve;
+        status.IsOverAssigned = plan is not null && status.TotalAssigned + reserve > income;
         status.AssignedPercentOfIncome = income > 0 ? Math.Round(status.TotalAssigned / income * 100m, 1) : 0m;
         status.TotalSpent = ledger.Where(i => i.Status == LedgerStatus.Spent).Sum(i => i.AmountInBase);
         status.TotalPending = ledger.Where(i => i.Status == LedgerStatus.Pending).Sum(i => i.AmountInBase);
         status.TotalEstimated = status.Categories.Sum(c => c.Estimated) + status.OutOfPlanSpent + status.OutOfPlanPending;
+
+        if (plan is not null)
+        {
+            // The margin is global: it includes spending in categories without an allocation.
+            var expected = Estimate(year, month, today, daysInMonth, status.TotalSpent, status.TotalPending,
+                variableByCategory.Values.Sum(), dailyHistory.Values.Sum());
+            status.AlertThresholdPercent = plan.AlertThresholdPercent;
+            status.Savings = SavingsReserveCalculator.Calculate(
+                income, reserve, status.TotalSpent, status.TotalPending, plan.AlertThresholdPercent, expected);
+            status.Savings.IsClosed = year * 12 + month < today.Year * 12 + today.Month;
+            if (status.Savings.IsClosed)
+                status.Savings.ProjectedSavingsUse = null;
+        }
 
         return status;
     }

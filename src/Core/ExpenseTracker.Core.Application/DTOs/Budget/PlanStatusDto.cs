@@ -31,7 +31,7 @@ public class PlanStatusDto
     public decimal Income { get; set; }
     public decimal TotalAssigned { get; set; }
 
-    /// <summary>Income minus total assigned; negative when more than 100% of income is assigned.</summary>
+    /// <summary>Income minus what is assigned to categories and to the reserve; negative when it is too much.</summary>
     public decimal Unassigned { get; set; }
 
     public decimal AssignedPercentOfIncome { get; set; }
@@ -42,6 +42,11 @@ public class PlanStatusDto
 
     /// <summary>Estimated month-end spending: plan categories (estimate) plus out-of-plan (spent + pending).</summary>
     public decimal TotalEstimated { get; set; }
+
+    /// <summary>The month against the savings reserve; null without a plan.</summary>
+    public SavingsStatusDto? Savings { get; set; }
+
+    public decimal AlertThresholdPercent { get; set; }
 
     public List<CategoryPlanDto> Categories { get; set; } = new();
 

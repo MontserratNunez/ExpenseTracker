@@ -31,7 +31,7 @@ public class IncomeRevisionTests
         var debts = new FakeDebtRepository();
 
         _currency = new CurrencyService(settings, _rates, _dates);
-        _income = new IncomeService(_sources, new FakeRepository<OneTimeIncome>(), new FakeRepository<BudgetAllocation>(), _currency, _dates);
+        _income = new IncomeService(_sources, new FakeRepository<OneTimeIncome>(), _plans, _currency, _dates);
         var ledger = new MonthlyLedgerService(expenses, debts, _currency, _dates);
         _budget = new BudgetService(_plans, categories, expenses, ledger, _income, _dates);
         _forecast = new ForecastService(expenses, debts, categories, _currency, _budget, _income, _dates);

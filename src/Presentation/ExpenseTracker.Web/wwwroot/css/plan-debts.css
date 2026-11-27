@@ -36,6 +36,20 @@
 
 .month-year { display: flex; gap: var(--space-2); }
 
+.savings-card { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-6); padding: var(--space-6); }
+.savings-card h2 { margin: 0; font-size: var(--text-lg); }
+.savings-card__state { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-weight: 500; }
+.savings-card__state .app-icon { flex: none; }
+.savings-card__legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0; padding: 0; list-style: none; font-size: var(--text-sm); color: var(--color-text-muted); }
+.savings-dot { display: inline-block; width: 10px; height: 10px; margin-right: var(--space-1); border-radius: 50%; }
+.savings-card__summary { margin: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+
+.savings-fields { margin: 0 0 var(--space-4); padding: 0 0 var(--space-4); border: 0; border-bottom: 1px solid var(--color-border); }
+.savings-fields legend { font-weight: 600; }
+.savings-fields__grid { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); }
+.savings-fields__grid label { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); }
+.savings-fields__total { margin: var(--space-2) 0 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+
 .income-card__next { margin: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
 .income-history { margin: 0 0 var(--space-4); padding: 0; list-style: none; }
 .income-history li { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); }

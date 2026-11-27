@@ -38,7 +38,6 @@ public class CategoryService
             Name = name,
             Color = input.Color,
             Icon = NormalizeIcon(input.Icon),
-            IsSavings = input.IsSavings,
             IsActive = true
         };
 
@@ -52,7 +51,6 @@ public class CategoryService
         entity.Name = await ValidateAsync(input, currentId: id);
         entity.Color = input.Color;
         entity.Icon = NormalizeIcon(input.Icon);
-        entity.IsSavings = input.IsSavings;
 
         await _categories.UpdateAsync(entity);
         return ToDto(entity);
@@ -123,7 +121,6 @@ public class CategoryService
         Name = c.Name,
         Color = c.Color,
         Icon = c.Icon,
-        IsSavings = c.IsSavings,
         IsActive = c.IsActive
     };
 }

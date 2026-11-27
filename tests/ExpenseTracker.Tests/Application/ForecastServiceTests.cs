@@ -44,11 +44,11 @@ public class ForecastServiceTests
             new Category { Id = Food, Name = "Comida", Color = "#E67E22" },
             new Category { Id = Insurance, Name = "Seguros", Color = "#16A085" },
             new Category { Id = Subscriptions, Name = "Suscripciones", Color = "#34495E" },
-            new Category { Id = Savings, Name = "Ahorro", Color = "#2E9E5B", IsSavings = true },
+            new Category { Id = Savings, Name = "Ahorro", Color = "#2E9E5B" },
         });
 
         _currency = new CurrencyService(_settings, _rates, _dates);
-        _income = new IncomeService(_sources, _oneTimeIncome, _allocations, _currency, _dates);
+        _income = new IncomeService(_sources, _oneTimeIncome, _plans, _currency, _dates);
         var ledger = new MonthlyLedgerService(_expenses, _debts, _currency, _dates);
         _expenseService = new ExpenseService(_expenses, _categories, _currency, ledger, _dates);
         _debtService = new DebtService(_debts, _currency, _dates);

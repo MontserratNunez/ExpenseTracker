@@ -54,11 +54,11 @@ public class AccessibilityTests
         await Expect(income).ToBeHiddenAsync();
 
         await AddExpenseAsync(tab, "Supermercado", "4885.40", "Comida");
-        await AddExpenseAsync(tab, "Ahorro mensual", "2000", "Ahorro");
+        await AddExpenseAsync(tab, "Depósito mensual", "2000", "Otros");
 
         var plan = await tab.OpenPlanEditorAsync();
         await plan.GetByLabel("Valor de Comida").FillAsync("3000");
-        await plan.GetByLabel("Valor de Ahorro").FillAsync("5000");
+        await plan.GetByLabel("Valor del ahorro").FillAsync("5000");
         await plan.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Guardar plan" }).ClickAsync();
         await Expect(plan).ToBeHiddenAsync();
 
@@ -79,6 +79,7 @@ public class AccessibilityTests
         await Field(goal, "Nombre").FillAsync("Ahorro de 200,000 anualmente");
         await Field(goal, "Monto objetivo").FillAsync("200000");
         await Field(goal, "Monto objetivo").PressAsync("Tab");
+        await Field(goal, "Categoría vinculada").SelectOptionAsync(new SelectOptionValue { Label = "Otros" });
         await goal.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Guardar" }).ClickAsync();
         await Expect(goal).ToBeHiddenAsync();
     }

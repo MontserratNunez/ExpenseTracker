@@ -22,7 +22,7 @@ public class IncomeServiceTests
     {
         _settings.Items.Add(new UserSettings { Id = 1, BaseCurrency = Currency.DOP });
         _currency = new CurrencyService(_settings, _rates, _dates);
-        _service = new IncomeService(_sources, _oneTime, _allocations, _currency, _dates);
+        _service = new IncomeService(_sources, _oneTime, new FakeBudgetPlanRepository(), _currency, _dates);
     }
 
     private static IncomeSourceInput Source(string name, decimal amount, DateOnly start, DateOnly? end = null,

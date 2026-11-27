@@ -48,6 +48,7 @@
   /* Semantic colors: reserved for the meaning of money */
   --color-available: #22A06B;
   --color-available-bg: #E8F7F0;
+  --color-savings: #157A52;
   --color-spent: #E5484D;
   --color-spent-bg: #FDECEC;
   --color-committed: #A0AEC0;
@@ -141,6 +142,7 @@
 
   --color-available: #3DD68C;
   --color-available-bg: #12342A;
+  --color-savings: #1F9D6B;
   --color-spent: #FF6369;
   --color-spent-bg: #3A1D22;
   --color-committed: #7B8AA5;

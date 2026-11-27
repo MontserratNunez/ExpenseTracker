@@ -247,8 +247,7 @@ else
             Year = today.Year,
             StartDate = today,
             EndDate = new DateOnly(today.Year, 12, 31),
-            // The savings category and its icon by default.
-            CategoryId = categories.FirstOrDefault(c => c.IsSavings)?.Id ?? 0,
+            CategoryId = 0,
             Icon = Icons.EmptyGoals
         };
         showForm = true;

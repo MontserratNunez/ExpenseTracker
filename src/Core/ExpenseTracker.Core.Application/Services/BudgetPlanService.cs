@@ -57,7 +57,11 @@ public class BudgetPlanService
         var byCategory = plan.Allocations.ToDictionary(a => a.CategoryId);
 
         var month = plan.EffectiveFrom > CurrentMonth ? plan.EffectiveFrom : CurrentMonth;
-        var editor = new AllocationEditorDto { IncomeBases = await _income.GetIncomeBasesAsync(month.Year, month.Month) };
+        var editor = new AllocationEditorDto
+        {
+            IncomeBases = await _income.GetIncomeBasesAsync(month.Year, month.Month),
+            Savings = SavingsOf(plan)
+        };
         foreach (var category in categories.OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             byCategory.TryGetValue(category.Id, out var allocation);
@@ -131,16 +135,21 @@ public class BudgetPlanService
         if (conflict is not null)
             throw new InvalidOperationException(OverlapMessage(conflict));
 
+        var copied = input.CopyFromPlanId is { } sourceId ? Find(plans, sourceId) : null;
         var allocations = input.Allocations is not null
             ? await BuildAllocationsAsync(input.Allocations)
-            : input.CopyFromPlanId is { } sourceId
-                ? Copy(Find(plans, sourceId).Allocations)
+            : copied is not null
+                ? Copy(copied.Allocations)
                 : new List<BudgetAllocation>();
+        var savings = input.Savings is not null
+            ? await ValidateSavingsAsync(input.Savings)
+            : copied is not null ? SavingsOf(copied) : new SavingsInput();
 
         if (toClose is not null)
             toClose.EffectiveTo = from.AddDays(-1);
 
         var plan = new BudgetPlan { Name = name, EffectiveFrom = from, EffectiveTo = to, Allocations = allocations };
+        Apply(plan, savings);
         await _plans.SaveAsync(plan, toClose);
         return plan.Id;
     }
@@ -169,6 +178,7 @@ public class BudgetPlanService
         var allocations = input.Allocations is not null
             ? await BuildAllocationsAsync(input.Allocations)
             : Copy(plan.Allocations);
+        var savings = input.Savings is not null ? await ValidateSavingsAsync(input.Savings) : SavingsOf(plan);
 
         if (!needsVersion)
         {
@@ -176,15 +186,17 @@ public class BudgetPlanService
             plan.EffectiveFrom = from;
             plan.EffectiveTo = to;
             plan.Allocations = allocations;
+            Apply(plan, savings);
             await _plans.SaveAsync(plan);
             return plan.Id;
         }
 
         // Saving without changes must not split the history.
-        if (name == plan.Name && to == plan.EffectiveTo && Same(allocations, plan.Allocations))
+        if (name == plan.Name && to == plan.EffectiveTo && Same(allocations, plan.Allocations) && Same(savings, SavingsOf(plan)))
             return plan.Id;
 
         var version = new BudgetPlan { Name = name, EffectiveFrom = from, EffectiveTo = to, Allocations = allocations };
+        Apply(version, savings);
         plan.EffectiveTo = from.AddDays(-1);
         await _plans.SaveAsync(version, plan);
         return version.Id;
@@ -346,7 +358,53 @@ public class BudgetPlanService
     private static (int, AllocationType, decimal, int?) Key(BudgetAllocation a)
         => (a.CategoryId, a.AllocationType, a.Value, a.IncomeSourceId);
 
+    // ---------- Savings reserve ----------
+
+    private async Task<SavingsInput> ValidateSavingsAsync(SavingsInput input)
+    {
+        var isPercent = input.Type == AllocationType.PercentageOfIncome;
+        if (!Enum.IsDefined(input.Type))
+            throw new ArgumentException("El tipo de ahorro no es válido.");
+        if (input.Value < 0)
+            throw new ArgumentException("El ahorro no puede ser negativo.");
+        if (isPercent && input.Value > 100)
+            throw new ArgumentException("El porcentaje de ahorro no puede superar 100.");
+        if (input.AlertThresholdPercent is < 0 or > 100)
+            throw new ArgumentException("El umbral de aviso debe estar entre 0 y 100.");
+        if (isPercent && input.IncomeSourceId is { } sourceId && await _sources.GetByIdAsync(sourceId) is null)
+            throw new InvalidOperationException("La fuente de ingreso no existe.");
+
+        return new SavingsInput
+        {
+            Type = input.Type,
+            Value = input.Value,
+            IncomeSourceId = isPercent ? input.IncomeSourceId : null,
+            AlertThresholdPercent = input.AlertThresholdPercent
+        };
+    }
+
+    private static SavingsInput SavingsOf(BudgetPlan plan) => new()
+    {
+        Type = plan.SavingsType,
+        Value = plan.SavingsValue,
+        IncomeSourceId = plan.SavingsIncomeSourceId,
+        AlertThresholdPercent = plan.AlertThresholdPercent
+    };
+
+    private static void Apply(BudgetPlan plan, SavingsInput savings)
+    {
+        plan.SavingsType = savings.Type;
+        plan.SavingsValue = savings.Value;
+        plan.SavingsIncomeSourceId = savings.IncomeSourceId;
+        plan.AlertThresholdPercent = savings.AlertThresholdPercent;
+    }
+
+    private static bool Same(SavingsInput left, SavingsInput right)
+        => (left.Type, left.Value, left.IncomeSourceId, left.AlertThresholdPercent)
+           == (right.Type, right.Value, right.IncomeSourceId, right.AlertThresholdPercent);
+
     // ---------- Helpers ----------
+
 
     private BudgetPlanDto ToDto(BudgetPlan plan)
     {

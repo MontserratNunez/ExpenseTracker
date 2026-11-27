@@ -7,6 +7,8 @@
 @using ExpenseTracker.Core.Application.Services
 @using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
+@using ExpenseTracker.Core.Application.DTOs.Budget
+@inject SavingsImpactService SavingsImpact
 @inject ExpenseService ExpenseService
 @inject CategoryService CategoryService
 @inject CurrencyService CurrencyService
@@ -110,6 +112,9 @@ else if (data is not null)
 <ExpenseForm Visible="showForm" Title="@(editingId is null ? "Nuevo gasto" : "Editar gasto")" IsEditing="editingId is not null"
              Model="input" Categories="categories" Error="@formError"
              OnSave="SaveAsync" OnCancel="CloseForm" OnDelete="AskDelete" />
+
+<ConfirmDialog @bind-Visible="confirmSavings" Title="Este gasto usa tu ahorro" Message="@savingsImpact.Warning"
+               ConfirmText="Guardar" ConfirmVariant="AppButton.ButtonVariant.Primary" OnConfirm="CommitAsync" />
 
 <ConfirmDialog @bind-Visible="confirmDelete" Title="Eliminar gasto"
                Message="¿Eliminar este gasto? Esta acción no se puede deshacer."
@@ -421,11 +426,37 @@ else if (data is not null)
         Notes = expense.Notes
     };
 
+    private bool confirmSavings;
+    private SavingsImpactDto savingsImpact = new();
+
+    // The expense is always allowed: when it starts using the savings it only asks first.
     private async Task SaveAsync()
     {
         formError = null;
         try
         {
+            savingsImpact = await SavingsImpact.PreviewAsync(input, editingId);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            savingsImpact = new SavingsImpactDto();   // saving reports the problem
+        }
+
+        if (savingsImpact.Warning is not null)
+        {
+            confirmSavings = true;
+            return;
+        }
+
+        await CommitAsync();
+    }
+
+    private async Task CommitAsync()
+    {
+        formError = null;
+        try
+        {
+
             var isNew = editingId is null;
             if (isNew)
                 await ExpenseService.CreateAsync(input);
@@ -433,7 +464,7 @@ else if (data is not null)
                 await ExpenseService.UpdateAsync(editingId!.Value, input);
 
             CloseForm();
-            message = isNew ? "Gasto guardado." : "Gasto actualizado.";
+            message = $"{(isNew ? "Gasto guardado." : "Gasto actualizado.")} {savingsImpact.Effect}".TrimEnd();
             error = null;
             await LoadAsync();
         }

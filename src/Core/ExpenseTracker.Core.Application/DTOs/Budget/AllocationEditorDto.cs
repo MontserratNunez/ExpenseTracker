@@ -8,6 +8,7 @@ public class AllocationEditorDto
 {
     public List<AllocationRowDto> Rows { get; set; } = new();
     public IncomeBasesDto IncomeBases { get; set; } = new();
+    public SavingsInput Savings { get; set; } = new();
 }
 
 public class AllocationRowDto

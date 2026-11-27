@@ -15,7 +15,47 @@
                 Con porcentaje se usa el ingreso de la fuente elegida o, si no eliges ninguna, el total de tus ingresos recurrentes
                 (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
             </p>
+            <fieldset class="savings-fields">
+                <legend>Ahorro</legend>
+                <p class="form-field__hint">Lo mínimo que no quieres gastar en el mes. No es un gasto ni una categoría. 0 = sin meta.</p>
+                <div class="savings-fields__grid">
+                    <label>
+                        <span>Tipo de ahorro</span>
+                        <select class="field field--sm" @bind="Savings.Type">
+                            <option value="@AllocationType.FixedAmount">Monto fijo</option>
+                            <option value="@AllocationType.PercentageOfIncome">% de ingreso</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Valor del ahorro</span>
+                        <input type="number" step="any" min="0" class="field field--sm" @bind="Savings.Value" @bind:event="oninput" />
+                    </label>
+                    @if (Savings.Type == AllocationType.PercentageOfIncome)
+                    {
+                        <label>
+                            <span>Fuente del ahorro</span>
+                            <select class="field field--sm" @bind="Savings.IncomeSourceId">
+                                <option value="">Total recurrente</option>
+                                @foreach (var source in Editor.IncomeBases.Sources)
+                                {
+                                    <option value="@source.SourceId">@source.Name</option>
+                                }
+                            </select>
+                        </label>
+                    }
+                    <label>
+                        <span>Avisar cuando quede menos de (%)</span>
+                        <input type="number" step="any" min="0" max="100" class="field field--sm" @bind="Savings.AlertThresholdPercent" />
+                    </label>
+                </div>
+                @if (Savings.Value > 0)
+                {
+                    <p class="savings-fields__total">Reservas <MoneyText Amount="Reserve" Currency="BaseCurrency" /> al mes.</p>
+                }
+            </fieldset>
+
             <div class="table-scroll">
+
                 <table class="data-table">
                     <thead>
                         <tr><th>Categoría</th><th>Tipo</th><th>Valor</th><th>Fuente de ingreso</th><th class="num">Equivale a</th></tr>
@@ -81,11 +121,11 @@
                     </tfoot>
                 </table>
             </div>
-            @if (TotalEquivalent > Editor.IncomeBases.RecurringTotal)
+            @if (TotalEquivalent + Reserve > Editor.IncomeBases.RecurringTotal)
             {
                 <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="mb-0">
-                    El total asignado supera tus ingresos recurrentes
-                    (<MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />).
+                    Tu plan asigna <MoneyText Amount="TotalEquivalent + Reserve" Currency="BaseCurrency" /> (con el ahorro)
+                    y tus ingresos recurrentes son <MoneyText Amount="Editor.IncomeBases.RecurringTotal" Currency="BaseCurrency" />.
                 </InlineAlert>
             }
         }
@@ -107,6 +147,10 @@
     [Parameter, EditorRequired]
     public List<AllocationRowDto> Rows { get; set; } = new();
 
+    /// <summary>The reserve, edited in place like the rows.</summary>
+    [Parameter]
+    public SavingsInput Savings { get; set; } = new();
+
     [Parameter]
     public Currency BaseCurrency { get; set; } = Currency.DOP;
 
@@ -124,6 +168,11 @@
     public EventCallback OnCancel { get; set; }
 
     private decimal TotalEquivalent => Rows.Where(r => r.Value > 0).Sum(Equivalent);
+
+    private decimal Reserve => Equivalent(new AllocationRowDto
+    {
+        AllocationType = Savings.Type, Value = Math.Max(0m, Savings.Value), IncomeSourceId = Savings.IncomeSourceId
+    });
 
     private decimal Equivalent(AllocationRowDto row)
     {

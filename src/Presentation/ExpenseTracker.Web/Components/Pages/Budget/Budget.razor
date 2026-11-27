@@ -112,10 +112,14 @@ else if (plan is not null)
     @if (plan.IsOverAssigned)
     {
         <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="plan-alert">
-            Asignaste más de lo que ingresas este mes:
-            <MoneyText Amount="plan.TotalAssigned" Currency="baseCurrency" /> asignados frente a
-            <MoneyText Amount="plan.Income" Currency="baseCurrency" /> de ingresos.
+            Tu plan asigna <MoneyText Amount="plan.TotalAssigned + (plan.Savings?.Reserve ?? 0m)" Currency="baseCurrency" />
+            (con el ahorro) y tu ingreso es <MoneyText Amount="plan.Income" Currency="baseCurrency" />.
         </InlineAlert>
+    }
+
+    @if (plan.Savings is not null)
+    {
+        <SavingsCard Savings="plan.Savings" Currency="baseCurrency" />
     }
 
     @foreach (var warning in plan.Warnings)
@@ -244,7 +248,7 @@ else if (plan is not null)
     }
 }
 
-<AllocationForm Visible="showEditor" Editor="editor" Rows="editRows" BaseCurrency="baseCurrency"
+<AllocationForm Visible="showEditor" Editor="editor" Rows="editRows" Savings="editSavings" BaseCurrency="baseCurrency"
                 Note="@editorNote" Error="@formError" OnSave="SaveAsync" OnCancel="CloseEditor" />
 
 <PlanForm Visible="showPlanForm" IsNew="@(detailsPlan is null)" Model="planForm" CurrentMonth="CurrentMonth"
@@ -275,6 +279,7 @@ else if (plan is not null)
     private bool showEditor;
     private AllocationEditorDto? editor;
     private List<AllocationRowDto> editRows = new();
+    private SavingsInput editSavings = new();
     private int editorPlanId;
     private string? editorNote;
 
@@ -473,6 +478,13 @@ else if (plan is not null)
                 Value = r.Value,
                 IncomeSourceId = r.IncomeSourceId
             }).ToList();
+            editSavings = new SavingsInput
+            {
+                Type = editor.Savings.Type,
+                Value = editor.Savings.Value,
+                IncomeSourceId = editor.Savings.IncomeSourceId,
+                AlertThresholdPercent = editor.Savings.AlertThresholdPercent
+            };
             showEditor = true;
         });
     }
@@ -496,7 +508,8 @@ else if (plan is not null)
                 Name = current.Name,
                 EffectiveFrom = current.EffectiveFrom,
                 EffectiveTo = current.EffectiveTo,
-                Allocations = inputs
+                Allocations = inputs,
+                Savings = editSavings
             });
             showEditor = false;
             message = SavedMessage(editorPlanId, savedId);

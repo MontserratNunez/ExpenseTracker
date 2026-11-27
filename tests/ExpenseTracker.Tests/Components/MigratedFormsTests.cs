@@ -33,7 +33,7 @@ public class MigratedFormsTests : UiTestContext
     private static readonly List<CategoryDto> Categories = new()
     {
         new() { Id = 1, Name = "Comida", Color = "#E67E22", IsActive = true },
-        new() { Id = 2, Name = "Ahorro", Color = "#2E9E5B", IsActive = true, IsSavings = true },
+        new() { Id = 2, Name = "Ahorro", Color = "#2E9E5B", IsActive = true },
         new() { Id = 3, Name = "Vieja", Color = "#999999", IsActive = false }
     };
 

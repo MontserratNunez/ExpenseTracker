@@ -22,7 +22,6 @@
             <AppInput Label="Nombre" @bind-Value="input.Name" />
             <ColorSwatches Label="Color" @bind-Value="input.Color" />
             <IconPicker Label="Ícono" @bind-Value="input.Icon" />
-            <AppToggle Label="Es de ahorro" @bind-Value="input.IsSavings" />
             <div class="manage-actions">
                 <AppButton Type="submit">@(editingId is null ? "Crear" : "Guardar")</AppButton>
                 <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="CancelForm">Cancelar</AppButton>
@@ -47,10 +46,6 @@
                 <li class="settings-row @(c.IsActive ? null : "settings-row--inactive")">
                     <span class="settings-row__main">
                         <CategoryChip Name="@c.Name" Color="@c.Color" Icon="@(c.Icon ?? Icons.DefaultCategory)" ShowName="true" />
-                        @if (c.IsSavings)
-                        {
-                            <Badge Tone="Badge.BadgeTone.Green" Icon="@Icons.EmptyGoals">Ahorro</Badge>
-                        }
                         @if (!c.IsActive)
                         {
                             <Badge Tone="Badge.BadgeTone.Gray">Inactiva</Badge>
@@ -113,7 +108,6 @@
             Name = category.Name,
             Color = category.Color,
             Icon = category.Icon,
-            IsSavings = category.IsSavings
         };
         showForm = true;
     }

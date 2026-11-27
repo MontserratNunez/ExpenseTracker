@@ -47,6 +47,10 @@ public class BudgetPlanRepository : Repository<BudgetPlan>, IBudgetPlanRepositor
         target.Name = plan.Name;
         target.EffectiveFrom = plan.EffectiveFrom;
         target.EffectiveTo = plan.EffectiveTo;
+        target.SavingsType = plan.SavingsType;
+        target.SavingsValue = plan.SavingsValue;
+        target.SavingsIncomeSourceId = plan.SavingsIncomeSourceId;
+        target.AlertThresholdPercent = plan.AlertThresholdPercent;
 
         // Allocations are matched by category: there is one per category in each plan.
         var wanted = plan.Allocations.ToDictionary(a => a.CategoryId);
