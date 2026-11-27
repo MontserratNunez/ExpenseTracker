@@ -71,6 +71,16 @@ else if (tab == Tab.Recurring)
                         <DropdownMenu AriaLabel="@($"Acciones de {s.Name}")" Items="SourceMenu(s)" />
                     </header>
                     <div class="income-card__amount"><MoneyText Amount="s.Amount" Currency="s.Currency" /></div>
+                    @if (s.NextRevision is { } next)
+                    {
+                        <p class="income-card__next">
+                            desde @UiLabels.MonthYear(next.EffectiveFrom): <MoneyText Amount="next.Amount" Currency="next.Currency" />
+                            @if (next.Frequency != s.Frequency)
+                            {
+                                <span>(@UiLabels.FrequencyName(next.Frequency).ToLower())</span>
+                            }
+                        </p>
+                    }
                     <div class="income-card__meta">
                         <Badge Tone="Badge.BadgeTone.Blue" Icon="@Icons.Recurring">@UiLabels.FrequencyName(s.Frequency)</Badge>
                         <Badge Tone="status.Tone" Icon="@status.Icon">@status.Text</Badge>
@@ -131,7 +141,10 @@ else
 </div>
 
 <IncomeSourceForm Visible="showSourceForm" Title="@(editingSourceId is null ? "Nueva fuente de ingreso" : "Editar fuente de ingreso")"
-                  Model="sourceInput" Error="@formError" OnSave="SaveSourceAsync" OnCancel="CloseForms" />
+                  Model="sourceInput" Original="editingSource" CurrentMonth="CurrentMonth" PastWarning="@pastWarning"
+                  Error="@formError" OnSave="SaveSourceAsync" OnCancel="CloseForms" />
+
+<IncomeHistory Source="historySource" CurrentMonth="CurrentMonth" OnClose="() => historySourceId = null" OnSaved="CorrectionSavedAsync" />
 
 <OneTimeIncomeForm Visible="showOneTimeForm" Title="@(editingOneTimeId is null ? "Nuevo ingreso único" : "Editar ingreso único")"
                    Model="oneTimeInput" Error="@formError" OnSave="SaveOneTimeAsync" OnCancel="CloseForms" />
@@ -162,6 +175,13 @@ else
     private bool showSourceForm;
     private int? editingSourceId;
     private IncomeSourceInput sourceInput = new();
+    private IncomeSourceDto? editingSource;
+    private string? pastWarning;
+    private int? historySourceId;
+
+    private DateOnly CurrentMonth => new(DateProvider.Today.Year, DateProvider.Today.Month, 1);
+
+    private IncomeSourceDto? historySource => sources.FirstOrDefault(s => s.Id == historySourceId);
 
     private bool showOneTimeForm;
     private int? editingOneTimeId;
@@ -179,7 +199,7 @@ else
     // The arrows change the month of the one-time incomes, up to one month after the current one.
     private async Task OnShortcutAsync(ShortcutEventArgs e)
     {
-        if (loading || tab != Tab.OneTime || showSourceForm || showOneTimeForm || e.Key is not ("ArrowLeft" or "ArrowRight"))
+        if (loading || tab != Tab.OneTime || showSourceForm || showOneTimeForm || historySourceId is not null || e.Key is not ("ArrowLeft" or "ArrowRight"))
             return;
 
         var index = year * 12 + (month - 1) + (e.Key == "ArrowLeft" ? -1 : 1);
@@ -266,6 +286,7 @@ else
     private IReadOnlyList<DropdownMenuItem> SourceMenu(IncomeSourceDto s) => new[]
     {
         new DropdownMenuItem("Editar", Icons.Edit, EventCallback.Factory.Create(this, () => StartEditSource(s))),
+        new DropdownMenuItem("Historial", Icons.History, EventCallback.Factory.Create(this, () => ShowHistory(s))),
         new DropdownMenuItem("Eliminar", Icons.Delete, EventCallback.Factory.Create(this, () => AskDeleteSource(s)), danger: true)
     };
 
@@ -288,6 +309,7 @@ else
     {
         ClearMessages();
         editingSourceId = null;
+        editingSource = null;
         sourceInput = new IncomeSourceInput { Currency = baseCurrency, StartDate = DateProvider.Today };
         showSourceForm = true;
     }
@@ -296,6 +318,7 @@ else
     {
         ClearMessages();
         editingSourceId = s.Id;
+        editingSource = s;
         sourceInput = new IncomeSourceInput
         {
             Name = s.Name,
@@ -312,6 +335,28 @@ else
     private async Task SaveSourceAsync()
     {
         var isNew = editingSourceId is null;
+
+        // A change that reaches past months is shown first and has to be accepted.
+        if (!isNew)
+        {
+            try
+            {
+                var impact = await IncomeService.PreviewUpdateAsync(editingSourceId!.Value, sourceInput);
+                if (impact.Warning is not null && (!sourceInput.ConfirmPastChanges || impact.Warning != pastWarning))
+                {
+                    pastWarning = impact.Warning;
+                    sourceInput.ConfirmPastChanges = false;
+                    formError = null;
+                    return;
+                }
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+            {
+                formError = ex.Message;
+                return;
+            }
+        }
+
         await SaveFormAsync(async () =>
         {
             if (isNew)
@@ -325,13 +370,25 @@ else
     private void AskDeleteSource(IncomeSourceDto s)
     {
         ClearMessages();
-        deleteMessage = $"¿Eliminar la fuente \"{s.Name}\"? Dejará de contar en todos los meses, incluidos los pasados.";
+        deleteMessage = $"¿Eliminar la fuente \"{s.Name}\"? Solo se puede eliminar si nunca contó en un mes pasado.";
         pendingDelete = async () =>
         {
             await IncomeService.DeleteSourceAsync(s.Id);
             message = "Fuente de ingreso eliminada.";
         };
         confirmDelete = true;
+    }
+
+    private void ShowHistory(IncomeSourceDto s)
+    {
+        ClearMessages();
+        historySourceId = s.Id;
+    }
+
+    private async Task CorrectionSavedAsync()
+    {
+        message = "Historial corregido.";
+        await RunAsync(LoadAsync);
     }
 
     // ---------- One-time income ----------
@@ -439,6 +496,7 @@ else
         showSourceForm = false;
         showOneTimeForm = false;
         formError = null;
+        pastWarning = null;
     }
 
     private void ClearMessages()
@@ -446,5 +504,6 @@ else
         error = null;
         message = null;
         formError = null;
+        pastWarning = null;
     }
 }

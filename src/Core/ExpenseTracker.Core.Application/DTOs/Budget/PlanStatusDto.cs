@@ -45,6 +45,9 @@ public class PlanStatusDto
 
     public List<CategoryPlanDto> Categories { get; set; } = new();
 
+    /// <summary>Sources used by a percentage that had no income that month.</summary>
+    public List<string> Warnings { get; set; } = new();
+
     /// <summary>Spending in categories that have no allocation ("Fuera del plan"); all of it when there is no plan.</summary>
     public List<CategoryTotalDto> OutOfPlan { get; set; } = new();
 
@@ -61,6 +64,12 @@ public class CategoryPlanDto
     public AllocationType AllocationType { get; set; }
     public decimal Value { get; set; }
     public int? IncomeSourceId { get; set; }
+
+    /// <summary>Percentages only: the income the percentage was taken from that month.</summary>
+    public decimal BaseAmount { get; set; }
+
+    /// <summary>Percentages only: name of the source, or null for all of them.</summary>
+    public string? BaseName { get; set; }
 
     public decimal Assigned { get; set; }
     public decimal Spent { get; set; }

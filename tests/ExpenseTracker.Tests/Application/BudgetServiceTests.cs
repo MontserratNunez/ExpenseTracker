@@ -19,7 +19,7 @@ public class BudgetServiceTests
     private readonly FakeRepository<Category> _categories = new();
     private readonly FakeRepository<UserSettings> _settings = new();
     private readonly FakeRepository<ExchangeRate> _rates = new();
-    private readonly FakeRepository<IncomeSource> _sources = new();
+    private readonly FakeIncomeSourceRepository _sources = new();
     private readonly FakeRepository<OneTimeIncome> _oneTime = new();
     private readonly FakeRepository<BudgetAllocation> _allocations = new();
     private readonly FakeBudgetPlanRepository _plans = new();
@@ -278,6 +278,7 @@ public class BudgetServiceTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => _income.DeleteSourceAsync(1));
 
         await _allocations.DeleteAsync(_allocations.Items.Single());
+        _sources.Items.Single().StartDate = _dates.Today; // never counted in a past month
         await _income.DeleteSourceAsync(1);
         Assert.Empty(_sources.Items);
     }

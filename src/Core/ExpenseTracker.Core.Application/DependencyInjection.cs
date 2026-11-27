@@ -1,3 +1,4 @@
+using ExpenseTracker.Core.Application.Interfaces;
 using ExpenseTracker.Core.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,6 +12,8 @@ public static class DependencyInjection
         services.AddScoped<CategoryService>();
         services.AddScoped<CurrencyService>();
         services.AddScoped<IncomeService>();
+        services.AddScoped<IIncomeResolver>(p => p.GetRequiredService<IncomeService>());
+        services.AddScoped<IExchangeRateProvider>(p => p.GetRequiredService<CurrencyService>());
         services.AddScoped<DebtService>();
         services.AddScoped<MonthlyLedgerService>();
         services.AddScoped<ExpenseService>();

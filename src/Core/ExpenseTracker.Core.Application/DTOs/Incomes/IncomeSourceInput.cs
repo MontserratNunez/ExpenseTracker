@@ -28,4 +28,12 @@ public class IncomeSourceInput
 
     [Display(Name = "Activa")]
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Edits only: month from which a new amount, currency or frequency applies (null = this month).</summary>
+    public DateOnly? ChangeFrom { get; set; }
+
+    public string? ChangeNote { get; set; }
+
+    /// <summary>The user accepted that the edit changes past months (start, end or "active").</summary>
+    public bool ConfirmPastChanges { get; set; }
 }

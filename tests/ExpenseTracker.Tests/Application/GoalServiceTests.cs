@@ -18,7 +18,7 @@ public class GoalServiceTests
     private readonly FakeRepository<Category> _categories = new();
     private readonly FakeRepository<UserSettings> _settings = new();
     private readonly FakeRepository<ExchangeRate> _rates = new();
-    private readonly FakeRepository<IncomeSource> _sources = new();
+    private readonly FakeIncomeSourceRepository _sources = new();
     private readonly FakeRepository<OneTimeIncome> _oneTime = new();
     private readonly FakeRepository<BudgetAllocation> _allocations = new();
     private readonly FakeBudgetPlanRepository _plans = new();

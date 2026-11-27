@@ -112,12 +112,13 @@ public class ForecastService
             // Recurring expenses: every occurrence inside the window.
             foreach (var expense in recurring.Where(e => e.Frequency is not null))
             {
-                var count = RecurrenceCalculator.GetOccurrences(
-                    expense.Date, expense.Frequency!.Value, expense.EndDate, windowStart, windowEnd).Count;
+                var dates = RecurrenceCalculator.GetOccurrences(
+                    expense.Date, expense.Frequency!.Value, expense.EndDate, windowStart, windowEnd);
+                var count = dates.Count;
                 if (count == 0)
                     continue;
 
-                var amount = converter!.ToBase(expense.Amount, expense.Currency) * count;
+                var amount = dates.Sum(date => converter!.ToBase(expense.Amount, expense.Currency, date));
                 month.Recurring += amount;
                 AddItem(recurringItems, expense.Id, expense.Name, CategoryName(categories, expense.CategoryId), count, amount);
             }
@@ -133,7 +134,7 @@ public class ForecastService
                     if (!inWindow && !unpaidThisMonth)
                         continue;
 
-                    var amount = converter!.ToBase(row.Payment, debt.Currency);
+                    var amount = converter!.ToBase(row.Payment, debt.Currency, row.Date);
                     month.Debts += amount;
                     AddItem(debtItems, debt.Id, debt.Name, MonthlyLedgerService.DebtsCategoryName, 1, amount);
                 }
@@ -142,7 +143,7 @@ public class ForecastService
             // Variables: monthly estimate scaled by the share of the month the window covers.
             var share = (decimal)(windowEnd.DayNumber - windowStart.DayNumber + 1) / daysInMonth;
             // Without history, the plan in force that month is used (a month without plan adds nothing).
-            foreach (var (categoryId, rate) in AddPlanRates(historyRates, assignedByMonth[monthStart], recurring, converter))
+            foreach (var (categoryId, rate) in AddPlanRates(historyRates, assignedByMonth[monthStart], recurring, converter, monthStart))
             {
                 variableBasis[categoryId] = rate.Basis;
                 var amount = rate.Monthly * share;
@@ -210,7 +211,7 @@ public class ForecastService
     /// </summary>
     private static Dictionary<int, VariableRate> AddPlanRates(
         Dictionary<int, VariableRate> history, Dictionary<int, decimal> assigned,
-        List<Expense> recurring, CurrencyConverter? converter)
+        List<Expense> recurring, CurrencyConverter? converter, DateOnly month)
     {
         var rates = new Dictionary<int, VariableRate>(history);
         foreach (var (categoryId, amount) in assigned)
@@ -220,7 +221,7 @@ public class ForecastService
 
             var covered = recurring
                 .Where(e => e.CategoryId == categoryId && e.Frequency is not null)
-                .Sum(e => RecurrenceCalculator.ToMonthlyAmount(converter!.ToBase(e.Amount, e.Currency), e.Frequency!.Value));
+                .Sum(e => RecurrenceCalculator.ToMonthlyAmount(converter!.ToBase(e.Amount, e.Currency, month), e.Frequency!.Value));
 
             var monthly = Math.Max(0m, amount - covered);
             if (monthly > 0)

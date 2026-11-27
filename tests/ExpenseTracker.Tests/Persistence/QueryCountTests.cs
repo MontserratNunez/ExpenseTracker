@@ -102,7 +102,7 @@ public class QueryCountTests : IDisposable
         await SeedBaseCurrencyDataAsync();
         using (var context = _factory.CreateDbContext())
         {
-            context.ExchangeRates.Add(new ExchangeRate { Currency = Currency.USD, RateToBase = 60m, UpdatedOn = new DateOnly(2026, 11, 1) });
+            context.ExchangeRates.Add(new ExchangeRate { Currency = Currency.USD, RateToBase = 60m, EffectiveFrom = new DateOnly(2026, 11, 1) });
             context.SaveChanges();
         }
         await new ExpenseRepository(_factory).AddAsync(new Expense

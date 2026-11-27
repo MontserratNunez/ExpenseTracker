@@ -143,9 +143,8 @@ public class GoalService
 
         foreach (var expense in recurring.Where(e => e.CategoryId == categoryId && e.Frequency is not null))
         {
-            var count = RecurrenceCalculator.GetOccurrences(expense.Date, expense.Frequency!.Value, expense.EndDate, start, upTo).Count;
-            if (count > 0)
-                total += converter!.ToBase(expense.Amount, expense.Currency) * count;
+            var dates = RecurrenceCalculator.GetOccurrences(expense.Date, expense.Frequency!.Value, expense.EndDate, start, upTo);
+            total += dates.Sum(date => converter!.ToBase(expense.Amount, expense.Currency, date));
         }
 
         return total;

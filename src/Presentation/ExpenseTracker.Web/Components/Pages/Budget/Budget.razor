@@ -118,6 +118,11 @@ else if (plan is not null)
         </InlineAlert>
     }
 
+    @foreach (var warning in plan.Warnings)
+    {
+        <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="plan-alert">@warning</InlineAlert>
+    }
+
     @if (plan.Categories.Count == 0)
     {
         <EmptyState Icon="@Icons.Budget" Title="Este plan aún no tiene categorías" Description="Define cuánto quieres gastar en cada una.">
@@ -162,11 +167,11 @@ else if (plan is not null)
                             else
                             {
                                 <button type="button" class="plan-row__edit" @onclick="() => StartInline(c)"
-                                        title="Clic para editar">
+                                        title="@EditTitle(c)">
                                     <span class="sr-only">@($"Editar lo asignado a {c.CategoryName}: ")</span>de <MoneyText Amount="c.Assigned" Currency="baseCurrency" />
                                     @if (c.AllocationType == AllocationType.PercentageOfIncome)
                                     {
-                                        <span class="plan-row__kind">(@c.Value.ToString("0.##") % de ingreso)</span>
+                                        <span class="plan-row__kind" title="@BaseText(c)">(@c.Value.ToString("0.##") % de ingreso)</span>
                                     }
                                     <AppIcon Name="@Icons.Edit" Size="12" Class="plan-row__pencil" />
                                 </button>
@@ -370,7 +375,18 @@ else if (plan is not null)
         loading = false;
     }
 
+    /// <summary>"10 % de RD$ 50,000.00 (Sueldo trabajo, nov 2026)".</summary>
+    private string? BaseText(CategoryPlanDto c)
+        => c.AllocationType != AllocationType.PercentageOfIncome
+            ? null
+            : $"{c.Value:0.##} % de {MoneyFormatter.Format(c.BaseAmount, baseCurrency)} " +
+              $"({c.BaseName ?? "todos los ingresos"}, {UiLabels.MonthYear(new DateOnly(year, month, 1))})";
+
+    private string EditTitle(CategoryPlanDto c)
+        => BaseText(c) is { } text ? $"{text}. Clic para editar" : "Clic para editar";
+
     // ---------- Inline edit ----------
+
 
     private void StartInline(CategoryPlanDto category)
     {

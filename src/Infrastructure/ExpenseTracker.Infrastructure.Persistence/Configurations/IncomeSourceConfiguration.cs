@@ -10,9 +10,11 @@ public class IncomeSourceConfiguration : IEntityTypeConfiguration<IncomeSource>
     {
         builder.ConfigureOwned();
         builder.Property(e => e.Name).IsRequired().HasMaxLength(100);
-        builder.Property(e => e.Amount).HasPrecision(18, 2);
-        builder.Property(e => e.Currency).HasConversion<string>().HasMaxLength(10);
-        builder.Property(e => e.Frequency).HasConversion<string>().HasMaxLength(20);
         builder.HasIndex(e => new { e.UserId, e.StartDate });
+
+        builder.HasMany(e => e.Revisions)
+            .WithOne()
+            .HasForeignKey(r => r.IncomeSourceId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

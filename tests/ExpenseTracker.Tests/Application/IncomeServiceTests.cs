@@ -9,7 +9,7 @@ namespace ExpenseTracker.Tests.Application;
 
 public class IncomeServiceTests
 {
-    private readonly FakeRepository<IncomeSource> _sources = new();
+    private readonly FakeIncomeSourceRepository _sources = new();
     private readonly FakeRepository<OneTimeIncome> _oneTime = new();
     private readonly FakeRepository<BudgetAllocation> _allocations = new();
     private readonly FakeRepository<UserSettings> _settings = new();
@@ -157,11 +157,12 @@ public class IncomeServiceTests
     [Fact]
     public async Task Source_UpdateAndDelete_Work_AndMissingIdThrows()
     {
-        var created = await _service.CreateSourceAsync(Source("Sueldo", 100m, new DateOnly(2026, 1, 1)));
+        // Starts this month, so it never counted in a past one and can be deleted.
+        var created = await _service.CreateSourceAsync(Source("Sueldo", 100m, new DateOnly(2026, 11, 1)));
 
-        var updated = await _service.UpdateSourceAsync(created.Id, Source("Sueldo 2", 200m, new DateOnly(2026, 1, 1)));
+        var updated = await _service.UpdateSourceAsync(created.Id, Source("Sueldo 2", 200m, new DateOnly(2026, 11, 1)));
         Assert.Equal("Sueldo 2", updated.Name);
-        Assert.Equal(200m, _sources.Items.Single().Amount);
+        Assert.Equal(200m, Assert.Single(_sources.Items.Single().Revisions).Amount);
 
         await _service.DeleteSourceAsync(created.Id);
         Assert.Empty(_sources.Items);

@@ -3,11 +3,14 @@
 @using ExpenseTracker.Core.Application.Services
 @using ExpenseTracker.Core.Domain.Enums
 @inject CurrencyService CurrencyService
+@using ExpenseTracker.Core.Application.Interfaces
+@inject IDateProvider DateProvider
 
 <section class="settings__section" aria-labelledby="settings-rates">
     <h2 id="settings-rates">Tasas de cambio</h2>
     <p class="settings__lead">
-        Cuántas unidades de <strong>@BaseCurrency</strong> vale una unidad de cada moneda. Se usan para convertir los montos al registrarlos.
+        Cuántas unidades de <strong>@BaseCurrency</strong> vale una unidad de cada moneda. Cada tasa rige desde su fecha:
+        una nueva no cambia lo calculado antes.
         Haz clic en una tasa para editarla: <kbd>Enter</kbd> guarda y <kbd>Esc</kbd> cancela.
     </p>
 
@@ -35,9 +38,20 @@
                                 <input type="text" inputmode="decimal" class="field field--sm plan-edit__input @(editError is null ? null : "invalid")"
                                        aria-label="@($"Tasa de {c}")" aria-describedby="@(editError is null ? null : "rate-error")"
                                        @ref="editInput" @bind="editText" @bind:event="oninput"
-                                       @onkeydown="OnEditKeyAsync" @onblur="CancelEdit" />
+                                       @onkeydown="OnEditKeyAsync" />
                                 <span>@BaseCurrency</span>
                             </span>
+                            <span class="plan-edit">
+                                <label for="rate-from">desde</label>
+                                <input id="rate-from" type="date" class="field field--sm" aria-label="@($"Rige desde, {c}")"
+                                       @bind="editFrom" @onkeydown="OnEditKeyAsync" />
+                                <AppButton Size="AppButton.ButtonSize.Sm" OnClick="SaveEditAsync">Guardar</AppButton>
+                                <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" OnClick="CancelEdit">Cancelar</AppButton>
+                            </span>
+                            @if (editFrom < DateProvider.Today)
+                            {
+                                <span class="form-field__hint">Una fecha anterior cambia las conversiones de días pasados.</span>
+                            }
                         }
                         else
                         {
@@ -58,11 +72,25 @@
                     </span>
                     @if (configured)
                     {
-                        <span class="text-muted">Actualizada el @rate!.UpdatedOn.ToString("d")</span>
+                        <span class="text-muted">Vigente desde @rate!.EffectiveFrom.ToString("d")</span>
                         <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Delete"
                                    AriaLabel="@($"Quitar la tasa de {c}")" OnClick="() => Remove(c)" />
                     }
                 </li>
+                @if (configured && rate!.History.Count > 1)
+                {
+                    <li class="rate-history">
+                        <details>
+                            <summary>Historial de @c</summary>
+                            <ul>
+                                @foreach (var old in rate.History)
+                                {
+                                    <li>Desde @old.EffectiveFrom.ToString("d"): @old.RateToBase.ToString("#,##0.######", CultureInfo.CurrentCulture) @BaseCurrency</li>
+                                }
+                            </ul>
+                        </details>
+                    </li>
+                }
                 @if (editing == c && editError is not null)
                 {
                     <li class="validation-message" id="rate-error" role="alert">@editError</li>
@@ -84,6 +112,7 @@
 
     private Currency? editing;
     private string editText = string.Empty;
+    private DateOnly editFrom;
     private string? editError;
     private bool focusEdit;
     private ElementReference editInput;
@@ -124,6 +153,7 @@
         message = null;
         editError = null;
         editing = currency;
+        editFrom = DateProvider.Today;
         editText = rates.TryGetValue(currency, out var rate) ? rate.RateToBase.ToString("0.######", CultureInfo.InvariantCulture) : string.Empty;
         focusEdit = true;
     }
@@ -157,7 +187,7 @@
 
         try
         {
-            await CurrencyService.SetRateAsync(new ExchangeRateInput { Currency = currency, RateToBase = value });
+            await CurrencyService.SetRateAsync(new ExchangeRateInput { Currency = currency, RateToBase = value, EffectiveFrom = editFrom });
             CancelEdit();
             await LoadAsync();
             message = $"Tasa de {currency} guardada.";

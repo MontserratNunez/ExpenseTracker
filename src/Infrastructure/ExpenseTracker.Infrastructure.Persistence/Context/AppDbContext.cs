@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<IncomeSource> IncomeSources => Set<IncomeSource>();
+    public DbSet<IncomeSourceRevision> IncomeSourceRevisions => Set<IncomeSourceRevision>();
     public DbSet<OneTimeIncome> OneTimeIncomes => Set<OneTimeIncome>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<Debt> Debts => Set<Debt>();

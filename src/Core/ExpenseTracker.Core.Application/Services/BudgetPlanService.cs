@@ -56,7 +56,8 @@ public class BudgetPlanService
         var categories = await _categories.ListAsync();
         var byCategory = plan.Allocations.ToDictionary(a => a.CategoryId);
 
-        var editor = new AllocationEditorDto { IncomeBases = await _income.GetIncomeBasesAsync() };
+        var month = plan.EffectiveFrom > CurrentMonth ? plan.EffectiveFrom : CurrentMonth;
+        var editor = new AllocationEditorDto { IncomeBases = await _income.GetIncomeBasesAsync(month.Year, month.Month) };
         foreach (var category in categories.OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             byCategory.TryGetValue(category.Id, out var allocation);

@@ -242,7 +242,7 @@ public class DebtService
             TermMonths = d.TermMonths,
             IsClosed = d.IsClosed,
             RemainingBalance = balance,
-            RemainingBalanceInBase = converter.ToBase(Math.Max(balance, 0m), d.Currency),
+            RemainingBalanceInBase = converter.ToBase(Math.Max(balance, 0m), d.Currency, today),
             PaidAmount = d.OriginalAmount - balance,
             PaidPercent = d.OriginalAmount > 0 ? Math.Round((d.OriginalAmount - balance) / d.OriginalAmount * 100m, 2) : 0m,
             NextPaymentDate = schedule.Rows.Count > 0 ? schedule.Rows[0].Date : null,

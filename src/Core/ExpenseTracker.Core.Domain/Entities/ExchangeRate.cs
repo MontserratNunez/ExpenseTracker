@@ -10,5 +10,6 @@ public class ExchangeRate : UserOwnedEntity
     /// <summary>Units of base currency per one unit of <see cref="Currency"/> (e.g. USD to 60.50 DOP).</summary>
     public decimal RateToBase { get; set; }
 
-    public DateOnly UpdatedOn { get; set; }
+    /// <summary>Date from which this rate applies. Older rates are kept.</summary>
+    public DateOnly EffectiveFrom { get; set; }
 }

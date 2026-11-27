@@ -68,12 +68,13 @@ public class MonthlyLedgerService
             if (expense.Frequency is null)
                 continue;
 
-            // D7: recurring expenses in a foreign currency use the rate in force when calculating.
-            var amountInBase = converter!.ToBase(expense.Amount, expense.Currency);
+
             var occurrences = RecurrenceCalculator.GetOccurrences(expense.Date, expense.Frequency.Value, expense.EndDate, from, to);
             foreach (var date in occurrences)
             {
                 var status = date <= today ? LedgerStatus.Spent : LedgerStatus.Pending;
+                // Recurring expenses in a foreign currency use the rate in force on each date.
+                var amountInBase = converter!.ToBase(expense.Amount, expense.Currency, date);
                 items.Add(ToItem(expense, date, LedgerSource.RecurringExpense, status, amountInBase));
             }
         }
@@ -105,7 +106,7 @@ public class MonthlyLedgerService
                 CategoryIcon = DebtsCategoryIcon,
                 Amount = payment.Amount,
                 Currency = debt.Currency,
-                AmountInBase = converter.ToBase(payment.Amount, debt.Currency),
+                AmountInBase = converter.ToBase(payment.Amount, debt.Currency, payment.Date),
                 Notes = payment.Notes
             });
         }
@@ -130,7 +131,7 @@ public class MonthlyLedgerService
             CategoryIcon = DebtsCategoryIcon,
             Amount = installment.Payment,
             Currency = debt.Currency,
-            AmountInBase = converter.ToBase(installment.Payment, debt.Currency)
+            AmountInBase = converter.ToBase(installment.Payment, debt.Currency, installment.Date)
         });
     }
 

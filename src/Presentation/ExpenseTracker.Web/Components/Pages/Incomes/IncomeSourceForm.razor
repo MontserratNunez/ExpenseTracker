@@ -19,12 +19,46 @@
                 }
             </AppSelect>
 
+            @if (ValuesChanged)
+            {
+                <div class="form-field">
+                    <label class="form-field__label" for="income-change-from">¿Desde cuándo?</label>
+                    <select id="income-change-from" class="field" value="@choice" @onchange="ChoiceChanged">
+                        <option value="this">Este mes (@UiLabels.MonthYear(CurrentMonth))</option>
+                        <option value="next">El próximo mes (@UiLabels.MonthYear(CurrentMonth.AddMonths(1)))</option>
+                        <option value="from">A partir de…</option>
+                    </select>
+                    <p class="form-field__hint">Los meses anteriores conservan los valores que tenían.</p>
+                </div>
+                @if (choice == "from")
+                {
+                    <div class="form-field">
+                        <MonthYearSelect Label="Desde" Value="@(Model.ChangeFrom ?? CurrentMonth)" FirstYear="CurrentMonth.Year"
+                                         ValueChanged="month => Model.ChangeFrom = month" />
+                    </div>
+                }
+                <div class="form-field">
+                    <label class="form-field__label" for="income-change-note">Nota del cambio (opcional)</label>
+                    <input id="income-change-note" class="field" maxlength="200" placeholder="Aumento anual" @bind="Model.ChangeNote" />
+                </div>
+            }
+
             <div class="form-grid">
                 <AppDate TValue="DateOnly" Label="Inicio" @bind-Value="Model.StartDate" />
                 <AppDate TValue="DateOnly?" Label="Fin (opcional)" @bind-Value="Model.EndDate" />
             </div>
 
             <AppToggle Label="Activa" @bind-Value="Model.IsActive" />
+
+            @if (PastWarning is not null)
+            {
+                <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="mb-0">
+                    @PastWarning
+                    <label class="plan-check">
+                        <input type="checkbox" @bind="Model.ConfirmPastChanges" /> Sí, cambiar esos meses
+                    </label>
+                </InlineAlert>
+            }
         </OverlayBody>
         <OverlayFooter>
             <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
@@ -43,6 +77,18 @@
     [Parameter, EditorRequired]
     public IncomeSourceInput Model { get; set; } = new();
 
+    /// <summary>The source being edited; null for a new one.</summary>
+    [Parameter]
+    public IncomeSourceDto? Original { get; set; }
+
+    /// <summary>First day of the current month.</summary>
+    [Parameter]
+    public DateOnly CurrentMonth { get; set; }
+
+    /// <summary>Set when saving would change past months: it has to be accepted.</summary>
+    [Parameter]
+    public string? PastWarning { get; set; }
+
     [Parameter]
     public string? Error { get; set; }
 
@@ -51,4 +97,31 @@
 
     [Parameter]
     public EventCallback OnCancel { get; set; }
+
+    private string choice = "this";
+    private IncomeSourceInput? seenModel;
+
+    private bool ValuesChanged => Original is not null
+        && (Model.Amount != Original.Amount || Model.Currency != Original.Currency || Model.Frequency != Original.Frequency);
+
+    protected override void OnParametersSet()
+    {
+        // Every time the form is opened it gets a new model.
+        if (!ReferenceEquals(seenModel, Model))
+        {
+            seenModel = Model;
+            choice = "this";
+        }
+    }
+
+    private void ChoiceChanged(ChangeEventArgs e)
+    {
+        choice = e.Value?.ToString() ?? "this";
+        Model.ChangeFrom = choice switch
+        {
+            "next" => CurrentMonth.AddMonths(1),
+            "from" => CurrentMonth.AddMonths(2),
+            _ => null
+        };
+    }
 }

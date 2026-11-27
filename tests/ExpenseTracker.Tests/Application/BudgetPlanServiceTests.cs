@@ -13,7 +13,7 @@ public class BudgetPlanServiceTests
     private const int Pets = 3;
 
     private readonly FakeRepository<Category> _categories = new();
-    private readonly FakeRepository<IncomeSource> _sources = new();
+    private readonly FakeIncomeSourceRepository _sources = new();
     private readonly FakeBudgetPlanRepository _plans = new();
     private readonly FixedDateProvider _dates = new(new DateOnly(2026, 11, 10));
     private readonly BudgetPlanService _service;

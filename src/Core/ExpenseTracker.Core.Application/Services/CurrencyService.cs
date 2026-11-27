@@ -5,7 +5,7 @@ using ExpenseTracker.Core.Domain.Enums;
 
 namespace ExpenseTracker.Core.Application.Services;
 
-public class CurrencyService
+public class CurrencyService : IExchangeRateProvider
 {
     private readonly IRepository<UserSettings> _settings;
     private readonly IRepository<ExchangeRate> _rates;
@@ -46,13 +46,30 @@ public class CurrencyService
         await _settings.UpdateAsync(settings);
     }
 
+    /// <summary>One entry per configured currency: the rate in force today and its history.</summary>
     public async Task<List<ExchangeRateDto>> ListRatesAsync()
     {
+        var today = _dateProvider.Today;
         var rates = await _rates.ListAsync();
-        return rates.OrderBy(r => r.Currency).Select(ToDto).ToList();
+
+        return rates
+            .GroupBy(r => r.Currency)
+            .OrderBy(g => g.Key)
+            .Select(g =>
+            {
+                var history = g.OrderByDescending(r => r.EffectiveFrom).ToList();
+                var current = history.FirstOrDefault(r => r.EffectiveFrom <= today) ?? history[^1];
+                var dto = ToDto(current);
+                dto.History = history.Select(ToDto).ToList();
+                return dto;
+            })
+            .ToList();
     }
 
-    /// <summary>Creates or updates the rate of a currency against the base currency.</summary>
+    /// <summary>
+    /// Adds a rate that applies from a date (today by default). The previous ones are kept;
+    /// only a rate with that same date is replaced.
+    /// </summary>
     public async Task<ExchangeRateDto> SetRateAsync(ExchangeRateInput input)
     {
         if (!Enum.IsDefined(input.Currency))
@@ -64,50 +81,51 @@ public class CurrencyService
         if (input.Currency == baseCurrency)
             throw new InvalidOperationException("No se necesita una tasa para la moneda base.");
 
-        var today = _dateProvider.Today;
-        var existing = (await _rates.ListAsync(r => r.Currency == input.Currency)).FirstOrDefault();
+        var from = input.EffectiveFrom ?? _dateProvider.Today;
+        var existing = (await _rates.ListAsync(r => r.Currency == input.Currency))
+            .FirstOrDefault(r => r.EffectiveFrom == from);
 
         if (existing is null)
         {
-            existing = new ExchangeRate { Currency = input.Currency, RateToBase = input.RateToBase, UpdatedOn = today };
+            existing = new ExchangeRate { Currency = input.Currency, RateToBase = input.RateToBase, EffectiveFrom = from };
             await _rates.AddAsync(existing);
         }
         else
         {
             existing.RateToBase = input.RateToBase;
-            existing.UpdatedOn = today;
             await _rates.UpdateAsync(existing);
         }
 
         return ToDto(existing);
     }
 
+    /// <summary>Removes a currency's rates, unless some of them already converted past months.</summary>
     public async Task DeleteRateAsync(Currency currency)
     {
-        var existing = (await _rates.ListAsync(r => r.Currency == currency)).FirstOrDefault();
-        if (existing is not null)
-            await _rates.DeleteAsync(existing);
+        var today = _dateProvider.Today;
+        var thisMonth = new DateOnly(today.Year, today.Month, 1);
+        var existing = await _rates.ListAsync(r => r.Currency == currency);
+
+        if (existing.Any(r => r.EffectiveFrom < thisMonth))
+            throw new InvalidOperationException(
+                $"La tasa de {currency} ya se usó en meses anteriores y no se puede quitar. Guarda una tasa nueva.");
+
+        foreach (var rate in existing)
+            await _rates.DeleteAsync(rate);
     }
 
-    /// <summary>Converts an amount to the base currency using the current rate.</summary>
-    public async Task<decimal> ConvertToBaseAsync(decimal amount, Currency currency)
-    {
-        var baseCurrency = await GetBaseCurrencyAsync();
-        if (currency == baseCurrency)
-            return amount;
+    public async Task<decimal> GetRateAsync(Currency currency, DateOnly date)
+        => (await GetConverterAsync(new[] { currency })).RateOn(currency, date);
 
-        var rate = (await _rates.ListAsync(r => r.Currency == currency)).FirstOrDefault()
-            ?? throw new InvalidOperationException($"Configure la tasa de {currency} en Configuración");
-
-        return Math.Round(amount * rate.RateToBase, 2, MidpointRounding.AwayFromZero);
-    }
+    /// <summary>Converts an amount to the base currency with the rate in force on a date.</summary>
+    public async Task<decimal> ConvertToBaseAsync(decimal amount, Currency currency, DateOnly date)
+        => (await GetConverterAsync(new[] { currency })).ToBase(amount, currency, date);
 
     /// <summary>Loads the base currency and all rates once (2 queries) for converting many amounts.</summary>
     public async Task<CurrencyConverter> GetConverterAsync()
     {
         var baseCurrency = await GetBaseCurrencyAsync();
-        var rates = await _rates.ListAsync();
-        return new CurrencyConverter(baseCurrency, rates.ToDictionary(r => r.Currency, r => r.RateToBase));
+        return new CurrencyConverter(baseCurrency, await _rates.ListAsync());
     }
 
     /// <summary>
@@ -118,10 +136,9 @@ public class CurrencyService
     {
         var baseCurrency = await GetBaseCurrencyAsync();
         if (currenciesToConvert.All(c => c == baseCurrency))
-            return new CurrencyConverter(baseCurrency, new Dictionary<Currency, decimal>());
+            return new CurrencyConverter(baseCurrency, Array.Empty<ExchangeRate>());
 
-        var rates = await _rates.ListAsync();
-        return new CurrencyConverter(baseCurrency, rates.ToDictionary(r => r.Currency, r => r.RateToBase));
+        return new CurrencyConverter(baseCurrency, await _rates.ListAsync());
     }
 
     private async Task<UserSettings?> GetSettingsAsync()
@@ -131,6 +148,6 @@ public class CurrencyService
     {
         Currency = r.Currency,
         RateToBase = r.RateToBase,
-        UpdatedOn = r.UpdatedOn
+        EffectiveFrom = r.EffectiveFrom
     };
 }

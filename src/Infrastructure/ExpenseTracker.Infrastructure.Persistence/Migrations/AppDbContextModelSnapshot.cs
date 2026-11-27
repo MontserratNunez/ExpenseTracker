@@ -288,15 +288,15 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
                     b.Property<decimal>("RateToBase")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<DateOnly>("UpdatedOn")
-                        .HasColumnType("date");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -305,7 +305,7 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "Currency")
+                    b.HasIndex("UserId", "Currency", "EffectiveFrom")
                         .IsUnique();
 
                     b.ToTable("ExchangeRates");
@@ -446,25 +446,11 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
-
-                    b.Property<string>("Frequency")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -490,6 +476,57 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId", "StartDate");
 
                     b.ToTable("IncomeSources");
+                });
+
+            modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.IncomeSourceRevision", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("IncomeSourceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncomeSourceId", "EffectiveFrom")
+                        .IsUnique();
+
+                    b.ToTable("IncomeSourceRevisions");
                 });
 
             modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.OneTimeIncome", b =>
@@ -635,6 +672,15 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.IncomeSourceRevision", b =>
+                {
+                    b.HasOne("ExpenseTracker.Core.Domain.Entities.IncomeSource", null)
+                        .WithMany("Revisions")
+                        .HasForeignKey("IncomeSourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.BudgetPlan", b =>
                 {
                     b.Navigation("Allocations");
@@ -643,6 +689,11 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.Debt", b =>
                 {
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.IncomeSource", b =>
+                {
+                    b.Navigation("Revisions");
                 });
 #pragma warning restore 612, 618
         }

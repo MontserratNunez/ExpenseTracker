@@ -24,7 +24,7 @@ public class CurrencyServiceTests
     {
         await _service.SetRateAsync(new ExchangeRateInput { Currency = Currency.USD, RateToBase = 60.50m });
 
-        var result = await _service.ConvertToBaseAsync(10m, Currency.USD);
+        var result = await _service.ConvertToBaseAsync(10m, Currency.USD, _dates.Today);
 
         Assert.Equal(605.00m, result);
     }
@@ -32,13 +32,13 @@ public class CurrencyServiceTests
     [Fact]
     public async Task Convert_BaseCurrency_ReturnsSameAmountWithoutRate()
     {
-        Assert.Equal(123.45m, await _service.ConvertToBaseAsync(123.45m, Currency.DOP));
+        Assert.Equal(123.45m, await _service.ConvertToBaseAsync(123.45m, Currency.DOP, _dates.Today));
     }
 
     [Fact]
     public async Task Convert_WithoutRate_ThrowsConfigureMessage()
     {
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ConvertToBaseAsync(10m, Currency.USD));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ConvertToBaseAsync(10m, Currency.USD, _dates.Today));
 
         Assert.Equal("Configure la tasa de USD en Configuración", ex.Message);
     }
@@ -48,19 +48,23 @@ public class CurrencyServiceTests
     {
         await _service.SetRateAsync(new ExchangeRateInput { Currency = Currency.EUR, RateToBase = 65.123456m });
 
-        Assert.Equal(21.49m, await _service.ConvertToBaseAsync(0.33m, Currency.EUR));
+        Assert.Equal(21.49m, await _service.ConvertToBaseAsync(0.33m, Currency.EUR, _dates.Today));
     }
 
     [Fact]
-    public async Task SetRate_Twice_UpdatesInsteadOfDuplicating_AndStampsDate()
+    public async Task SetRate_OnAnotherDate_KeepsTheHistory_AndTheSameDateReplaces()
     {
         await _service.SetRateAsync(new ExchangeRateInput { Currency = Currency.USD, RateToBase = 60m });
         _dates.Today = new DateOnly(2026, 12, 1);
+        await _service.SetRateAsync(new ExchangeRateInput { Currency = Currency.USD, RateToBase = 62m });
         await _service.SetRateAsync(new ExchangeRateInput { Currency = Currency.USD, RateToBase = 61m });
 
         var rate = Assert.Single(await _service.ListRatesAsync());
         Assert.Equal(61m, rate.RateToBase);
-        Assert.Equal(new DateOnly(2026, 12, 1), rate.UpdatedOn);
+        Assert.Equal(new DateOnly(2026, 12, 1), rate.EffectiveFrom);
+        Assert.Equal(2, rate.History.Count);
+        Assert.Equal(600m, await _service.ConvertToBaseAsync(10m, Currency.USD, new DateOnly(2026, 11, 30)));
+        Assert.Equal(610m, await _service.ConvertToBaseAsync(10m, Currency.USD, new DateOnly(2026, 12, 1)));
     }
 
     [Fact]
@@ -96,7 +100,7 @@ public class CurrencyServiceTests
         await _service.SetBaseCurrencyAsync(Currency.USD);
 
         Assert.Equal(Currency.USD, await _service.GetBaseCurrencyAsync());
-        Assert.Equal(10m, await _service.ConvertToBaseAsync(10m, Currency.USD));
+        Assert.Equal(10m, await _service.ConvertToBaseAsync(10m, Currency.USD, _dates.Today));
     }
 
     [Fact]

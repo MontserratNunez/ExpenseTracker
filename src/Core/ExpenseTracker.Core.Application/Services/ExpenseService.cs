@@ -241,7 +241,7 @@ public class ExpenseService
         entity.Name = input.Name.Trim();
         entity.Amount = input.Amount;
         entity.Currency = input.Currency;
-        entity.AmountInBase = await _currency.ConvertToBaseAsync(input.Amount, input.Currency);
+        entity.AmountInBase = await _currency.ConvertToBaseAsync(input.Amount, input.Currency, input.Date);
         entity.CategoryId = input.CategoryId;
         entity.Date = input.Date;
         entity.Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();

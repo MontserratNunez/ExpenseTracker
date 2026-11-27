@@ -11,6 +11,6 @@ public class ExchangeRateConfiguration : IEntityTypeConfiguration<ExchangeRate>
         builder.ConfigureOwned();
         builder.Property(e => e.Currency).HasConversion<string>().HasMaxLength(10);
         builder.Property(e => e.RateToBase).HasPrecision(18, 6);
-        builder.HasIndex(e => new { e.UserId, e.Currency }).IsUnique();
+        builder.HasIndex(e => new { e.UserId, e.Currency, e.EffectiveFrom }).IsUnique();
     }
 }

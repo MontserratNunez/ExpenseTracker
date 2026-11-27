@@ -451,7 +451,7 @@ public class MigratedFormsTests : UiTestContext
             IncomeBases = new IncomeBasesDto
             {
                 RecurringTotal = 60_000m,
-                Sources = new() { new IncomeBaseDto { SourceId = 1, Name = "Sueldo trabajo", MonthlyAmount = 50_000m, IsCurrent = true } }
+                Sources = new() { new IncomeBaseDto { SourceId = 1, Name = "Sueldo trabajo", MonthlyAmount = 50_000m, HasIncome = true } }
             }
         };
         var cut = Render<AllocationForm>(p => p
