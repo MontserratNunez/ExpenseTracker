@@ -19,11 +19,11 @@ public class AccessibilityTests
 
     public AccessibilityTests(AppFixture app) => _app = app;
 
-    private static ILocator Dialog(IPage page, string name) => page.GetByRole(AriaRole.Dialog, new PageGetByRoleOptions { Name = name });
+    internal static ILocator Dialog(IPage page, string name) => page.GetByRole(AriaRole.Dialog, new PageGetByRoleOptions { Name = name });
 
-    private static ILocator Field(ILocator dialog, string label) => dialog.GetByLabel(label, new LocatorGetByLabelOptions { Exact = true });
+    internal static ILocator Field(ILocator dialog, string label) => dialog.GetByLabel(label, new LocatorGetByLabelOptions { Exact = true });
 
-    private static async Task AssertNoViolationsAsync(IPage page, string where)
+    internal static async Task AssertNoViolationsAsync(IPage page, string where)
     {
         await page.EvaluateAsync("async () => { await document.fonts.ready; }");
         await page.WaitForTimeoutAsync(400);   // entrance animations finish: axe reads the colors it sees
@@ -40,7 +40,7 @@ public class AccessibilityTests
 
     // ---------- seeding ----------
 
-    private static async Task SeedAsync(Tab tab)
+    internal static async Task SeedAsync(Tab tab)
     {
         var page = tab.Page;
 

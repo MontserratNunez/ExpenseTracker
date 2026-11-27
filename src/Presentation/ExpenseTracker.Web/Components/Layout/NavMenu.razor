@@ -81,7 +81,7 @@
 
         userMenu = new[]
         {
-            new DropdownMenuItem("Mi cuenta", Icons.Account, EventCallback.Factory.Create(this, () => NavigationManager.NavigateTo("Account/Manage"))),
+            new DropdownMenuItem("Mi cuenta", Icons.Account, EventCallback.Factory.Create(this, () => NavigationManager.NavigateTo("Account/Manage", forceLoad: true))),
             new DropdownMenuItem("Cerrar sesión", Icons.Logout, EventCallback.Factory.Create(this, () => Ui.SubmitFormAsync("logout-form")))
         };
     }

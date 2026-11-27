@@ -133,6 +133,44 @@ public class AccountSettingsTests
         Assert.Empty(tab.ConsoleErrors);
     }
 
+    [E2EFact]
+    public async Task MyAccount_FromAnInteractivePage_ShowsTheAccountPage_NotPageNotFound()
+    {
+        await using var tab = await Tab.OpenAsync(_app, width: 1280, height: 800);
+        await tab.RegisterAsync();
+        var page = tab.Page;
+
+        // Through the user menu of the sidebar, without reloading by hand.
+        await tab.GotoAsync("/gastos");
+        var menu = page.GetByRole(AriaRole.Menu);
+        await Tab.ClickUntilAsync(page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { NameRegex = new Regex("^Menú de ") }), menu);
+        await menu.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Mi cuenta" }).ClickAsync();
+        await Expect(page).ToHaveURLAsync(new Regex("/Account/Manage$"));
+        await Expect(page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Name = "Mi cuenta", Level = 1 })).ToBeVisibleAsync();
+        await Expect(page.GetByText("Página no encontrada")).ToHaveCountAsync(0);
+
+        // And through the command palette.
+        await tab.GotoAsync("/plan");
+        var palette = page.GetByRole(AriaRole.Dialog, new PageGetByRoleOptions { Name = "Buscar o ir a..." });
+        for (var attempt = 0; attempt < 6 && !await palette.IsVisibleAsync(); attempt++)
+        {
+            await page.Keyboard.PressAsync("Control+K");
+            try
+            {
+                await palette.WaitForAsync(new LocatorWaitForOptions { Timeout = 3500 });
+            }
+            catch (TimeoutException)
+            {
+            }
+        }
+        await Expect(palette.GetByRole(AriaRole.Combobox)).ToBeFocusedAsync();
+        await page.Keyboard.TypeAsync("mi cuenta");
+        await page.Keyboard.PressAsync("Enter");
+        await Expect(page).ToHaveURLAsync(new Regex("/Account/Manage$"));
+        await Expect(page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Name = "Mi cuenta", Level = 1 })).ToBeVisibleAsync();
+        await Expect(page.GetByText("Página no encontrada")).ToHaveCountAsync(0);
+    }
+
     // ================= Configuración =================
 
     [E2EFact]
@@ -146,7 +184,7 @@ public class AccountSettingsTests
         foreach (var title in new[] { "Moneda base", "Tasas de cambio", "Categorías", "Apariencia" })
             await Expect(page.GetByRole(AriaRole.Heading, new PageGetByRoleOptions { Name = title, Exact = true })).ToBeVisibleAsync();
         await Expect(page.Locator("main .card, main .card-app, main .card-body")).ToHaveCountAsync(0);   // sections are separated by titles, not boxes
-        await Expect(page.Locator("#theme-select")).ToBeDisabledAsync();
+        await Expect(page.GetByRole(AriaRole.Radiogroup, new PageGetByRoleOptions { Name = "Tema" })).ToBeVisibleAsync();   // Apariencia: the theme picker
 
         // Rates: click, type, Enter. Esc cancels; an invalid number shows an error and keeps editing.
         var edit = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Editar la tasa de USD" });

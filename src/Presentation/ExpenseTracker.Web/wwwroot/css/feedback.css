@@ -109,7 +109,7 @@
 .progress-app__segment { height: 100%; transition: width var(--duration-base) var(--ease); }
 
 .progress-app__segment--striped {
-  background-image: repeating-linear-gradient(45deg, rgb(255 255 255 / 45%) 0 4px, transparent 4px 8px);
+  background-image: repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-bg) 45%, transparent) 0 4px, transparent 4px 8px);
 }
 
 .progress-app__marker {

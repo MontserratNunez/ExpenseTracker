@@ -227,6 +227,7 @@ public class ShortcutsTests
         await Expect(palette).ToBeVisibleAsync();
         await page.Keyboard.PressAsync("Escape");
         await Expect(palette).ToBeHiddenAsync();
+        await page.WaitForTimeoutAsync(400);   // the focus goes back to where it was before the next open
 
         // Sections: filtered without caring about accents; the arrows move, Enter goes.
         await page.Keyboard.PressAsync("Control+K");

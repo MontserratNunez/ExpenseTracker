@@ -62,8 +62,8 @@ small { font-size: var(--text-sm); }
 .blazor-error-boundary {
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: var(--color-spent);
-  color: #fff;
+  background: var(--color-spent-strong);
+  color: var(--color-on-accent);
 }
 .blazor-error-boundary::after { content: "Ocurrió un error en esta parte de la página."; }
 

@@ -184,3 +184,27 @@ export function claimCelebration(key) {
     return false;
   }
 }
+
+// ---------- Theme ----------
+// The choice (light, dark or system) is kept in localStorage; the theme in force goes on <html data-theme>, which the
+// small script in App.razor also sets before the first paint (and keeps in step with the system while on "system").
+const THEME_KEY = 'et.theme';
+
+export function getThemePreference() {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    return stored === 'light' || stored === 'dark' ? stored : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+export function setThemePreference(preference) {
+  try {
+    if (preference === 'light' || preference === 'dark') localStorage.setItem(THEME_KEY, preference);
+    else localStorage.removeItem(THEME_KEY);
+  } catch { /* storage blocked: the choice lasts until the page is reloaded */ }
+
+  const dark = preference === 'dark' || (preference !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+}

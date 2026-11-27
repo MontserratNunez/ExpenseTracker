@@ -1,0 +1,74 @@
+@using ExpenseTracker.Web.Services
+@inject UiInterop Ui
+
+<section class="settings__section" aria-labelledby="settings-theme">
+    <h2 id="settings-theme">Apariencia</h2>
+    <p class="settings__lead">Elige el tema de la app. "Sistema" sigue el modo claro u oscuro de tu dispositivo.</p>
+
+    <fieldset class="theme-picker">
+        <legend class="sr-only">Tema</legend>
+        <div class="theme-picker__options" role="radiogroup" aria-label="Tema">
+            @foreach (var option in Options)
+            {
+                var value = option.Value;
+                <label class="theme-picker__option">
+                    <input type="radio" name="theme" value="@value" checked="@(preference == value)" class="theme-picker__input"
+                           @onchange="() => ChooseAsync(value)" />
+                    <span class="theme-picker__face">
+                        <AppIcon Name="@option.Icon" Size="18" />
+                        <span>@option.Label</span>
+                    </span>
+                </label>
+            }
+        </div>
+    </fieldset>
+</section>
+
+@code {
+    private sealed class ThemeOption
+    {
+        public ThemeOption(string value, string label, string icon)
+        {
+            Value = value;
+            Label = label;
+            Icon = icon;
+        }
+
+        public string Value { get; }
+        public string Label { get; }
+        public string Icon { get; }
+    }
+
+    private static readonly ThemeOption[] Options =
+    {
+        new("light", "Claro", Icons.ThemeLight),
+        new("dark", "Oscuro", Icons.ThemeDark),
+        new("system", "Sistema", Icons.ThemeSystem),
+    };
+
+    // Unknown until the browser answers (nothing is selected for that moment).
+    private string? preference;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            preference = await Ui.GetThemePreferenceAsync();
+            StateHasChanged();
+        }
+        catch (JSException)
+        {
+            preference = "system";
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChooseAsync(string value)
+    {
+        preference = value;
+        await Ui.SetThemePreferenceAsync(value);
+    }
+}

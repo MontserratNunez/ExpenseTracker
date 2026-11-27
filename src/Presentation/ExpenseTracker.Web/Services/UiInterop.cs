@@ -45,6 +45,14 @@ public sealed class UiInterop : IAsyncDisposable
     public async Task SetSidebarCollapsedAsync(bool collapsed)
         => await (await Module).InvokeVoidAsync("setSidebarCollapsed", collapsed);
 
+    /// <summary>"light", "dark" or "system".</summary>
+    public async Task<string> GetThemePreferenceAsync()
+        => await (await Module).InvokeAsync<string>("getThemePreference");
+
+    /// <summary>Saves the choice and applies the theme right away, without reloading.</summary>
+    public async Task SetThemePreferenceAsync(string preference)
+        => await (await Module).InvokeVoidAsync("setThemePreference", preference);
+
     public async Task FocusMainAsync(string id)
         => await (await Module).InvokeVoidAsync("focusMain", id);
 

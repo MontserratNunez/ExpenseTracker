@@ -235,7 +235,9 @@
 
     private Task GoAsync(string href)
     {
-        Navigation.NavigateTo(href);
+        // The account pages are static (not part of the interactive router): reaching them needs a full page load,
+        // otherwise the router shows "page not found".
+        Navigation.NavigateTo(href, forceLoad: href.StartsWith("Account/", StringComparison.OrdinalIgnoreCase));
         return Task.CompletedTask;
     }
 

@@ -22,16 +22,42 @@ public class AccessibilityRulesTests
 
     // ---------- contrast ----------
 
-    private static Dictionary<string, string> Tokens()
+    private static readonly Regex HexToken = new(@"(--[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{6})\s*;", RegexOptions.Compiled);
+
+    private static string TokensCss => File.ReadAllText(Path.Combine(WebProject, "wwwroot", "css", "tokens.css"));
+
+    // The colors of the light theme (the :root block).
+    private static Dictionary<string, string> LightTokens()
     {
-        var css = File.ReadAllText(Path.Combine(WebProject, "wwwroot", "css", "tokens.css"));
+        var css = TokensCss;
         var root = css[css.IndexOf(":root", StringComparison.Ordinal)..];
         var end = root.IndexOf("[data-theme", StringComparison.Ordinal);
         if (end > 0)
             root = root[..end];
 
-        return Regex.Matches(root, @"(--[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{6})\s*;")
-            .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value, StringComparer.Ordinal);
+        return HexToken.Matches(root).ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value, StringComparer.Ordinal);
+    }
+
+    // Only what the dark theme redefines.
+    private static Dictionary<string, string> DarkOverrides()
+    {
+        var css = TokensCss;
+        var start = css.IndexOf("[data-theme=\"dark\"]", StringComparison.Ordinal);
+        Assert.True(start >= 0, "tokens.css no define el tema oscuro");
+        return HexToken.Matches(css[start..]).ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value, StringComparer.Ordinal);
+    }
+
+    // The tokens a theme ends up with: dark is light plus its own values.
+    private static Dictionary<string, string> Tokens(string theme)
+    {
+        var tokens = LightTokens();
+        if (theme == "dark")
+        {
+            foreach (var pair in DarkOverrides())
+                tokens[pair.Key] = pair.Value;
+        }
+
+        return tokens;
     }
 
     private static double Luminance(string hex)
@@ -52,7 +78,7 @@ public class AccessibilityRulesTests
         return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
     }
 
-    public static IEnumerable<object[]> TextPairs() => new[]
+    private static readonly object[][] PairList =
     {
         // Body text and secondary text on every surface they are drawn on.
         new object[] { "--color-text", "--color-bg" },
@@ -89,24 +115,65 @@ public class AccessibilityRulesTests
         new object[] { "--color-committed-strong", "--color-committed-bg" },
     };
 
+    // Every pair is checked in both themes.
+    public static IEnumerable<object[]> TextPairs()
+        => new[] { "light", "dark" }.SelectMany(theme => PairList.Select(p => new object[] { theme, p[0], p[1] }));
+
     [Theory]
     [MemberData(nameof(TextPairs))]
-    public void TextColors_MeetWcagAa_4_5(string foreground, string background)
+    public void TextColors_MeetWcagAa_4_5(string theme, string foreground, string background)
     {
-        var tokens = Tokens();
+        var tokens = Tokens(theme);
         var ratio = Contrast(tokens[foreground], tokens[background]);
-        Assert.True(ratio >= 4.5, $"{foreground} {tokens[foreground]} sobre {background} {tokens[background]} tiene contraste {ratio:0.00}:1 y debe ser de 4.5:1 como mínimo");
+        Assert.True(ratio >= 4.5, $"[{theme}] {foreground} {tokens[foreground]} sobre {background} {tokens[background]} tiene contraste {ratio:0.00}:1 y debe ser de 4.5:1 como mínimo");
     }
 
     [Theory]
-    [InlineData("--color-primary-500", "--color-bg")]       // borders and focus of the fields, accent fills
-    [InlineData("--color-available", "--color-bg")]         // the green of bars and dots
-    [InlineData("--color-spent", "--color-bg")]             // the red of bars and dots
-    public void GraphicColors_MeetWcagAa_3(string foreground, string background)
+    [InlineData("light", "--color-primary-500", "--color-bg")]       // borders and focus of the fields, accent fills
+    [InlineData("light", "--color-available", "--color-bg")]         // the green of bars and dots
+    [InlineData("light", "--color-spent", "--color-bg")]             // the red of bars and dots
+    [InlineData("dark", "--color-primary-500", "--color-bg")]
+    [InlineData("dark", "--color-available", "--color-bg")]
+    [InlineData("dark", "--color-spent", "--color-bg")]
+    public void GraphicColors_MeetWcagAa_3(string theme, string foreground, string background)
     {
-        var tokens = Tokens();
+        var tokens = Tokens(theme);
         var ratio = Contrast(tokens[foreground], tokens[background]);
         Assert.True(ratio >= 3.0, $"{foreground} sobre {background} tiene contraste {ratio:0.00}:1 y debe ser de 3:1 como mínimo");
+    }
+
+    [Fact]
+    public void TheDarkTheme_RedefinesEveryColorOfTheLightTheme_ExceptTheBrandPanel()
+    {
+        // A color left out would stay light on the dark page. The login panel keeps its blue in both themes.
+        var sameInBothThemes = new[] { "--color-hero-from", "--color-hero-to", "--color-hero-text" };
+        var dark = DarkOverrides();
+
+        var missing = LightTokens().Keys.Where(k => k.StartsWith("--color-") && !sameInBothThemes.Contains(k) && !dark.ContainsKey(k)).ToList();
+
+        Assert.True(missing.Count == 0, "El tema oscuro no redefine: " + string.Join(", ", missing));
+    }
+
+    [Fact]
+    public void NoStylesheet_HardCodesAColor_EverythingComesFromTheTokens()
+    {
+        // A literal color would stay the same in the dark theme.
+        var literal = new Regex(@"#[0-9A-Fa-f]{3,8}\b|\brgba?\(|\bhsla?\(|\b(lightyellow|white|black)\b(?!-space)", RegexOptions.Compiled);
+        var comment = new Regex(@"/\*.*?\*/", RegexOptions.Compiled);
+        var offenders = new List<string>();
+
+        foreach (var file in Directory.EnumerateFiles(Path.Combine(WebProject, "wwwroot", "css"), "*.css").Where(f => !f.EndsWith("tokens.css")))
+        {
+            var number = 0;
+            foreach (var line in File.ReadAllLines(file))
+            {
+                number++;
+                if (literal.IsMatch(comment.Replace(line, string.Empty)))
+                    offenders.Add($"{Path.GetFileName(file)}:{number}: {line.Trim()}");
+            }
+        }
+
+        Assert.True(offenders.Count == 0, "Colores escritos directamente:\n" + string.Join("\n", offenders));
     }
 
     [Fact]

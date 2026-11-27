@@ -5,8 +5,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    @* Remembers the collapsed sidebar before the first paint, so the page does not jump. ui.js keeps it up to date. *@
-    <script>try { if (localStorage.getItem("et.sidebar") === "collapsed") document.documentElement.dataset.sidebar = "collapsed"; } catch (e) { }</script>
+    @* Applies the saved theme (or the system one) before anything is painted, so a dark page never flashes white.
+       It follows the system while the choice is "system", and puts the attributes of <html> back when an enhanced
+       navigation between static pages (the account pages) replaces them with the server's, which has none.
+       ui.js changes the theme when the user picks another. *@
+    <script>(function () {
+        var root = document.documentElement, query = matchMedia("(prefers-color-scheme: dark)");
+        function stored(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+        function theme() { var s = stored("et.theme"); return s === "dark" || (s !== "light" && query.matches) ? "dark" : "light"; }
+        function apply() {
+            if (root.dataset.theme !== theme()) root.dataset.theme = theme();
+            if (stored("et.sidebar") === "collapsed") { if (root.dataset.sidebar !== "collapsed") root.dataset.sidebar = "collapsed"; }
+        }
+        apply();
+        query.addEventListener("change", apply);
+        new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ["data-theme", "data-sidebar"] });
+    })();</script>
     <ResourcePreloader />
     @* Preload the body font so text does not jump when it arrives. The path must match the one in tokens.css. *@
     <link rel="preload" href="fonts/inter/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin />

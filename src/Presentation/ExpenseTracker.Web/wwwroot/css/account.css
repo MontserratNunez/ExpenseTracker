@@ -26,8 +26,8 @@
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-12);
-  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-hero-from), var(--color-hero-to));
+  color: var(--color-hero-text);
   text-align: center;
 }
 @media (min-width: 768px) { .account-shell__hero { display: flex; } }
@@ -124,7 +124,7 @@ a.btn-app:hover { text-decoration: none; }
   height: 32px;
   border-radius: 50%;
   background: var(--swatch);
-  color: #fff;
+  color: var(--color-hero-text);
   box-shadow: inset 0 0 0 2px var(--color-bg);
   border: 2px solid transparent;
 }
@@ -133,3 +133,24 @@ a.btn-app:hover { text-decoration: none; }
 .color-swatches__input:checked + .color-swatches__dot .app-icon { opacity: 1; }
 .color-swatches__input:focus-visible + .color-swatches__dot { box-shadow: inset 0 0 0 2px var(--color-bg), var(--focus-ring); }
 .settings-editor { display: grid; gap: var(--space-4); padding: var(--space-4); margin-bottom: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-subtle); }
+
+/* ---------- Theme picker (Configuración > Apariencia) ---------- */
+.theme-picker { margin: 0; padding: 0; border: 0; min-width: 0; }
+.theme-picker__options { display: inline-flex; gap: var(--space-1); padding: var(--space-1); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-subtle); }
+.theme-picker__option { position: relative; display: block; cursor: pointer; }
+.theme-picker__input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.theme-picker__face {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 34px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: background var(--duration-fast) var(--ease);
+}
+.theme-picker__option:hover .theme-picker__face { background: var(--color-bg-hover); color: var(--color-text); }
+.theme-picker__input:checked + .theme-picker__face { background: var(--color-primary-50); color: var(--color-primary-700); box-shadow: inset 0 0 0 1px var(--color-primary-500); }
+.theme-picker__input:focus-visible + .theme-picker__face { box-shadow: var(--focus-ring); }

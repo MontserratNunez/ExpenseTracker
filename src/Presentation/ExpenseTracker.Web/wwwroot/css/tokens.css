@@ -103,6 +103,13 @@
   --z-overlay: 1100;
   --z-toast: 1200;
 
+  /* The blue panel of the login (same in both themes: it is a brand block, white text on it) */
+  --color-hero-from: #2F6FEB;
+  --color-hero-to: #1C47A0;
+  --color-hero-text: #FFFFFF;
+
+  color-scheme: light;
+
   /* Dimmed layer behind modals and panels */
   --color-scrim: rgba(15, 23, 41, .35);
 
@@ -110,4 +117,47 @@
   --sidebar-width: 240px;
   --sidebar-collapsed: 64px;
   --content-max: 1100px;
+}
+
+/* Dark theme: only the values change, every style keeps using the same variables.
+   The theme is chosen in Configuración (light, dark or system) and set on <html data-theme> before the first paint. */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #0F1729;
+  --color-bg-subtle: #16213A;
+  --color-bg-hover: #1C2A47;
+  --color-border: #24304A;
+
+  --color-primary-50: #16264A;
+  --color-primary-100: #1D3366;
+  --color-primary-500: #4C8DFF;
+  --color-primary-600: #6A9FFF;
+  --color-primary-700: #A9C6FF;
+
+  --color-text: #E5E9F0;
+  --color-text-muted: #A3ADBF;
+  --color-text-subtle: #6B7891;
+
+  --color-available: #3DD68C;
+  --color-available-bg: #12342A;
+  --color-spent: #FF6369;
+  --color-spent-bg: #3A1D22;
+  --color-committed: #7B8AA5;
+  --color-committed-bg: #1E2A44;
+  --color-warning: #FFB224;
+  --color-warning-bg: #3A2B12;
+
+  --color-available-strong: #5FE0A5;
+  --color-spent-strong: #FF8A8F;
+  --color-warning-strong: #FFC96B;
+  --color-committed-strong: #A9B4C8;
+
+  /* On the lighter blue and red of this theme the text of a solid button is dark. */
+  --color-on-accent: #0F1729;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, .5);
+  --focus-ring: 0 0 0 3px var(--color-primary-500);
+  --color-scrim: rgba(0, 0, 0, .6);
 }
