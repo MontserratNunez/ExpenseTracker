@@ -96,7 +96,7 @@ public class FeedbackTests
             ("/deudas", "Aún no has registrado deudas", "Nueva deuda", "Nueva deuda"),
             ("/metas", "Aún no tienes metas", "Nueva meta", "Nueva meta"),
             ("/ingresos", "Aún no tienes fuentes de ingreso", "Nueva fuente", "Nueva fuente de ingreso"),
-            ("/plan", "Aún no tienes un plan", "Crear mi plan", "Editar plan"),
+            ("/plan", "Aún no tienes un plan", "Crear mi plan", "Nuevo plan"),
         };
 
         foreach (var (path, title, button, dialogName) in cases)

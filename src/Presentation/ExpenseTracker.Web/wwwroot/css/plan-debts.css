@@ -1,7 +1,41 @@
 /* Plan and Deudas. */
 
 /* ---------- Plan ---------- */
-.plan-toolbar { margin-bottom: var(--space-4); }
+.plan-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
+.plan-toolbar__plan { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+.plan-timeline { margin-bottom: var(--space-6); }
+.plan-timeline__title { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); }
+.plan-timeline__list { margin: 0; padding: 0; list-style: none; }
+.plan-timeline__row {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-1) var(--space-6);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.plan-timeline__row:hover, .plan-timeline__row--selected { background: var(--color-bg-hover); }
+.plan-timeline__who { display: flex; flex-direction: column; min-width: 0; }
+.plan-timeline__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.plan-timeline__period { font-size: var(--text-xs); color: var(--color-text-muted); }
+.plan-timeline__track { position: relative; display: block; height: 10px; background: var(--color-bg-subtle); border-radius: var(--radius-sm); }
+.plan-timeline__bar { position: absolute; top: 0; bottom: 0; background: var(--color-committed); border-radius: var(--radius-sm); }
+.plan-timeline__bar--current { background: var(--color-primary-700); }
+.plan-timeline__bar--open { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.plan-timeline__today { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--color-text); }
+.plan-timeline__legend { margin: var(--space-2) 0 0; font-size: var(--text-xs); color: var(--color-text-muted); }
+@media (max-width: 767px) { .plan-timeline__row { grid-template-columns: 1fr; } }
+
+.month-year { display: flex; gap: var(--space-2); }
+.plan-check { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
 
 .plan-summary { display: grid; gap: var(--space-4); grid-template-columns: 1fr; margin-bottom: var(--space-6); }
 @media (min-width: 768px) { .plan-summary { grid-template-columns: repeat(2, 1fr); } }

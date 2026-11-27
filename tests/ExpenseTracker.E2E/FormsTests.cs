@@ -28,7 +28,7 @@ public class FormsTests
             ("/ingresos", "Ingresos únicos", "Nuevo ingreso", "Nuevo ingreso único", "form-ingreso-unico"),
             ("/deudas", null, "Nueva deuda", "Nueva deuda", "form-deuda"),
             ("/metas", null, "Nueva meta", "Nueva meta", "form-meta"),
-            ("/plan", null, "Editar plan", "Editar plan", "form-plan"),
+            ("/plan", null, "Nuevo plan", "Nuevo plan", "form-plan"),
         };
 
         foreach (var (path, preClick, button, title, shot) in cases)

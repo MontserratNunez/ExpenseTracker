@@ -1,0 +1,155 @@
+@using ExpenseTracker.Core.Application.DTOs.Budget
+@using ExpenseTracker.Web.Services
+
+<AppModal IsOpen="Visible" Title="@(IsNew ? "Nuevo plan" : "Nombre y vigencia")" Width="OverlayWidth.Md" OnClose="OnCancel">
+    <ChildContent>
+        <ErrorAlert Message="@Error" />
+
+        <div class="form-field">
+            <label class="form-field__label" for="plan-name">Nombre</label>
+            <input id="plan-name" class="field" maxlength="100" @bind="Model.Name" @bind:event="oninput" />
+        </div>
+
+        @if (VersionFrom is { } versionFrom)
+        {
+            <p class="form-field__hint">
+                Este plan empezó en un mes anterior: los cambios crean una versión desde @UiLabels.MonthYear(versionFrom)
+                y los meses anteriores no cambian.
+            </p>
+        }
+        else
+        {
+            <div class="form-field">
+                <label class="form-field__label" for="plan-start">Inicio</label>
+                <select id="plan-start" class="field" value="@Model.Start" @onchange="StartChangedAsync">
+                    <option value="@PlanStart.ThisMonth">Este mes (@UiLabels.MonthYear(CurrentMonth))</option>
+                    <option value="@PlanStart.NextMonth">El próximo mes (@UiLabels.MonthYear(CurrentMonth.AddMonths(1)))</option>
+                    <option value="@PlanStart.FromMonth">A partir de…</option>
+                </select>
+            </div>
+            @if (Model.Start == PlanStart.FromMonth)
+            {
+                <div class="form-field">
+                    <MonthYearSelect Label="Mes de inicio" Value="Model.FromMonth" FirstYear="CurrentMonth.Year" ValueChanged="FromChangedAsync" />
+                </div>
+            }
+        }
+
+        <div class="form-field">
+            <label class="plan-check">
+                <input type="checkbox" checked="@Model.HasEnd" @onchange="HasEndChangedAsync" /> Tiene fecha de fin
+            </label>
+            @if (Model.HasEnd)
+            {
+                <MonthYearSelect Label="Último mes" Value="Model.EndMonth" FirstYear="CurrentMonth.Year" ValueChanged="EndChangedAsync" />
+            }
+        </div>
+
+        @if (IsNew && Plans.Count > 0)
+        {
+            <div class="form-field">
+                <label class="form-field__label" for="plan-copy">Copiar asignaciones de…</label>
+                <select id="plan-copy" class="field" @bind="Model.CopyFromPlanId">
+                    <option value="">Ninguno (empezar vacío)</option>
+                    @foreach (var plan in Plans)
+                    {
+                        <option value="@plan.Id">@plan.Name (@PlanText.Period(plan.EffectiveFrom, plan.EffectiveTo))</option>
+                    }
+                </select>
+            </div>
+        }
+
+        @if (Preview?.Conflict is not null)
+        {
+            <InlineAlert Tone="InlineAlert.AlertTone.Danger" Class="mb-0">
+                @Preview.Conflict
+                @if (Preview.SuggestedEnd is { } end)
+                {
+                    <AppButton Variant="AppButton.ButtonVariant.Secondary" Size="AppButton.ButtonSize.Sm" OnClick="() => TrimAsync(end)">
+                        Recortar hasta @UiLabels.MonthYear(end)
+                    </AppButton>
+                }
+            </InlineAlert>
+        }
+        else if (Preview?.Notice is not null)
+        {
+            <InlineAlert Tone="InlineAlert.AlertTone.Warning" Class="mb-0">@Preview.Notice</InlineAlert>
+        }
+    </ChildContent>
+    <Footer>
+        <AppButton Variant="AppButton.ButtonVariant.Ghost" OnClick="() => OnCancel.InvokeAsync()">Cancelar</AppButton>
+        <AppButton Disabled="@(Preview?.Conflict is not null)" OnClick="() => OnSave.InvokeAsync()">
+            @(IsNew ? "Crear plan" : "Guardar")
+        </AppButton>
+    </Footer>
+</AppModal>
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public bool IsNew { get; set; }
+
+    /// <summary>Edited in place and read by the parent on save.</summary>
+    [Parameter, EditorRequired]
+    public PlanFormModel Model { get; set; } = new();
+
+    [Parameter]
+    public DateOnly CurrentMonth { get; set; }
+
+    /// <summary>Set when saving creates a new version, which always starts in this month.</summary>
+    [Parameter]
+    public DateOnly? VersionFrom { get; set; }
+
+    [Parameter]
+    public List<BudgetPlanDto> Plans { get; set; } = new();
+
+    [Parameter]
+    public PlanPeriodPreview? Preview { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    /// <summary>The start or the end changed: the parent recalculates the preview.</summary>
+    [Parameter]
+    public EventCallback OnPeriodChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnSave { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private Task StartChangedAsync(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<PlanStart>(e.Value?.ToString(), out var start))
+            Model.Start = start;
+        return OnPeriodChanged.InvokeAsync();
+    }
+
+    private Task FromChangedAsync(DateOnly month)
+    {
+        Model.FromMonth = month;
+        return OnPeriodChanged.InvokeAsync();
+    }
+
+    private Task HasEndChangedAsync(ChangeEventArgs e)
+    {
+        Model.HasEnd = e.Value is true;
+        return OnPeriodChanged.InvokeAsync();
+    }
+
+    private Task EndChangedAsync(DateOnly month)
+    {
+        Model.EndMonth = month;
+        return OnPeriodChanged.InvokeAsync();
+    }
+
+    private Task TrimAsync(DateOnly end)
+    {
+        Model.HasEnd = true;
+        Model.EndMonth = new DateOnly(end.Year, end.Month, 1);
+        return OnPeriodChanged.InvokeAsync();
+    }
+}

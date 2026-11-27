@@ -35,6 +35,9 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<int>("BudgetPlanId")
+                        .HasColumnType("int");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
@@ -62,10 +65,47 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("IncomeSourceId");
 
-                    b.HasIndex("UserId", "CategoryId")
+                    b.HasIndex("BudgetPlanId", "CategoryId")
                         .IsUnique();
 
                     b.ToTable("BudgetAllocations");
+                });
+
+            modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.BudgetPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "EffectiveFrom");
+
+                    b.ToTable("BudgetPlans");
                 });
 
             modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.Category", b =>
@@ -541,6 +581,12 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.BudgetAllocation", b =>
                 {
+                    b.HasOne("ExpenseTracker.Core.Domain.Entities.BudgetPlan", null)
+                        .WithMany("Allocations")
+                        .HasForeignKey("BudgetPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("ExpenseTracker.Core.Domain.Entities.Category", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
@@ -587,6 +633,11 @@ namespace ExpenseTracker.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.BudgetPlan", b =>
+                {
+                    b.Navigation("Allocations");
                 });
 
             modelBuilder.Entity("ExpenseTracker.Core.Domain.Entities.Debt", b =>

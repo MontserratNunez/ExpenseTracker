@@ -24,6 +24,7 @@ public class ForecastServiceTests
     private readonly FakeRepository<IncomeSource> _sources = new();
     private readonly FakeRepository<OneTimeIncome> _oneTimeIncome = new();
     private readonly FakeRepository<BudgetAllocation> _allocations = new();
+    private readonly FakeBudgetPlanRepository _plans = new();
     private readonly FakeDebtRepository _debts = new();
     private readonly FakeExpenseRepository _expenses;
     private readonly FixedDateProvider _dates = new(new DateOnly(2026, 11, 18));
@@ -51,7 +52,7 @@ public class ForecastServiceTests
         var ledger = new MonthlyLedgerService(_expenses, _debts, _currency, _dates);
         _expenseService = new ExpenseService(_expenses, _categories, _currency, ledger, _dates);
         _debtService = new DebtService(_debts, _currency, _dates);
-        _budget = new BudgetService(_allocations, _categories, _sources, _expenses, ledger, _income, _dates);
+        _budget = new BudgetService(_plans, _categories, _expenses, ledger, _income, _dates);
         _service = new ForecastService(_expenses, _debts, _categories, _currency, _budget, _income, _dates);
     }
 
@@ -262,7 +263,7 @@ public class ForecastServiceTests
     [Fact]
     public async Task Variables_WithoutHistory_FallBackToThePlan()
     {
-        await _budget.CreateAsync(new AllocationInput { CategoryId = Food, Value = 10_000m });
+        _plans.Allocate(Food, 10_000m);
 
         var next = await _service.GetNextMonthAsync();
 
@@ -277,7 +278,7 @@ public class ForecastServiceTests
     [Fact]
     public async Task Variables_HistoryWinsOverThePlan_ForTheSameCategory()
     {
-        await _budget.CreateAsync(new AllocationInput { CategoryId = Food, Value = 10_000m });
+        _plans.Allocate(Food, 10_000m);
         await AddOneTimeAsync(3_000m, new DateOnly(2026, 10, 10));
 
         var next = await _service.GetNextMonthAsync();
@@ -290,7 +291,7 @@ public class ForecastServiceTests
     public async Task Variables_PlanFallback_DoesNotCountWhatRecurringExpensesAlreadyCover()
     {
         // Plan assigns 5,000 to savings and 3,000 of it is an automatic monthly saving.
-        await _budget.CreateAsync(new AllocationInput { CategoryId = Savings, Value = 5_000m });
+        _plans.Allocate(Savings, 5_000m);
         await AddRecurringAsync("Ahorro automatico", 3_000m, new DateOnly(2026, 1, 1), Frequency.Monthly, Savings);
 
         var next = await _service.GetNextMonthAsync();
@@ -302,7 +303,7 @@ public class ForecastServiceTests
     [Fact]
     public async Task Variables_PlanFullyCoveredByRecurring_AddsNothing()
     {
-        await _budget.CreateAsync(new AllocationInput { CategoryId = Savings, Value = 3_000m });
+        _plans.Allocate(Savings, 3_000m);
         await AddRecurringAsync("Ahorro automatico", 3_000m, new DateOnly(2026, 1, 1), Frequency.Monthly, Savings);
 
         Assert.Equal(0m, (await _service.GetNextMonthAsync()).VariablesTotal);

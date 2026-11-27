@@ -1,0 +1,64 @@
+@using System.Globalization
+@using ExpenseTracker.Core.Application.DTOs.Budget
+@using ExpenseTracker.Web.Services
+
+@* One horizontal bar per plan on a shared month scale, with a line on the current month. *@
+<section class="plan-timeline" aria-labelledby="plan-timeline-title">
+    <h2 id="plan-timeline-title" class="plan-timeline__title">
+        <AppIcon Name="@Icons.Plans" Size="16" /> Línea de tiempo
+    </h2>
+    <ul class="plan-timeline__list">
+        @foreach (var plan in Plans)
+        {
+            var p = plan;
+            <li>
+                <button type="button" class="plan-timeline__row @(p.Id == SelectedPlanId ? "plan-timeline__row--selected" : null)"
+                        aria-current="@(p.Id == SelectedPlanId ? "true" : null)" @onclick="() => OnSelect.InvokeAsync(p)">
+                    <span class="plan-timeline__who">
+                        <span class="plan-timeline__name">@p.Name</span>
+                        <span class="plan-timeline__period">@PlanText.Period(p.EffectiveFrom, p.EffectiveTo)</span>
+                    </span>
+                    <span class="plan-timeline__track" aria-hidden="true">
+                        <span class="plan-timeline__bar @(p.IsCurrent ? "plan-timeline__bar--current" : null) @(p.EffectiveTo is null ? "plan-timeline__bar--open" : null)"
+                              style="@BarStyle(p)"></span>
+                        <span class="plan-timeline__today" style="left: @Percent(Index(CurrentMonth) - First + 0.5m);"></span>
+                    </span>
+                </button>
+            </li>
+        }
+    </ul>
+    <p class="plan-timeline__legend">La línea vertical marca @UiLabels.MonthYear(CurrentMonth), el mes actual.</p>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public List<BudgetPlanDto> Plans { get; set; } = new();
+
+    /// <summary>First day of the current month.</summary>
+    [Parameter, EditorRequired]
+    public DateOnly CurrentMonth { get; set; }
+
+    /// <summary>The plan of the month being viewed.</summary>
+    [Parameter]
+    public int? SelectedPlanId { get; set; }
+
+    [Parameter]
+    public EventCallback<BudgetPlanDto> OnSelect { get; set; }
+
+    private static int Index(DateOnly date) => date.Year * 12 + date.Month - 1;
+
+    private int First => Plans.Select(p => Index(p.EffectiveFrom)).Append(Index(CurrentMonth)).Min();
+
+    // At least a year ahead, so a plan without end is visibly longer than a short one.
+    private int Last => Plans.Select(p => Index(p.EffectiveTo ?? p.EffectiveFrom)).Append(Index(CurrentMonth) + 11).Max();
+
+    private string Percent(decimal months)
+        => (months / (Last - First + 1) * 100m).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+
+    private string BarStyle(BudgetPlanDto plan)
+    {
+        var start = Index(plan.EffectiveFrom);
+        var end = plan.EffectiveTo is { } to ? Index(to) : Last;
+        return $"left: {Percent(start - First)}; width: {Percent(end - start + 1)};";
+    }
+}

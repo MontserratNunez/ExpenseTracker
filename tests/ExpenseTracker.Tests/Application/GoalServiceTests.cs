@@ -21,6 +21,7 @@ public class GoalServiceTests
     private readonly FakeRepository<IncomeSource> _sources = new();
     private readonly FakeRepository<OneTimeIncome> _oneTime = new();
     private readonly FakeRepository<BudgetAllocation> _allocations = new();
+    private readonly FakeBudgetPlanRepository _plans = new();
     private readonly FakeRepository<Goal> _goals = new();
     private readonly FakeDebtRepository _debts = new();
     private readonly FakeExpenseRepository _expenses;
@@ -41,7 +42,7 @@ public class GoalServiceTests
         var income = new IncomeService(_sources, _oneTime, _allocations, _currency, _dates);
         var ledger = new MonthlyLedgerService(_expenses, _debts, _currency, _dates);
         _expenseService = new ExpenseService(_expenses, _categories, _currency, ledger, _dates);
-        _budget = new BudgetService(_allocations, _categories, _sources, _expenses, ledger, income, _dates);
+        _budget = new BudgetService(_plans, _categories, _expenses, ledger, income, _dates);
         _service = new GoalService(_goals, _categories, _expenses, _currency, _budget, _dates);
     }
 
@@ -271,7 +272,7 @@ public class GoalServiceTests
     {
         await _service.CreateAsync(Annual200k());
         await Seed45kAsync();
-        await _budget.CreateAsync(new AllocationInput { CategoryId = Savings, Value = 5_000m });
+        _plans.Allocate(Savings, 5_000m);
 
         var status = await StatusAsync();
 
@@ -289,7 +290,7 @@ public class GoalServiceTests
         Assert.Null(withoutPlan.PlannedMonthly);
         Assert.False(withoutPlan.PlanBelowRequired);
 
-        await _budget.CreateAsync(new AllocationInput { CategoryId = Savings, Value = 20_000m });
+        _plans.Allocate(Savings, 20_000m);
         Assert.False((await StatusAsync()).PlanBelowRequired);
     }
 

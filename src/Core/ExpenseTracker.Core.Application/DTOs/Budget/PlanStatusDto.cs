@@ -16,6 +16,16 @@ public class PlanStatusDto
     public int Year { get; set; }
     public int Month { get; set; }
 
+    // ----- Plan in force that month -----
+
+    /// <summary>False when no plan covers the month: only the real spending is reported.</summary>
+    public bool HasPlan { get; set; }
+
+    public int? PlanId { get; set; }
+    public string? PlanName { get; set; }
+    public DateOnly? PlanFrom { get; set; }
+    public DateOnly? PlanTo { get; set; }
+
     // ----- Summary (base currency) -----
 
     public decimal Income { get; set; }
@@ -35,7 +45,7 @@ public class PlanStatusDto
 
     public List<CategoryPlanDto> Categories { get; set; } = new();
 
-    /// <summary>Spending in categories that have no allocation ("Fuera del plan").</summary>
+    /// <summary>Spending in categories that have no allocation ("Fuera del plan"); all of it when there is no plan.</summary>
     public List<CategoryTotalDto> OutOfPlan { get; set; } = new();
 
     public decimal OutOfPlanSpent { get; set; }

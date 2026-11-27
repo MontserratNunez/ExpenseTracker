@@ -52,7 +52,7 @@ public class DashboardService
         dashboard.UpcomingPayments = await GetUpcomingPaymentsAsync(today, ledger);
 
         var plan = await _budget.GetPlanStatusAsync(today.Year, today.Month);
-        dashboard.HasPlan = plan.Categories.Count > 0;
+        dashboard.HasPlan = plan.HasPlan && plan.Categories.Count > 0;
         dashboard.PlanHighlights = plan.Categories
             .Where(c => c.Assigned > 0)
             .OrderByDescending(c => c.EstimatedPercent)

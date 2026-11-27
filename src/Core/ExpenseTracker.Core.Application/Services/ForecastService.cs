@@ -80,7 +80,8 @@ public class ForecastService
         var categories = (await _categories.ListAsync()).ToDictionary(c => c.Id);
         var converter = recurring.Count > 0 || debts.Count > 0 ? await _currency.GetConverterAsync() : null;
 
-        var variableRates = await GetVariableMonthlyAmountsAsync(thisMonth, recurring, converter);
+        var historyRates = await GetHistoryMonthlyAmountsAsync(thisMonth);
+        var assignedByMonth = await _budget.GetAssignedByMonthAsync(from, to);
         var incomeByMonth = await _income.GetProjectedIncomeByMonthAsync(from, to);
 
         // Installments are simulated once per debt; each month then picks its own rows.
@@ -92,6 +93,7 @@ public class ForecastService
         var recurringItems = new Dictionary<int, ForecastItemDto>();
         var debtItems = new Dictionary<int, ForecastItemDto>();
         var variableTotals = new Dictionary<int, decimal>();
+        var variableBasis = new Dictionary<int, VariableBasis>();
 
         for (var monthStart = FirstOfMonth(from); monthStart <= to; monthStart = monthStart.AddMonths(1))
         {
@@ -139,8 +141,10 @@ public class ForecastService
 
             // Variables: monthly estimate scaled by the share of the month the window covers.
             var share = (decimal)(windowEnd.DayNumber - windowStart.DayNumber + 1) / daysInMonth;
-            foreach (var (categoryId, rate) in variableRates)
+            // Without history, the plan in force that month is used (a month without plan adds nothing).
+            foreach (var (categoryId, rate) in AddPlanRates(historyRates, assignedByMonth[monthStart], recurring, converter))
             {
+                variableBasis[categoryId] = rate.Basis;
                 var amount = rate.Monthly * share;
                 month.Variables += amount;
                 variableTotals[categoryId] = variableTotals.GetValueOrDefault(categoryId) + amount;
@@ -165,7 +169,7 @@ public class ForecastService
                 CategoryName = CategoryName(categories, v.Key),
                 CategoryColor = categories.TryGetValue(v.Key, out var c) ? c.Color : "#6C757D",
                 Amount = Round(v.Value),
-                Basis = variableRates[v.Key].Basis
+                Basis = variableBasis[v.Key]
             })
             .OrderByDescending(v => v.Amount)
             .ToList();
@@ -187,24 +191,28 @@ public class ForecastService
         public VariableBasis Basis { get; init; }
     }
 
-    /// <summary>
-    /// Monthly estimate of variable (one-time) spending per category. With history: the average of the
-    /// last 3 full months. Without it: the Plan amount, minus what the category's recurring expenses
-    /// already cover so they are not counted twice.
-    /// </summary>
-    private async Task<Dictionary<int, VariableRate>> GetVariableMonthlyAmountsAsync(
-        DateOnly thisMonth, List<Expense> recurring, CurrencyConverter? converter)
+    /// <summary>Monthly average of variable (one-time) spending per category over the last 3 full months.</summary>
+    private async Task<Dictionary<int, VariableRate>> GetHistoryMonthlyAmountsAsync(DateOnly thisMonth)
     {
         var historyFrom = thisMonth.AddMonths(-HistoryMonths);
         var history = await _expenses.GetOneTimeByRangeAsync(historyFrom, thisMonth.AddDays(-1));
 
-        var rates = history
+        return history
             .GroupBy(e => e.CategoryId)
             .ToDictionary(
                 g => g.Key,
                 g => new VariableRate { Monthly = g.Sum(e => e.AmountInBase) / HistoryMonths, Basis = VariableBasis.History });
+    }
 
-        var assigned = await _budget.GetAssignedByCategoryAsync();
+    /// <summary>
+    /// History rates plus, for categories without history, the Plan amount minus what the category's
+    /// recurring expenses already cover so they are not counted twice.
+    /// </summary>
+    private static Dictionary<int, VariableRate> AddPlanRates(
+        Dictionary<int, VariableRate> history, Dictionary<int, decimal> assigned,
+        List<Expense> recurring, CurrencyConverter? converter)
+    {
+        var rates = new Dictionary<int, VariableRate>(history);
         foreach (var (categoryId, amount) in assigned)
         {
             if (rates.ContainsKey(categoryId))

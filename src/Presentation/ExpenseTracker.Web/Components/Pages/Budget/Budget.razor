@@ -6,6 +6,7 @@
 @using ExpenseTracker.Core.Domain.Enums
 @using ExpenseTracker.Web.Services
 @inject BudgetService BudgetService
+@inject BudgetPlanService PlanService
 @inject CurrencyService CurrencyService
 @inject IDateProvider DateProvider
 @inject ShortcutService Shortcuts
@@ -14,11 +15,43 @@
 <PageTitle>Plan · @UiLabels.MonthName(month).ToLower() @year · Expense Tracker</PageTitle>
 
 <PageHeader Title="Plan">
-    <Actions><AppButton OnClick="StartEditAsync" Disabled="@loading">Editar plan</AppButton></Actions>
+    <Actions>
+        <AppButton Variant="@(CanEdit ? AppButton.ButtonVariant.Secondary : AppButton.ButtonVariant.Primary)"
+                   Icon="@Icons.Add" OnClick="StartNewAsync" Disabled="@loading">Nuevo plan</AppButton>
+        @if (CanEdit)
+        {
+            <AppButton OnClick="StartEditAsync" Disabled="@loading">Editar plan</AppButton>
+        }
+    </Actions>
 </PageHeader>
 
 <div class="plan-toolbar">
-    <MonthNavigator Year="year" Month="month" OnChange="OnMonthChanged" />
+    <MonthNavigator Year="year" Month="month" OnChange="OnMonthChanged" MaxMonthsAhead="MonthsAhead" />
+    @if (!loading && plan is not null)
+    {
+        <div class="plan-toolbar__plan">
+            @if (plan.HasPlan)
+            {
+                <Badge Icon="@Icons.Plans">@plan.PlanName · @PlanText.Period(plan.PlanFrom!.Value, plan.PlanTo)</Badge>
+            }
+            else
+            {
+                <Badge Tone="Badge.BadgeTone.Gray" Icon="@Icons.Plans">Sin plan</Badge>
+            }
+            @if (SelectedPlan is { IsPast: false } selected)
+            {
+                <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" OnClick="() => StartDetailsAsync(selected)">Nombre y vigencia</AppButton>
+                @if (selected.IsCurrent)
+                {
+                    <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" OnClick="() => StartFinish(selected)">Finalizar</AppButton>
+                }
+                else
+                {
+                    <AppButton Variant="AppButton.ButtonVariant.Ghost" Size="AppButton.ButtonSize.Sm" Icon="@Icons.Delete" OnClick="() => showDelete = true">Eliminar</AppButton>
+                }
+            }
+        </div>
+    }
 </div>
 
 <ErrorAlert @bind-Message="error" />
@@ -30,11 +63,33 @@
 }
 else if (plan is not null)
 {
+    @if (plans.Count > 0)
+    {
+        <PlanTimeline Plans="plans" CurrentMonth="CurrentMonth" SelectedPlanId="plan.PlanId" OnSelect="ShowPlanAsync" />
+    }
+
+    @if (!plan.HasPlan)
+    {
+        @if (IsPastMonth)
+        {
+            <EmptyState Icon="@Icons.Budget" Title="@($"No tenías un plan en {ViewedMonthText}")"
+                        Description="@(plan.OutOfPlan.Count > 0 ? "Los meses sin plan no se evalúan: abajo ves lo que gastaste." : "Los meses sin plan no se evalúan. Tampoco registraste gastos ese mes.")" />
+        }
+        else
+        {
+            <EmptyState Icon="@Icons.Budget" Title="@(plans.Count == 0 ? "Aún no tienes un plan" : $"No tienes un plan para {ViewedMonthText}")"
+                        Description="Reparte tus ingresos por categoría para ver si lo estás cumpliendo.">
+                <Action><AppButton OnClick="StartNewAsync">Crear mi plan</AppButton></Action>
+            </EmptyState>
+        }
+    }
+    else
+    {
     <div class="plan-summary">
         <StatCard Label="Asignado" Amount="plan.TotalAssigned" Currency="baseCurrency" Large="true">
             <p class="plan-note @(plan.IsOverAssigned ? "plan-note--over" : null)">
                 @plan.AssignedPercentOfIncome.ToString("0.#") % de tus ingresos
-                <span aria-hidden="true"><span aria-hidden="true">·</span>nbsp;·<span aria-hidden="true">·</span>nbsp;</span>
+                <span aria-hidden="true">&nbsp;·&nbsp;</span>
                 @if (plan.Unassigned >= 0)
                 {
                     <span>sin asignar <MoneyText Amount="plan.Unassigned" Currency="baseCurrency" /></span>
@@ -48,7 +103,7 @@ else if (plan is not null)
         <StatCard Label="Estimado a fin de mes" Amount="plan.TotalEstimated" Currency="baseCurrency" Large="true">
             <p class="plan-note">
                 Gastado <MoneyText Amount="plan.TotalSpent" Currency="baseCurrency" />
-                <span aria-hidden="true"><span aria-hidden="true">·</span>nbsp;·<span aria-hidden="true">·</span>nbsp;</span>
+                <span aria-hidden="true">&nbsp;·&nbsp;</span>
                 pendiente <MoneyText Amount="plan.TotalPending" Currency="baseCurrency" />
             </p>
         </StatCard>
@@ -65,8 +120,13 @@ else if (plan is not null)
 
     @if (plan.Categories.Count == 0)
     {
-        <EmptyState Icon="@Icons.Budget" Title="Aún no tienes un plan" Description="Reparte tus ingresos por categoría para ver si lo estás cumpliendo.">
-            <Action><AppButton OnClick="StartEditAsync">Crear mi plan</AppButton></Action>
+        <EmptyState Icon="@Icons.Budget" Title="Este plan aún no tiene categorías" Description="Define cuánto quieres gastar en cada una.">
+            <Action>
+                @if (CanEdit)
+                {
+                    <AppButton OnClick="StartEditAsync">Definir categorías</AppButton>
+                }
+            </Action>
         </EmptyState>
     }
     else
@@ -94,6 +154,10 @@ else if (plan is not null)
                                         <span aria-hidden="true">%</span>
                                     }
                                 </span>
+                            }
+                            else if (!CanEdit)
+                            {
+                                <span>de <MoneyText Amount="c.Assigned" Currency="baseCurrency" /></span>
                             }
                             else
                             {
@@ -144,14 +208,18 @@ else if (plan is not null)
         </ul>
         <p class="plan-legend">
             Barra: gastado (sólido), pendiente (rayado), línea continua el estimado a fin de mes y línea punteada el límite asignado.
-            Haz clic en lo asignado para editarlo: <kbd>Enter</kbd> guarda y <kbd>Esc</kbd> cancela.
+            @if (CanEdit)
+            {
+                <text>Haz clic en lo asignado para editarlo: <kbd>Enter</kbd> guarda y <kbd>Esc</kbd> cancela.</text>
+            }
         </p>
+    }
     }
 
     @if (plan.OutOfPlan.Count > 0)
     {
         <section class="plan-outside" aria-labelledby="plan-outside-title">
-            <h2 id="plan-outside-title">Fuera del plan</h2>
+            <h2 id="plan-outside-title">@(plan.HasPlan ? "Fuera del plan" : "Gasto por categoría")</h2>
             <ul class="home-list">
                 @foreach (var item in plan.OutOfPlan)
                 {
@@ -172,7 +240,19 @@ else if (plan is not null)
 }
 
 <AllocationForm Visible="showEditor" Editor="editor" Rows="editRows" BaseCurrency="baseCurrency"
-                Error="@formError" OnSave="SaveAsync" OnCancel="CloseEditor" />
+                Note="@editorNote" Error="@formError" OnSave="SaveAsync" OnCancel="CloseEditor" />
+
+<PlanForm Visible="showPlanForm" IsNew="@(detailsPlan is null)" Model="planForm" CurrentMonth="CurrentMonth"
+          VersionFrom="@(detailsPlan is { EditCreatesVersion: true } ? CurrentMonth : null)" Plans="plans" Preview="preview"
+          Error="@formError" OnPeriodChanged="RefreshPreviewAsync" OnSave="SavePlanAsync" OnCancel="ClosePlanForm" />
+
+<ConfirmDialog @bind-Visible="showFinish" Title="Finalizar plan" ConfirmText="Finalizar" OnConfirm="FinishAsync">
+    <p>«@SelectedPlan?.Name» se aplicará hasta el final del mes que elijas. Los meses anteriores no cambian.</p>
+    <MonthYearSelect Label="Último mes" @bind-Value="finishMonth" FirstYear="CurrentMonth.Year" />
+</ConfirmDialog>
+
+<ConfirmDialog @bind-Visible="showDelete" Title="Eliminar plan" ConfirmText="Eliminar"
+               Message="@($"Se eliminará «{SelectedPlan?.Name}» y sus asignaciones.")" OnConfirm="DeletePlanAsync" />
 
 @code {
     private bool loading = true;
@@ -185,9 +265,44 @@ else if (plan is not null)
     private Currency baseCurrency = Currency.DOP;
     private PlanStatusDto? plan;
 
+    private List<BudgetPlanDto> plans = new();
+
     private bool showEditor;
     private AllocationEditorDto? editor;
     private List<AllocationRowDto> editRows = new();
+    private int editorPlanId;
+    private string? editorNote;
+
+    // "Nuevo plan" (detailsPlan null) and "Nombre y vigencia".
+    private bool showPlanForm;
+    private BudgetPlanDto? detailsPlan;
+    private PlanFormModel planForm = new();
+    private PlanPeriodPreview? preview;
+
+    private bool showFinish;
+    private DateOnly finishMonth;
+    private bool showDelete;
+
+    /// <summary>How far ahead the page can go when there is no plan further away.</summary>
+    private const int MinMonthsAhead = 1;
+
+    private DateOnly CurrentMonth => new(DateProvider.Today.Year, DateProvider.Today.Month, 1);
+
+    private bool IsPastMonth => new DateOnly(year, month, 1) < CurrentMonth;
+
+    private string ViewedMonthText => $"{UiLabels.MonthName(month).ToLower()} {year}";
+
+    private BudgetPlanDto? SelectedPlan => plans.FirstOrDefault(p => p.Id == plan?.PlanId);
+
+    // Past months are history: they are shown as they were evaluated.
+    private bool CanEdit => !loading && !IsPastMonth && SelectedPlan is { IsPast: false };
+
+    // The navigation reaches every month where some plan starts or ends.
+    private int MonthsAhead => plans
+        .Select(p => p.EffectiveTo ?? p.EffectiveFrom)
+        .Select(d => (d.Year - CurrentMonth.Year) * 12 + d.Month - CurrentMonth.Month)
+        .Append(MinMonthsAhead)
+        .Max();
 
     // Inline edit of one category's assigned value.
     private int? editingCategoryId;
@@ -203,12 +318,12 @@ else if (plan is not null)
     // The left and right arrows change the month, up to one month after the current one.
     private async Task OnShortcutAsync(ShortcutEventArgs e)
     {
-        if (loading || showEditor || e.Key is not ("ArrowLeft" or "ArrowRight"))
+        if (loading || showEditor || showPlanForm || showFinish || showDelete || e.Key is not ("ArrowLeft" or "ArrowRight"))
             return;
 
         var index = year * 12 + (month - 1) + (e.Key == "ArrowLeft" ? -1 : 1);
         var today = DateProvider.Today;
-        if (index > today.Year * 12 + today.Month)
+        if (index > today.Year * 12 + today.Month - 1 + MonthsAhead)
             return;
 
         e.Handled = true;
@@ -239,6 +354,7 @@ else if (plan is not null)
     private async Task LoadAsync()
     {
         baseCurrency = await CurrencyService.GetBaseCurrencyAsync();
+        plans = await PlanService.GetTimelineAsync();
         plan = await BudgetService.GetPlanStatusAsync(year, month);
     }
 
@@ -285,7 +401,7 @@ else if (plan is not null)
 
     private async Task SaveInlineAsync()
     {
-        if (editingCategoryId is not { } categoryId)
+        if (editingCategoryId is not { } categoryId || plan?.PlanId is not { } planId)
             return;
 
         if (!MoneyParser.TryParse(editText, out var value, out var parseError))
@@ -296,9 +412,9 @@ else if (plan is not null)
 
         try
         {
-            await BudgetService.SetValueAsync(categoryId, value);
+            var savedId = await PlanService.SetValueAsync(planId, categoryId, value);
             CancelInline();
-            message = "Plan guardado.";
+            message = SavedMessage(planId, savedId);
             await LoadAsync();
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
@@ -315,9 +431,21 @@ else if (plan is not null)
         message = null;
         formError = null;
         CancelInline();
+        if (SelectedPlan is not { } selected)
+            return;
+
+        await OpenEditorAsync(selected.Id, selected.EditCreatesVersion);
+    }
+
+    private async Task OpenEditorAsync(int planId, bool createsVersion)
+    {
+        editorPlanId = planId;
+        editorNote = createsVersion
+            ? $"Los cambios aplican desde {UiLabels.MonthYear(CurrentMonth)}; los meses anteriores no cambian."
+            : null;
         await RunAsync(async () =>
         {
-            editor = await BudgetService.GetEditorAsync();
+            editor = await PlanService.GetEditorAsync(planId);
             // Work on copies so cancelling discards the changes.
             editRows = editor.Rows.Select(r => new AllocationRowDto
             {
@@ -346,9 +474,16 @@ else if (plan is not null)
                 IncomeSourceId = r.IncomeSourceId
             }).ToList();
 
-            await BudgetService.SaveAllAsync(inputs);
+            var current = plans.First(p => p.Id == editorPlanId);
+            var savedId = await PlanService.UpdateAsync(editorPlanId, new BudgetPlanInput
+            {
+                Name = current.Name,
+                EffectiveFrom = current.EffectiveFrom,
+                EffectiveTo = current.EffectiveTo,
+                Allocations = inputs
+            });
             showEditor = false;
-            message = "Plan guardado.";
+            message = SavedMessage(editorPlanId, savedId);
             await LoadAsync();
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
@@ -361,6 +496,158 @@ else if (plan is not null)
     {
         showEditor = false;
         formError = null;
+    }
+
+    private string SavedMessage(int planId, int savedId)
+        => planId == savedId
+            ? "Plan guardado."
+            : $"Plan guardado. Los meses anteriores a {UiLabels.MonthYear(CurrentMonth)} no cambian.";
+
+    private async Task StartNewAsync()
+    {
+        ResetMessages();
+        detailsPlan = null;
+        // Looking at a future month without plan suggests starting there.
+        var viewed = new DateOnly(year, month, 1);
+        var start = plan?.HasPlan == false && viewed > CurrentMonth ? viewed : CurrentMonth;
+        planForm = new PlanFormModel
+        {
+            Name = $"Plan {start.Year}",
+            Start = StartOption(start),
+            FromMonth = start,
+            EndMonth = start,
+            CopyFromPlanId = null
+        };
+        await OpenPlanFormAsync();
+    }
+
+    private async Task StartDetailsAsync(BudgetPlanDto selected)
+    {
+        ResetMessages();
+        detailsPlan = selected;
+        planForm = new PlanFormModel
+        {
+            Name = selected.Name,
+            Start = StartOption(selected.EffectiveFrom),
+            FromMonth = selected.EffectiveFrom,
+            HasEnd = selected.EffectiveTo is not null,
+            EndMonth = selected.EffectiveTo is { } end ? new DateOnly(end.Year, end.Month, 1) : CurrentMonth
+        };
+        await OpenPlanFormAsync();
+    }
+
+    private PlanStart StartOption(DateOnly start)
+        => start == CurrentMonth ? PlanStart.ThisMonth
+            : start == CurrentMonth.AddMonths(1) ? PlanStart.NextMonth
+            : PlanStart.FromMonth;
+
+    private async Task OpenPlanFormAsync()
+    {
+        showPlanForm = true;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task RefreshPreviewAsync()
+    {
+        formError = null;
+        try
+        {
+            preview = await PlanService.PreviewAsync(planForm.ToInput(CurrentMonth), detailsPlan?.Id);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            preview = null;
+            formError = ex.Message;
+        }
+    }
+
+    private async Task SavePlanAsync()
+    {
+        formError = null;
+        try
+        {
+            var input = planForm.ToInput(CurrentMonth);
+            if (detailsPlan is { } edited)
+            {
+                var savedId = await PlanService.UpdateAsync(edited.Id, input);
+                showPlanForm = false;
+                message = SavedMessage(edited.Id, savedId);
+                await LoadAsync();
+                return;
+            }
+
+            var notice = preview?.Notice;
+            var newId = await PlanService.CreateAsync(input);
+            showPlanForm = false;
+            message = notice is null ? "Plan creado." : $"Plan creado. {notice}";
+
+            // Show the month where the new plan starts and, if it is empty, ask for its categories.
+            var start = input.EffectiveFrom;
+            (year, month) = (start.Year, start.Month);
+            await LoadAsync();
+            if (input.CopyFromPlanId is null)
+                await OpenEditorAsync(newId, createsVersion: false);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            formError = ex.Message;
+        }
+    }
+
+    private void ClosePlanForm()
+    {
+        showPlanForm = false;
+        formError = null;
+    }
+
+    private void StartFinish(BudgetPlanDto selected)
+    {
+        ResetMessages();
+        var viewed = new DateOnly(year, month, 1);
+        finishMonth = viewed > CurrentMonth ? viewed : CurrentMonth;
+        showFinish = true;
+    }
+
+    private async Task FinishAsync()
+    {
+        if (SelectedPlan is not { } selected)
+            return;
+
+        await RunAsync(async () =>
+        {
+            await PlanService.EndAsync(selected.Id, finishMonth);
+            message = $"El plan terminará en {UiLabels.MonthYear(finishMonth)}.";
+            await LoadAsync();
+        });
+    }
+
+    private async Task DeletePlanAsync()
+    {
+        if (SelectedPlan is not { } selected)
+            return;
+
+        await RunAsync(async () =>
+        {
+            await PlanService.DeleteAsync(selected.Id);
+            message = "Plan eliminado.";
+            await LoadAsync();
+        });
+    }
+
+    private Task ShowPlanAsync(BudgetPlanDto selected)
+    {
+        var target = selected.IsCurrent ? CurrentMonth
+            : selected.IsFuture ? selected.EffectiveFrom
+            : selected.EffectiveTo!.Value;
+        return OnMonthChanged((target.Year, target.Month));
+    }
+
+    private void ResetMessages()
+    {
+        error = null;
+        message = null;
+        formError = null;
+        CancelInline();
     }
 
     private async Task RunAsync(Func<Task> action)

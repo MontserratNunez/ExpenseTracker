@@ -25,6 +25,7 @@ public class DashboardServiceTests
     private readonly FakeRepository<IncomeSource> _sources = new();
     private readonly FakeRepository<OneTimeIncome> _oneTimeIncome = new();
     private readonly FakeRepository<BudgetAllocation> _allocations = new();
+    private readonly FakeBudgetPlanRepository _plans = new();
     private readonly FakeRepository<Goal> _goals = new();
     private readonly FakeDebtRepository _debts = new();
     private readonly FakeExpenseRepository _expenses;
@@ -55,7 +56,7 @@ public class DashboardServiceTests
         var ledger = new MonthlyLedgerService(_expenses, _debts, _currency, _dates);
         _expenseService = new ExpenseService(_expenses, _categories, _currency, ledger, _dates);
         _debtService = new DebtService(_debts, _currency, _dates);
-        _budget = new BudgetService(_allocations, _categories, _sources, _expenses, ledger, _income, _dates);
+        _budget = new BudgetService(_plans, _categories, _expenses, ledger, _income, _dates);
         _goalService = new GoalService(_goals, _categories, _expenses, _currency, _budget, _dates);
         var forecast = new ForecastService(_expenses, _debts, _categories, _currency, _budget, _income, _dates);
         _service = new DashboardService(_income, ledger, _budget, _goalService, forecast, _dates);
@@ -201,7 +202,7 @@ public class DashboardServiceTests
     {
         await AddIncomeAsync(100_000m);
         foreach (var (category, assigned) in new[] { (Food, 10_000m), (Outings, 10_000m), (Services, 10_000m), (Insurance, 10_000m) })
-            await _budget.CreateAsync(new AllocationInput { CategoryId = category, Value = assigned });
+            _plans.Allocate(category, assigned);
 
         await SpendAsync("Super", 9_000m, new DateOnly(2026, 11, 2), Food);        // ~ 50,000 estimated
         await SpendAsync("Cine", 3_000m, new DateOnly(2026, 11, 2), Outings);      // ~ 16,700

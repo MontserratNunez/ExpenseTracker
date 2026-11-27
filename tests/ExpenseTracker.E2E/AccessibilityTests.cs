@@ -56,9 +56,7 @@ public class AccessibilityTests
         await AddExpenseAsync(tab, "Supermercado", "4885.40", "Comida");
         await AddExpenseAsync(tab, "Ahorro mensual", "2000", "Ahorro");
 
-        await tab.GotoAsync("/plan");
-        var plan = Dialog(page, "Editar plan");
-        await Tab.ClickUntilAsync(page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Editar plan" }).First, plan);
+        var plan = await tab.OpenPlanEditorAsync();
         await plan.GetByLabel("Valor de Comida").FillAsync("3000");
         await plan.GetByLabel("Valor de Ahorro").FillAsync("5000");
         await plan.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Guardar plan" }).ClickAsync();
@@ -303,6 +301,11 @@ public class AccessibilityTests
         await Tab.ClickUntilAsync(edit, input);
         await Check("plan con edición en línea");
         await input.PressAsync("Escape");
+
+        var newPlan = Dialog(page, "Nuevo plan");
+        await Tab.ClickUntilAsync(page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Nuevo plan" }), newPlan);
+        await Check("formulario de nuevo plan");
+        await page.Keyboard.PressAsync("Escape");
 
         // Goals: the form with the icon picker; Settings: the category editor with the color and icon pickers.
         await tab.GotoAsync("/metas");

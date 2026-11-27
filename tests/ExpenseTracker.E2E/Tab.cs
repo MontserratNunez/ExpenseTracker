@@ -71,6 +71,30 @@ public sealed class Tab : IAsyncDisposable
 
     public Task GotoAsync(string path) => Page.GotoAsync(_app.BaseUrl + path);
 
+    /// <summary>
+    /// Goes to /plan and opens the category editor. A user without plan creates one first
+    /// (starting this month), which opens the editor right away.
+    /// </summary>
+    public async Task<ILocator> OpenPlanEditorAsync()
+    {
+        await GotoAsync("/plan");
+        var editor = Page.GetByRole(AriaRole.Dialog, new PageGetByRoleOptions { Name = "Editar plan" });
+        var edit = Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Editar plan" });
+        var create = Page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Crear mi plan" });
+        var form = Page.GetByRole(AriaRole.Dialog, new PageGetByRoleOptions { Name = "Nuevo plan" });
+
+        // Only one of the two buttons exists for a given user. Which dialog opens tells which one it was:
+        // checking beforehand fails when the page is being swapped from server-rendered to interactive.
+        await ClickUntilAsync(edit.Or(create).First, editor.Or(form));
+        if (await form.IsVisibleAsync())
+        {
+            await form.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Crear plan" }).ClickAsync();
+            await Assertions.Expect(editor).ToBeVisibleAsync();
+        }
+
+        return editor;
+    }
+
     /// <summary>Registers a brand-new user through the UI and leaves the browser logged in on the home page.</summary>
     /// <summary>Signs out through the user menu at the bottom of the sidebar.</summary>
     public async Task LogoutAsync()

@@ -21,6 +21,7 @@ public static class Icons
     public const string Logout = "box-arrow-right";
     public const string CollapseSidebar = "layout-sidebar";
     public const string BudgetActive = "pie-chart-fill";
+    public const string Plans = "calendar-range";
     public const string SettingsActive = "gear-fill";
     public const string Login = "box-arrow-in-right";
     public const string Register = "person-plus";

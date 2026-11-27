@@ -47,9 +47,7 @@ public class PlanDebtsTests
     private static async Task AssignAsync(Tab tab, params (string Category, string Value)[] rows)
     {
         var page = tab.Page;
-        await tab.GotoAsync("/plan");
-        var dialog = Dialog(page, "Editar plan");
-        await Tab.ClickUntilAsync(page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "Editar plan" }).First, dialog);
+        var dialog = await tab.OpenPlanEditorAsync();
         foreach (var (category, value) in rows)
             await dialog.GetByLabel($"Valor de {category}").FillAsync(value);
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Guardar plan" }).ClickAsync();

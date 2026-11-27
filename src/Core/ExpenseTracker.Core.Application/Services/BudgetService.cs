@@ -15,169 +15,59 @@ public class BudgetService
     /// <summary>Below this many elapsed days, the daily pace of the month is not reliable.</summary>
     private const int MinDaysForPace = 3;
 
-    private readonly IRepository<BudgetAllocation> _allocations;
+    private readonly IBudgetPlanRepository _plans;
     private readonly IRepository<Category> _categories;
-    private readonly IRepository<IncomeSource> _sources;
     private readonly IExpenseRepository _expenses;
     private readonly MonthlyLedgerService _ledger;
     private readonly IncomeService _income;
     private readonly IDateProvider _dateProvider;
 
     public BudgetService(
-        IRepository<BudgetAllocation> allocations,
+        IBudgetPlanRepository plans,
         IRepository<Category> categories,
-        IRepository<IncomeSource> sources,
         IExpenseRepository expenses,
         MonthlyLedgerService ledger,
         IncomeService income,
         IDateProvider dateProvider)
     {
-        _allocations = allocations;
+        _plans = plans;
         _categories = categories;
-        _sources = sources;
         _expenses = expenses;
         _ledger = ledger;
         _income = income;
         _dateProvider = dateProvider;
     }
 
-    // ---------- Allocations (CRUD) ----------
-
-    public async Task<BudgetAllocation> CreateAsync(AllocationInput input)
-    {
-        await ValidateAsync(input);
-        if ((await _allocations.ListAsync(a => a.CategoryId == input.CategoryId)).Count > 0)
-            throw new InvalidOperationException("Esa categoría ya tiene una asignación en el plan.");
-
-        var entity = new BudgetAllocation();
-        Apply(entity, input);
-        await _allocations.AddAsync(entity);
-        return entity;
-    }
-
-    public async Task<BudgetAllocation> UpdateAsync(int id, AllocationInput input)
-    {
-        await ValidateAsync(input);
-
-        var entity = await _allocations.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("La asignación no existe.");
-        if (entity.CategoryId != input.CategoryId
-            && (await _allocations.ListAsync(a => a.CategoryId == input.CategoryId)).Count > 0)
-            throw new InvalidOperationException("Esa categoría ya tiene una asignación en el plan.");
-
-        Apply(entity, input);
-        await _allocations.UpdateAsync(entity);
-        return entity;
-    }
-
-    public async Task DeleteAsync(int id)
-    {
-        var entity = await _allocations.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("La asignación no existe.");
-        await _allocations.DeleteAsync(entity);
-    }
+    // ---------- Assigned amounts ----------
 
     /// <summary>
-    /// Changes only the amount or percentage of a category already in the plan (the inline edit of the Plan page),
-    /// keeping its type and income source. To remove a category from the plan use the plan editor.
+    /// Monthly amount assigned to each category by the plan in force in each month of the range
+    /// (percentages already resolved). The keys are the first day of each month; a month without plan is empty.
     /// </summary>
-    public async Task<BudgetAllocation> SetValueAsync(int categoryId, decimal value)
+    public async Task<Dictionary<DateOnly, Dictionary<int, decimal>>> GetAssignedByMonthAsync(DateOnly from, DateOnly to)
     {
-        var entity = (await _allocations.ListAsync(a => a.CategoryId == categoryId)).FirstOrDefault()
-            ?? throw new InvalidOperationException("Esa categoría no está en el plan.");
-
-        await ValidateAsync(new AllocationInput
-        {
-            CategoryId = categoryId,
-            AllocationType = entity.AllocationType,
-            Value = value,
-            IncomeSourceId = entity.IncomeSourceId
-        });
-
-        entity.Value = value;
-        await _allocations.UpdateAsync(entity);
-        return entity;
-    }
-
-    /// <summary>Data for the "Edit plan" table: every category with its allocation (value 0 = none).</summary>
-    public async Task<AllocationEditorDto> GetEditorAsync()
-    {
-        var categories = await _categories.ListAsync();
-        var allocations = await _allocations.ListAsync();
-        var byCategory = allocations.ToDictionary(a => a.CategoryId);
-
-        var editor = new AllocationEditorDto { IncomeBases = await _income.GetIncomeBasesAsync() };
-        foreach (var category in categories.OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase))
-        {
-            byCategory.TryGetValue(category.Id, out var allocation);
-
-            // Inactive categories only matter if they still have an allocation.
-            if (!category.IsActive && allocation is null)
-                continue;
-
-            editor.Rows.Add(new AllocationRowDto
-            {
-                CategoryId = category.Id,
-                CategoryName = category.Name,
-                CategoryColor = category.Color,
-                IsActive = category.IsActive,
-                AllocationType = allocation?.AllocationType ?? AllocationType.FixedAmount,
-                Value = allocation?.Value ?? 0m,
-                IncomeSourceId = allocation?.IncomeSourceId
-            });
-        }
-
-        return editor;
-    }
-
-    /// <summary>
-    /// Saves the whole plan: a value above 0 creates or updates the category's allocation,
-    /// a value of 0 removes it. Nothing is saved if any row is invalid.
-    /// </summary>
-    public async Task SaveAllAsync(List<AllocationInput> inputs)
-    {
-        if (inputs.GroupBy(i => i.CategoryId).Any(g => g.Count() > 1))
-            throw new ArgumentException("Hay categorías repetidas en el plan.");
-
-        foreach (var input in inputs.Where(i => i.Value > 0))
-            await ValidateAsync(input);
-
-        var existing = (await _allocations.ListAsync()).ToDictionary(a => a.CategoryId);
-        foreach (var input in inputs)
-        {
-            existing.TryGetValue(input.CategoryId, out var current);
-
-            if (input.Value <= 0)
-            {
-                if (current is not null)
-                    await _allocations.DeleteAsync(current);
-            }
-            else if (current is null)
-            {
-                var entity = new BudgetAllocation();
-                Apply(entity, input);
-                await _allocations.AddAsync(entity);
-            }
-            else
-            {
-                Apply(current, input);
-                await _allocations.UpdateAsync(current);
-            }
-        }
-    }
-
-    /// <summary>Monthly amount assigned to each category in the Plan (percentages already resolved).</summary>
-    public async Task<Dictionary<int, decimal>> GetAssignedByCategoryAsync()
-    {
-        var allocations = await _allocations.ListAsync();
-        if (allocations.Count == 0)
-            return new Dictionary<int, decimal>();
-
-        var bases = allocations.Any(a => a.AllocationType == AllocationType.PercentageOfIncome)
+        var plans = await _plans.GetAllWithAllocationsAsync();
+        var bases = plans.Any(p => p.Allocations.Any(a => a.AllocationType == AllocationType.PercentageOfIncome))
             ? await _income.GetIncomeBasesAsync()
             : new IncomeBasesDto();
 
-        return allocations.ToDictionary(a => a.CategoryId, a => ResolveAssigned(a, bases));
+        var result = new Dictionary<DateOnly, Dictionary<int, decimal>>();
+        for (var month = new DateOnly(from.Year, from.Month, 1); month <= to; month = month.AddMonths(1))
+        {
+            var plan = plans.FirstOrDefault(p => p.AppliesTo(month.Year, month.Month));
+            result[month] = plan?.Allocations.ToDictionary(a => a.CategoryId, a => ResolveAssigned(a, bases))
+                            ?? new Dictionary<int, decimal>();
+        }
+
+        return result;
+    }
+
+    /// <summary>Monthly amount assigned to each category by the plan in force today.</summary>
+    public async Task<Dictionary<int, decimal>> GetAssignedByCategoryAsync()
+    {
+        var today = _dateProvider.Today;
+        var byMonth = await GetAssignedByMonthAsync(today, today);
+        return byMonth[new DateOnly(today.Year, today.Month, 1)];
     }
 
     // ---------- Plan status (rule 5.5) ----------
@@ -191,7 +81,8 @@ public class BudgetService
         var daysInMonth = DateTime.DaysInMonth(year, month);
 
         var ledger = await _ledger.GetMonthAsync(year, month);
-        var allocations = await _allocations.ListAsync();
+        var plan = (await _plans.GetAllWithAllocationsAsync()).FirstOrDefault(p => p.AppliesTo(year, month));
+        var allocations = plan?.Allocations ?? new List<BudgetAllocation>();
         var categories = (await _categories.ListAsync()).ToDictionary(c => c.Id);
         var incomeBases = allocations.Any(a => a.AllocationType == AllocationType.PercentageOfIncome)
             ? await _income.GetIncomeBasesAsync()
@@ -205,7 +96,17 @@ public class BudgetService
 
         var dailyHistory = await GetDailyAverageByCategoryAsync(year, month);
 
-        var status = new PlanStatusDto { Year = year, Month = month, Income = income };
+        var status = new PlanStatusDto
+        {
+            Year = year,
+            Month = month,
+            Income = income,
+            HasPlan = plan is not null,
+            PlanId = plan?.Id,
+            PlanName = plan?.Name,
+            PlanFrom = plan?.EffectiveFrom,
+            PlanTo = plan?.EffectiveTo
+        };
 
         foreach (var allocation in allocations)
         {
@@ -266,7 +167,7 @@ public class BudgetService
 
         status.TotalAssigned = status.Categories.Sum(c => c.Assigned);
         status.Unassigned = income - status.TotalAssigned;
-        status.IsOverAssigned = status.TotalAssigned > income;
+        status.IsOverAssigned = plan is not null && status.TotalAssigned > income;
         status.AssignedPercentOfIncome = income > 0 ? Math.Round(status.TotalAssigned / income * 100m, 1) : 0m;
         status.TotalSpent = ledger.Where(i => i.Status == LedgerStatus.Spent).Sum(i => i.AmountInBase);
         status.TotalPending = ledger.Where(i => i.Status == LedgerStatus.Pending).Sum(i => i.AmountInBase);
@@ -334,31 +235,5 @@ public class BudgetService
         return history
             .GroupBy(e => e.CategoryId)
             .ToDictionary(g => g.Key, g => g.Sum(e => e.AmountInBase) / days);
-    }
-
-    private async Task ValidateAsync(AllocationInput input)
-    {
-        if (!Enum.IsDefined(input.AllocationType))
-            throw new ArgumentException("El tipo de asignación no es válido.");
-        if (input.Value <= 0)
-            throw new ArgumentException("El valor debe ser mayor que cero.");
-        if (input.AllocationType == AllocationType.PercentageOfIncome && input.Value > 100)
-            throw new ArgumentException("El porcentaje no puede superar 100.");
-
-        if (await _categories.GetByIdAsync(input.CategoryId) is null)
-            throw new InvalidOperationException("La categoría no existe.");
-
-        if (input.AllocationType == AllocationType.PercentageOfIncome && input.IncomeSourceId is { } sourceId
-            && await _sources.GetByIdAsync(sourceId) is null)
-            throw new InvalidOperationException("La fuente de ingreso no existe.");
-    }
-
-    private static void Apply(BudgetAllocation entity, AllocationInput input)
-    {
-        entity.CategoryId = input.CategoryId;
-        entity.AllocationType = input.AllocationType;
-        entity.Value = input.Value;
-        // The source only applies to percentages.
-        entity.IncomeSourceId = input.AllocationType == AllocationType.PercentageOfIncome ? input.IncomeSourceId : null;
     }
 }

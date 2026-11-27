@@ -5,6 +5,7 @@ namespace ExpenseTracker.Core.Domain.Entities;
 
 public class BudgetAllocation : UserOwnedEntity
 {
+    public int BudgetPlanId { get; set; }
     public int CategoryId { get; set; }
     public Category? Category { get; set; }
     public AllocationType AllocationType { get; set; }

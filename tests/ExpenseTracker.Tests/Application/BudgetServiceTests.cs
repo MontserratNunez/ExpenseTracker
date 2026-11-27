@@ -22,6 +22,7 @@ public class BudgetServiceTests
     private readonly FakeRepository<IncomeSource> _sources = new();
     private readonly FakeRepository<OneTimeIncome> _oneTime = new();
     private readonly FakeRepository<BudgetAllocation> _allocations = new();
+    private readonly FakeBudgetPlanRepository _plans = new();
     private readonly FakeDebtRepository _debts = new();
     private readonly FakeExpenseRepository _expenses;
     private readonly FixedDateProvider _dates = new(new DateOnly(2026, 11, 10));
@@ -47,7 +48,7 @@ public class BudgetServiceTests
         var ledger = new MonthlyLedgerService(_expenses, _debts, currency, _dates);
         _expenseService = new ExpenseService(_expenses, _categories, currency, ledger, _dates);
         _debtService = new DebtService(_debts, currency, _dates);
-        _service = new BudgetService(_allocations, _categories, _sources, _expenses, ledger, _income, _dates);
+        _service = new BudgetService(_plans, _categories, _expenses, ledger, _income, _dates);
     }
 
     private Task AddSalaryAsync(string name, decimal amount)
@@ -55,11 +56,6 @@ public class BudgetServiceTests
 
     private Task SpendAsync(string name, decimal amount, DateOnly date, int category = Food)
         => _expenseService.CreateAsync(new ExpenseInput { Name = name, Amount = amount, Date = date, CategoryId = category });
-
-    private static AllocationInput Fixed(int category, decimal value) => new() { CategoryId = category, AllocationType = AllocationType.FixedAmount, Value = value };
-
-    private static AllocationInput Percent(int category, decimal value, int? source = null)
-        => new() { CategoryId = category, AllocationType = AllocationType.PercentageOfIncome, Value = value, IncomeSourceId = source };
 
     private async Task<CategoryPlanDto> FoodStatusAsync(int year = 2026, int month = 11)
         => (await _service.GetPlanStatusAsync(year, month)).Categories.Single(c => c.CategoryId == Food);
@@ -70,9 +66,9 @@ public class BudgetServiceTests
     public async Task Assigned_MatchesEnunciadoExample_FixedAndPercentOfSalary()
     {
         await AddSalaryAsync("Sueldo trabajo", 50_000m);
-        await _service.CreateAsync(Fixed(Food, 10_000m));
-        await _service.CreateAsync(Fixed(Outings, 5_000m));
-        await _service.CreateAsync(Percent(Savings, 10m, source: 1));
+        _plans.Allocate(Food, 10_000m);
+        _plans.Allocate(Outings, 5_000m);
+        _plans.Allocate(Savings, 10m, AllocationType.PercentageOfIncome, 1);
 
         var plan = await _service.GetPlanStatusAsync(2026, 11);
 
@@ -87,8 +83,8 @@ public class BudgetServiceTests
     {
         await AddSalaryAsync("Sueldo trabajo", 50_000m);
         await AddSalaryAsync("Sueldo universidad", 10_000m);
-        await _service.CreateAsync(Percent(Savings, 10m));            // 10% of 60,000
-        await _service.CreateAsync(Percent(Pets, 10m, source: 2));    // 10% of 10,000
+        _plans.Allocate(Savings, 10m, AllocationType.PercentageOfIncome);            // 10% of 60,000
+        _plans.Allocate(Pets, 10m, AllocationType.PercentageOfIncome, 2);    // 10% of 10,000
 
         var plan = await _service.GetPlanStatusAsync(2026, 11);
 
@@ -100,7 +96,7 @@ public class BudgetServiceTests
     public async Task Summary_ShowsAssignedPercentOfIncome_AndUnassigned()
     {
         await AddSalaryAsync("Sueldo", 60_000m);
-        await _service.CreateAsync(Fixed(Food, 30_000m));
+        _plans.Allocate(Food, 30_000m);
 
         var plan = await _service.GetPlanStatusAsync(2026, 11);
 
@@ -114,8 +110,8 @@ public class BudgetServiceTests
     public async Task Summary_AssigningMoreThanIncome_RaisesWarning()
     {
         await AddSalaryAsync("Sueldo", 65_000m);
-        await _service.CreateAsync(Fixed(Food, 40_000m));
-        await _service.CreateAsync(Fixed(Outings, 30_000m));
+        _plans.Allocate(Food, 40_000m);
+        _plans.Allocate(Outings, 30_000m);
 
         var plan = await _service.GetPlanStatusAsync(2026, 11);
 
@@ -128,7 +124,7 @@ public class BudgetServiceTests
     [Fact]
     public async Task Available_IsAssignedMinusSpentMinusPending()
     {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
+        _plans.Allocate(Food, 10_000m);
         await SpendAsync("Super", 3_000m, new DateOnly(2026, 11, 5));
         await _expenseService.CreateAsync(new ExpenseInput
         {
@@ -148,7 +144,7 @@ public class BudgetServiceTests
     [Fact]
     public async Task Estimate_FoodWith5585SpentOnDay10_IsAbout16756_AndRed()
     {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
+        _plans.Allocate(Food, 10_000m);
         await SpendAsync("Supermercado", 4_885.40m, new DateOnly(2026, 11, 3));
         await SpendAsync("Supermercado", 700m, new DateOnly(2026, 11, 10));
 
@@ -163,7 +159,7 @@ public class BudgetServiceTests
     [Fact]
     public async Task Estimate_RecurringPendingIsAddedWithoutBeingExtrapolated()
     {
-        await _service.CreateAsync(Fixed(Food, 20_000m));
+        _plans.Allocate(Food, 20_000m);
         await SpendAsync("Super", 1_000m, new DateOnly(2026, 11, 5));
         await _expenseService.CreateAsync(new ExpenseInput
         {
@@ -181,7 +177,7 @@ public class BudgetServiceTests
     public async Task Estimate_EarlyInTheMonth_UsesThreeMonthDailyAverage()
     {
         _dates.Today = new DateOnly(2026, 11, 2);
-        await _service.CreateAsync(Fixed(Food, 10_000m));
+        _plans.Allocate(Food, 10_000m);
         // Aug (31) + Sep (30) + Oct (31) = 92 days; 9,200 spent -> 100 per day
         await SpendAsync("Agosto", 3_000m, new DateOnly(2026, 8, 10));
         await SpendAsync("Septiembre", 3_200m, new DateOnly(2026, 9, 10));
@@ -197,7 +193,7 @@ public class BudgetServiceTests
     [Fact]
     public async Task Estimate_PastMonth_IsJustSpentPlusPending()
     {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
+        _plans.Allocate(Food, 10_000m);
         await SpendAsync("Super", 4_000m, new DateOnly(2026, 10, 15));
 
         var food = await FoodStatusAsync(2026, 10);
@@ -209,7 +205,7 @@ public class BudgetServiceTests
     [Fact]
     public async Task Estimate_FutureMonth_UsesHistoricDailyAverageForTheWholeMonth()
     {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
+        _plans.Allocate(Food, 10_000m);
         // Aug-Oct 2026 = 92 days, 9,200 spent -> 100 per day; December has 31 days
         await SpendAsync("Agosto", 9_200m, new DateOnly(2026, 9, 1));
 
@@ -229,7 +225,7 @@ public class BudgetServiceTests
     [InlineData(1_000, PlanHealth.Green)]
     public async Task Health_FollowsThresholdsOnEstimateVersusAssigned(int spentInClosedMonth, PlanHealth expected)
     {
-        await _service.CreateAsync(Fixed(Food, 20_000m));
+        _plans.Allocate(Food, 20_000m);
         await SpendAsync("Gasto", spentInClosedMonth, new DateOnly(2026, 10, 15));
 
         Assert.Equal(expected, (await FoodStatusAsync(2026, 10)).Health);
@@ -240,7 +236,7 @@ public class BudgetServiceTests
     [Fact]
     public async Task OutOfPlan_GroupsSpendingInCategoriesWithoutAllocation_IncludingDebts()
     {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
+        _plans.Allocate(Food, 10_000m);
         await SpendAsync("Super", 1_000m, new DateOnly(2026, 11, 5), Food);
         await SpendAsync("Correa", 400m, new DateOnly(2026, 11, 6), Pets);
         await _debtService.CreateAsync(new DebtInput
@@ -261,7 +257,7 @@ public class BudgetServiceTests
     [Fact]
     public async Task TotalEstimated_AddsPlanEstimatesAndOutOfPlanSpending()
     {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
+        _plans.Allocate(Food, 10_000m);
         await SpendAsync("Super", 1_000m, new DateOnly(2026, 11, 5), Food);    // 1,000 / 10 x 30 = 3,000
         await SpendAsync("Correa", 400m, new DateOnly(2026, 11, 6), Pets);
 
@@ -271,136 +267,17 @@ public class BudgetServiceTests
         Assert.Equal(1_400m, plan.TotalSpent);
     }
 
-    // ---------- CRUD and editor ----------
-
-    [Fact]
-    public async Task Create_SecondAllocationForTheSameCategory_Throws()
-    {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateAsync(Fixed(Food, 5_000m)));
-    }
-
-    [Fact]
-    public async Task Create_InvalidValues_Throw()
-    {
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(Fixed(Food, 0m)));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(Percent(Food, 101m)));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateAsync(Fixed(99, 100m)));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateAsync(Percent(Food, 10m, source: 77)));
-    }
-
-    [Fact]
-    public async Task Create_FixedAmount_IgnoresIncomeSource()
-    {
-        await AddSalaryAsync("Sueldo", 50_000m);
-        var input = Fixed(Food, 1_000m);
-        input.IncomeSourceId = 1;
-
-        var created = await _service.CreateAsync(input);
-
-        Assert.Null(created.IncomeSourceId);
-    }
-
-    [Fact]
-    public async Task Update_And_Delete_Work()
-    {
-        var created = await _service.CreateAsync(Fixed(Food, 10_000m));
-
-        await _service.UpdateAsync(created.Id, Fixed(Food, 12_000m));
-        Assert.Equal(12_000m, _allocations.Items.Single().Value);
-
-        await _service.DeleteAsync(created.Id);
-        Assert.Empty(_allocations.Items);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.DeleteAsync(created.Id));
-    }
-
-    [Fact]
-    public async Task Editor_ListsCategoriesWithTheirAllocations_AndIncomeBases()
-    {
-        await AddSalaryAsync("Sueldo trabajo", 50_000m);
-        await _service.CreateAsync(Fixed(Food, 10_000m));
-        _categories.Items.Single(c => c.Id == Pets).IsActive = false;
-
-        var editor = await _service.GetEditorAsync();
-
-        Assert.Equal(3, editor.Rows.Count); // inactive Mascotas without allocation is hidden
-        Assert.Equal(10_000m, editor.Rows.Single(r => r.CategoryId == Food).Value);
-        Assert.Equal(0m, editor.Rows.Single(r => r.CategoryId == Savings).Value);
-        Assert.Equal(50_000m, editor.IncomeBases.RecurringTotal);
-        Assert.Equal("Sueldo trabajo", Assert.Single(editor.IncomeBases.Sources).Name);
-    }
-
-    [Fact]
-    public async Task SaveAll_UpsertsPositiveValues_AndRemovesZeroOnes()
-    {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
-        await _service.CreateAsync(Fixed(Outings, 5_000m));
-
-        await _service.SaveAllAsync(new List<AllocationInput>
-        {
-            Fixed(Food, 12_000m),     // update
-            Fixed(Outings, 0m),       // remove
-            Fixed(Savings, 3_000m),   // create
-            Fixed(Pets, 0m)           // nothing to remove
-        });
-
-        Assert.Equal(2, _allocations.Items.Count);
-        Assert.Equal(12_000m, _allocations.Items.Single(a => a.CategoryId == Food).Value);
-        Assert.Equal(3_000m, _allocations.Items.Single(a => a.CategoryId == Savings).Value);
-    }
-
-    [Fact]
-    public async Task SaveAll_WithAnInvalidRow_SavesNothing()
-    {
-        await _service.CreateAsync(Fixed(Food, 10_000m));
-
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.SaveAllAsync(new List<AllocationInput>
-        {
-            Fixed(Food, 99_999m),
-            Percent(Savings, 150m)
-        }));
-
-        Assert.Equal(10_000m, _allocations.Items.Single().Value);
-    }
-
-    [Fact]
-    public async Task SetValue_ChangesOnlyTheValue_KeepingTypeAndSource()
-    {
-        await AddSalaryAsync("Sueldo", 50_000m);
-        await _service.CreateAsync(Percent(Savings, 10m, source: 1));
-
-        await _service.SetValueAsync(Savings, 12m);
-
-        var allocation = _allocations.Items.Single();
-        Assert.Equal(12m, allocation.Value);
-        Assert.Equal(AllocationType.PercentageOfIncome, allocation.AllocationType);
-        Assert.Equal(1, allocation.IncomeSourceId);
-        Assert.Equal(6_000m, (await _service.GetAssignedByCategoryAsync())[Savings]);
-    }
-
-    [Fact]
-    public async Task SetValue_Rejects_ZeroAnOverHundredPercentAndACategoryOutsideThePlan()
-    {
-        await AddSalaryAsync("Sueldo", 50_000m);
-        await _service.CreateAsync(Percent(Savings, 10m));
-        await _service.CreateAsync(Fixed(Food, 10_000m));
-
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.SetValueAsync(Food, 0m));
-        await Assert.ThrowsAsync<ArgumentException>(() => _service.SetValueAsync(Savings, 101m));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.SetValueAsync(Pets, 500m));
-        Assert.Equal(10m, _allocations.Items.Single(a => a.CategoryId == Savings).Value);
-    }
+    // ---------- Income sources ----------
 
     [Fact]
     public async Task IncomeSource_UsedByAnAllocation_CannotBeDeleted()
     {
         await AddSalaryAsync("Sueldo", 50_000m);
-        var allocation = await _service.CreateAsync(Percent(Savings, 10m, source: 1));
+        await _allocations.AddAsync(new BudgetAllocation { CategoryId = Savings, IncomeSourceId = 1 });
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _income.DeleteSourceAsync(1));
 
-        await _service.DeleteAsync(allocation.Id);
+        await _allocations.DeleteAsync(_allocations.Items.Single());
         await _income.DeleteSourceAsync(1);
         Assert.Empty(_sources.Items);
     }

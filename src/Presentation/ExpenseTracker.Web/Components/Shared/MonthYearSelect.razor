@@ -1,0 +1,38 @@
+@using ExpenseTracker.Web.Services
+
+@* A month and a year as two selects (type="month" is not supported by every browser). The value is the first day of the month. *@
+<div class="month-year">
+    <select class="field field--sm" aria-label="@Label: mes" value="@Value.Month" @onchange="e => ChangeAsync(Value.Year, ToInt(e, Value.Month))">
+        @for (var m = 1; m <= 12; m++)
+        {
+            <option value="@m">@UiLabels.MonthName(m)</option>
+        }
+    </select>
+    <select class="field field--sm" aria-label="@Label: año" value="@Value.Year" @onchange="e => ChangeAsync(ToInt(e, Value.Year), Value.Month)">
+        @for (var y = Math.Min(FirstYear, Value.Year); y <= Math.Max(FirstYear + 5, Value.Year); y++)
+        {
+            <option value="@y">@y</option>
+        }
+    </select>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public DateOnly Value { get; set; }
+
+    [Parameter]
+    public EventCallback<DateOnly> ValueChanged { get; set; }
+
+    /// <summary>What is being chosen, read by screen readers before "mes" and "año".</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>First year offered; five more follow it.</summary>
+    [Parameter, EditorRequired]
+    public int FirstYear { get; set; }
+
+    private static int ToInt(ChangeEventArgs e, int fallback)
+        => int.TryParse(e.Value?.ToString(), out var value) ? value : fallback;
+
+    private Task ChangeAsync(int year, int month) => ValueChanged.InvokeAsync(new DateOnly(year, month, 1));
+}

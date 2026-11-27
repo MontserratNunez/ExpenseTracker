@@ -22,7 +22,7 @@ public class BudgetAllocationConfiguration : IEntityTypeConfiguration<BudgetAllo
             .HasForeignKey(e => e.IncomeSourceId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // At most one allocation per category.
-        builder.HasIndex(e => new { e.UserId, e.CategoryId }).IsUnique();
+        // At most one allocation per category in each plan.
+        builder.HasIndex(e => new { e.BudgetPlanId, e.CategoryId }).IsUnique();
     }
 }

@@ -6,6 +6,10 @@
         @if (Editor is not null)
         {
             <ErrorAlert Message="@Error" />
+            @if (Note is not null)
+            {
+                <InlineAlert Tone="InlineAlert.AlertTone.Warning">@Note</InlineAlert>
+            }
             <p class="form-field__hint">
                 Define cuánto quieres gastar por categoría. Un valor de 0 quita la categoría del plan.
                 Con porcentaje se usa el ingreso de la fuente elegida o, si no eliges ninguna, el total de tus ingresos recurrentes
@@ -108,6 +112,10 @@
 
     [Parameter]
     public string? Error { get; set; }
+
+    /// <summary>Warns which months the changes will reach.</summary>
+    [Parameter]
+    public string? Note { get; set; }
 
     [Parameter]
     public EventCallback OnSave { get; set; }

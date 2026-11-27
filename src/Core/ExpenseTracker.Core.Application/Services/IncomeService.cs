@@ -67,7 +67,7 @@ public class IncomeService
 
         // Plan allocations can be a percentage of this source; the database would reject the delete.
         if ((await _allocations.ListAsync(a => a.IncomeSourceId == id)).Count > 0)
-            throw new InvalidOperationException("La fuente se usa en el Plan. Cambie esa asignación antes de eliminarla.");
+            throw new InvalidOperationException("La fuente se usa en un plan y no se puede eliminar. Para que deje de contar, póngale fecha de fin.");
 
         await _sources.DeleteAsync(entity);
     }
